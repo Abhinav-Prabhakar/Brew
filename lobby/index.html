@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>brew · Lobby</title>
+<meta name="description" content="brew — a cozy, playable 3D cafe for independent coffee shops. The lobby.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700;9..40,800&family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,0..100;1,9..144,300..900,0..100&family=Nunito:wght@600;700;800;900&family=Space+Mono:wght@400;700&family=VT323&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+  "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+  "postprocessing": "https://cdn.jsdelivr.net/npm/postprocessing@6.35.3/build/index.js",
+  "n8ao": "https://cdn.jsdelivr.net/npm/n8ao@1.8.1/dist/N8AO.js"
+} }
+</script>
+</head>
+<body>
+
+<div id="app">
+  <!-- the 3D cafe -->
+  <div id="stage"></div>
+  <div id="anchors" aria-hidden="true"></div>
+  <div id="fx"></div>
+
+  <!-- ===================== HUD (glass) ===================== -->
+  <header id="hud" class="glass" aria-label="Cafe status">
+    <div class="hud-brand"><span class="logo">brew</span><span class="room-chip"><i></i>Lobby</span></div>
+    <div class="hud-sep"></div>
+    <div class="hud-group">
+      <div class="chip clock" title="Cafe clock">
+        <svg viewBox="0 0 24 24" class="ico"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path id="clock-hand-h" d="M12 12 V7.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path id="clock-hand-m" d="M12 12 L15.6 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <div class="stack"><span class="big"><b id="hud-time">8:00</b><small id="hud-ampm">AM</small></span><span class="sub" id="hud-day">Sat · Day 1</span></div>
+      </div>
+      <div class="chip weather" title="Weather outside">
+        <span class="wx-ico" id="hud-wx-ico"></span>
+        <div class="stack"><span class="big"><b id="hud-temp">27°</b></span><span class="sub" id="hud-wx">Sunny</span></div>
+      </div>
+    </div>
+    <div class="hud-sep"></div>
+    <div class="hud-group">
+      <div class="chip money" title="Cash in drawer"><div class="stack"><span class="sub">Cash</span><span class="big"><b id="hud-cash">₹18,450</b></span></div></div>
+      <div class="chip money profit" title="Today's profit"><div class="stack"><span class="sub">Today</span><span class="big"><b id="hud-profit">+₹0</b></span></div></div>
+      <div class="chip rating" title="Average rating"><div class="stack"><span class="sub">Rating <em id="hud-rating">4.62</em></span><div class="stars" id="hud-stars"></div></div></div>
+    </div>
+    <div class="hud-sep"></div>
+    <div class="hud-group">
+      <div class="speed" role="group" aria-label="Simulation speed">
+        <i class="speed-thumb"></i>
+        <button data-speed="0" aria-label="Pause"><svg viewBox="0 0 12 12"><rect x="2.5" y="2" width="2.6" height="8" rx="1" fill="currentColor"/><rect x="6.9" y="2" width="2.6" height="8" rx="1" fill="currentColor"/></svg></button>
+        <button data-speed="1" class="on" aria-label="Normal speed">1×</button>
+        <button data-speed="10" aria-label="10 times speed">10×</button>
+        <button data-speed="60" aria-label="60 times speed">60×</button>
+      </div>
+      <div class="policy-wrap">
+        <button class="chip policy" id="policy-btn" aria-haspopup="listbox"><div class="stack"><span class="sub">Policy</span><span class="big"><b id="policy-name">Balanced</b></span></div><svg viewBox="0 0 12 12" class="chev"><path d="M3 4.5 L6 7.5 L9 4.5" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg></button>
+        <ul class="policy-menu glass" id="policy-menu" role="listbox"></ul>
+      </div>
+      <button class="icon-btn" id="mute-btn" aria-label="Toggle sound">
+        <svg viewBox="0 0 24 24"><path d="M4 9.5 H8 L13 5 V19 L8 14.5 H4Z" fill="currentColor"/><path class="wave" d="M16 8.5 C18 10.5 18 13.5 16 15.5 M18.6 6 C22 9.4 22 14.6 18.6 18" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/><path class="x" d="M16.5 9.5 L21 14 M21 9.5 L16.5 14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div id="toasts" aria-live="polite"></div>
+
+  <div id="coach" class="glass">
+    <span class="coach-ico">✦</span>
+    <span><b>Tap a ready ticket</b> to serve it · tap a queued one to bump it · open the <b>menu book</b> · peek in the <b>fridge</b> · drag to look around · <kbd>Space</kbd> pause</span>
+  </div>
+
+  <!-- reading the menu book -->
+  <div id="book-ui" hidden>
+    <button class="glass pill-btn" id="mo-close"><span>‹</span> Back to the lobby <kbd>Esc</kbd></button>
+    <div class="book-bar glass">
+      <button class="round-btn" id="mo-prev" aria-label="Previous page">‹</button>
+      <div class="book-label"><span class="live"><i></i>Live menu</span><b id="mo-page">Cover</b></div>
+      <button class="round-btn" id="mo-next" aria-label="Next page">›</button>
+    </div>
+    <p class="book-hint glass">Drag a page corner to turn it — flick to fling it over.</p>
+  </div>
+
+  <!-- loading -->
+  <div id="loading"><div class="glass load-card"><span class="logo">brew</span><span class="load-bar"><i id="load-fill"></i></span><span id="load-msg">Warming up the espresso machine…</span></div></div>
+
+  <!-- opening card -->
+  <div id="intro" hidden>
+    <div class="intro-card glass">
+      <div class="intro-sign" id="intro-sign">
+        <i class="string"></i>
+        <div class="sign-board"><span class="front">CLOSED</span><span class="back">OPEN</span></div>
+      </div>
+      <h1>brew</h1>
+      <p class="tag">Your independent cafe, as a cozy little game.</p>
+      <p class="sub">Orders slide onto the rail, the kitchen brews, riders come and go.<br>Keep the tickets moving and the patience rings pink.</p>
+      <button id="open-btn" class="open-btn">Flip the sign &amp; open up</button>
+      <p class="fine">Sound on · <kbd>Space</kbd> pause · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> speed · <kbd>M</kbd> menu · <kbd>F</kbd> fridge</p>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="js/boot.js"></script>
+<script type="module" src="js/art.js"></script>
+<script type="module" src="js/audio.js"></script>
+<script type="module" src="js/core.js"></script>
+<script type="module" src="js/gfx.js"></script>
+<script type="module" src="js/food.js"></script>
+<script type="module" src="js/world.js"></script>
+<script type="module" src="js/people.js"></script>
+<script type="module" src="js/board.js"></script>
+<script type="module" src="js/tickets.js"></script>
+<script type="module" src="js/printer.js"></script>
+<script type="module" src="js/menubook.js"></script>
+<script type="module" src="js/props.js"></script>
+<script type="module" src="js/customers.js"></script>
+<script type="module" src="js/game.js"></script>
+</body>
+</html>
