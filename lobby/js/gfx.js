@@ -13,8 +13,7 @@
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = T.PCFSoftShadowMap;
   renderer.toneMapping = T.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 0.62;
-  renderer.outputColorSpace = T.SRGBColorSpace;
+    renderer.outputColorSpace = T.SRGBColorSpace;
   stage.appendChild(renderer.domElement);
   G.renderer = renderer;
   G.maxAniso = renderer.capabilities.getMaxAnisotropy();
@@ -42,36 +41,36 @@
   G.rig = rig;
 
   /* ------------------------------------------------------------------ */
-  /* post-processing: MSAA render target → GTAO → bloom → output         */
+  /* post-processing: MSAA → N8AO ambient occlusion → bloom + ACES + vignette */
   /* ------------------------------------------------------------------ */
-  const rt = new T.WebGLRenderTarget(1, 1, { type: T.HalfFloatType, samples: 4 });
-  const composer = new X.EffectComposer(renderer, rt);
+  const PP = X.PP;
+  renderer.toneMapping = T.NoToneMapping;
+  renderer.toneMappingExposure = 0.62;
+  const composer = new PP.EffectComposer(renderer, { frameBufferType: T.HalfFloatType, multisampling: Math.min(4, renderer.capabilities.maxSamples || 4) });
+  composer.addPass(new PP.RenderPass(scene, camera));
   let ao = null;
   try {
-    ao = new X.N8AOPass(scene, camera, 1, 1);
-    Object.assign(ao.configuration, { aoRadius: 0.55, distanceFalloff: 0.6, intensity: 2.2, color: new T.Color('#4a1a2c'), gammaCorrection: false, halfRes: false });
+    ao = new X.N8AOPostPass(scene, camera, 1, 1);
+    Object.assign(ao.configuration, { aoRadius: 0.6, distanceFalloff: 0.7, intensity: 2.4, color: new T.Color('#3a1424'), gammaCorrection: false });
     ao.setQualityMode('Medium');
     composer.addPass(ao);
-  } catch (e) {
-    console.warn('N8AO unavailable, falling back', e);
-    composer.addPass(new X.RenderPass(scene, camera));
-  }
+  } catch (e) { console.warn('N8AO unavailable', e); }
   G.ao = ao;
-  const bloom = new X.UnrealBloomPass(new T.Vector2(1, 1), 0.42, 0.55, 0.86);
-  composer.addPass(bloom);
-  composer.addPass(new X.OutputPass());
-  const smaa = new X.SMAAPass(1, 1);
-  composer.addPass(smaa);
+  const bloom = new PP.BloomEffect({ intensity: 0.55, luminanceThreshold: 0.82, luminanceSmoothing: 0.18, mipmapBlur: true, radius: 0.72 });
+  const tone = new PP.ToneMappingEffect({ mode: PP.ToneMappingMode.ACES_FILMIC });
+  const vignette = new PP.VignetteEffect({ offset: 0.32, darkness: 0.42 });
+  const grade = new PP.BrightnessContrastEffect({ brightness: 0.0, contrast: 0.04 });
+  const sat = new PP.HueSaturationEffect({ saturation: 0.06 });
+  composer.addPass(new PP.EffectPass(camera, bloom, tone, grade, sat, vignette));
   G.bloom = bloom;
+  G.tone = tone;
   G.composer = composer;
+  G.exposure = 1;
 
   function resize() {
     const w = window.innerWidth, h = window.innerHeight;
     renderer.setSize(w, h);
     composer.setSize(w, h);
-    if (ao) ao.setSize(w, h);
-    bloom.setSize(w / 2, h / 2);
-    smaa.setSize(w * renderer.getPixelRatio(), h * renderer.getPixelRatio());
     camera.aspect = w / h;
     // keep the horizontal field of view stable on narrow screens
     const baseV = 36, baseAspect = 16 / 9;
@@ -457,8 +456,8 @@
     key.color.copy(C('#fff4ec')).lerp(C('#ffe2c4'), night * 0.6);
     hemi.intensity = 0.22 + day * 0.14;
     hemi.color.copy(C('#fff3f5')).lerp(C('#c9c2ee'), night * 0.5).lerp(C('#e4e2ee'), grey * 0.5);
-    renderer.toneMappingExposure = 0.62 - night * 0.06;
+    G.exposure = 1 - night * 0.08;
     G.lights.lamps.forEach((l) => (l.intensity = l.userData.base * (0.6 + night * 1.2)));
-    bloom.strength = 0.36 + night * 0.35;
+    bloom.intensity = 0.5 + night * 0.5;
   };
 })();
