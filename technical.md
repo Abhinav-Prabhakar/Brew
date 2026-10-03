@@ -239,9 +239,9 @@ Slot interpolation: arrival rate per persona is piecewise-linear between listed 
 ```python
 @dataclass(slots=True, order=True)
 class Ev:
-    t: float  # sim_s
-    prio: int  # lower first at equal t (see PRIO table)
-    seq: int  # insertion counter, tie-breaker
+    t: float          # sim_s
+    prio: int         # lower first at equal t (see PRIO table)
+    seq: int          # insertion counter, tie-breaker
     kind: str = field(compare=False)
     payload: Any = field(compare=False)
 ```
@@ -348,13 +348,12 @@ Rolling (5-min `kpi.tick`) and daily: revenue, net profit, orders by channel, av
 ### 8.1 Interface (`policies/base.py`)
 ```python
 class Policy(Protocol):
-    code: str  # "A".."E"
-
+    code: str                                   # "A".."E"
     def reset(self, world: "WorldView", seed: int) -> None: ...
     def on_manager_tick(self, obs: Observation, view: WorldView) -> ManagerAction: ...
     def accept(self, order: OrderView, view: WorldView) -> AcceptDecision: ...
     def dispatch(self, ready: list[TaskView], view: WorldView) -> list[TaskChoice]: ...
-    def on_day_end(self, view: WorldView) -> DayEndAction: ...  # POs, roster tweaks
+    def on_day_end(self, view: WorldView) -> DayEndAction: ...          # POs, roster tweaks
     def explain(self, decision_id: str) -> Explanation | None: ...
 ```
 - `WorldView` is a **read-only facade** (no mutation possible) built cheaply each call.
