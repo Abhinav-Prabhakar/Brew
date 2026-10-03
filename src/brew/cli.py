@@ -38,10 +38,35 @@ def sim_run(
         counts = write_run(w, out)
         console.print(f"telemetry written to {out}: {counts}, events={sink.count}")
     tbl = Table(title=f"{scenario} policy={policy} seed={seed}  ({dt:.2f}s wall, {w.seq} events)")
-    for c in ("day", "orders", "revenue", "net_profit", "rating", "reneges", "balks", "sla_breach_rate", "waste_inr"):
+    for c in (
+        "day",
+        "orders",
+        "revenue",
+        "net_profit",
+        "rating",
+        "reneges",
+        "balks",
+        "sla_breach_rate",
+        "waste_inr",
+    ):
         tbl.add_column(c)
     for k in w.daily_kpis:
-        tbl.add_row(*(str(k[c]) for c in ("day", "orders", "revenue", "net_profit", "rating", "reneges", "balks", "sla_breach_rate", "waste_inr")))
+        tbl.add_row(
+            *(
+                str(k[c])
+                for c in (
+                    "day",
+                    "orders",
+                    "revenue",
+                    "net_profit",
+                    "rating",
+                    "reneges",
+                    "balks",
+                    "sla_breach_rate",
+                    "waste_inr",
+                )
+            )
+        )
     console.print(tbl)
 
 
@@ -89,7 +114,9 @@ def api_main() -> None:
 
 
 # ----------------------------------------------------------------- brew-synth
-synth_app = typer.Typer(help="Validate and ingest LLM-generated synthetic data.", no_args_is_help=True, add_completion=False)
+synth_app = typer.Typer(
+    help="Validate and ingest LLM-generated synthetic data.", no_args_is_help=True, add_completion=False
+)
 
 
 @synth_app.command("status")
@@ -121,7 +148,9 @@ def synth_validate(
     for c in ("dataset", "files", "rows read", "valid", "errors", "dupes", "clean written"):
         tbl.add_column(c)
     for r in reports:
-        tbl.add_row(r.name, str(r.files), str(r.read), str(r.valid), str(len(r.errors)), str(r.dupes), str(r.written))
+        tbl.add_row(
+            r.name, str(r.files), str(r.read), str(r.valid), str(len(r.errors)), str(r.dupes), str(r.written)
+        )
         for e in r.errors[:20]:
             console.print(f"[red]{e}[/red]")
         for w in r.warnings:
@@ -139,7 +168,9 @@ def synth_main() -> None:
 
 # ------------------------------------------------------------------ brew-seed
 def _seed(
-    database_url: str = typer.Option(None, help="SQLAlchemy URL (default: BREW_DATABASE_URL or data/brew.db)."),
+    database_url: str = typer.Option(
+        None, help="SQLAlchemy URL (default: BREW_DATABASE_URL or data/brew.db)."
+    ),
 ) -> None:
     """Create tables and seed cafe, menu, channels, policies and scenarios in the operational DB."""
     from brew.db.repo import seed_reference_data

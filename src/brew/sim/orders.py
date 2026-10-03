@@ -131,7 +131,9 @@ class Orders:
         u.ing_quality = qmin
         return True
 
-    def commit(self, o: Order, extra_promise: float = 0.0, accept_event: bool = True, announce: bool = True) -> bool:
+    def commit(
+        self, o: Order, extra_promise: float = 0.0, accept_event: bool = True, announce: bool = True
+    ) -> bool:
         """Consume stock, build tasks and announce. Returns False if nothing could be supplied."""
         w = self.w
         keep: list[Unit] = []

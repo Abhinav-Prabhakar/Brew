@@ -15,7 +15,7 @@ def _validate_all(w):
             validate_event(e.type, e.data)
         except KeyError:
             errs.append(f"unknown event type {e.type}")
-        except Exception as ex:  # noqa: BLE001
+        except Exception as ex:
             errs.append(f"{e.type}: {ex}")
             if len(errs) > 5:
                 break
@@ -80,7 +80,11 @@ def test_throttling_rules(day_a):
     # customer.patience only at 60/30/10 %
     assert {e.data["frac"] for e in evs if e.type == "customer.patience"} <= {0.6, 0.3, 0.1}
     # rail.reordered only when it actually changes
-    rails = [(tuple(e.data["order_nos"]), tuple((b["id"], tuple(b["order_nos"])) for b in e.data["batches"])) for e in evs if e.type == "rail.reordered"]
+    rails = [
+        (tuple(e.data["order_nos"]), tuple((b["id"], tuple(b["order_nos"])) for b in e.data["batches"]))
+        for e in evs
+        if e.type == "rail.reordered"
+    ]
     assert all(a != b for a, b in zip(rails, rails[1:], strict=False))
 
 

@@ -16,7 +16,9 @@ def cafe_cfg():
 def small_world():
     """Factory: a World with a ListSink attached (sink exposed as ``world.test_sink``)."""
 
-    def make(seed: int = 7, policy: str = "A", scenario: str = "weekday_normal", days: int = 1, **kw) -> World:
+    def make(
+        seed: int = 7, policy: str = "A", scenario: str = "weekday_normal", days: int = 1, **kw
+    ) -> World:
         sink = ListSink()
         w = World(policy=policy, scenario=scenario, seed=seed, days=days, sink=sink, **kw)
         w.test_sink = sink  # type: ignore[attr-defined]
