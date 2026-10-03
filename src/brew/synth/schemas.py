@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 import string
 from typing import Literal
 
@@ -30,6 +29,21 @@ EXPLANATION_SLOTS = (
     "sku", "item", "category", "old", "new", "delta", "pct", "load", "load_pct", "forecast_delta",
     "temp", "stock", "stock_days", "channel", "queue", "hour", "reason", "qty", "prep_item", "supplier",
     "strategy", "rain", "p90", "wait_min", "orders", "level", "ingredient",
+)  # fmt: skip
+EXPL_FACTORS = (
+    "load", "forecast_delta", "temp", "stock", "queue", "hour", "channel", "rain", "p90", "wait_min", "orders",
+    "strategy", "reason", "price_index", "shelf_life",
+)  # fmt: skip
+KNOWN_ROUTES = (
+    "GET /cafe", "GET /worlds/{id}", "GET /worlds/{id}/state", "GET /worlds/{id}/menu", "GET /worlds/{id}/orders",
+    "GET /worlds/{id}/rail", "GET /worlds/{id}/board", "GET /worlds/{id}/customers", "GET /worlds/{id}/tables",
+    "GET /worlds/{id}/inventory", "GET /worlds/{id}/inventory/{key}/lots", "GET /worlds/{id}/fridge",
+    "GET /worlds/{id}/shelf", "GET /worlds/{id}/staff", "GET /worlds/{id}/equipment", "GET /worlds/{id}/kpis",
+    "GET /worlds/{id}/impact", "GET /worlds/{id}/forecast", "GET /worlds/{id}/decisions", "GET /decisions/{id}/explain",
+    "GET /worlds/{id}/bottlenecks", "GET /worlds/{id}/advisor", "POST /worlds/{id}/invest", "GET /worlds/{id}/reviews",
+    "GET /worlds/{id}/receipts/{order_no}", "POST /worlds/{id}/control", "POST /worlds/{id}/policy",
+    "POST /worlds/{id}/fork", "POST /worlds/{id}/chaos", "POST /worlds/{id}/actions", "POST /arena",
+    "GET /arena/{id}", "GET /models", "GET /health", "GET /worlds", "POST /worlds",
 )  # fmt: skip
 KINDS = (
     "public_holiday",
@@ -162,9 +176,22 @@ class ExplanationRow(_Row):
     @field_validator("template")
     @classmethod
     def _slots(cls, v: str) -> str:
+        n = 0
         for _lit, name, _spec, _conv in string.Formatter().parse(v):
-            if name is not None and name not in EXPLANATION_SLOTS:
-                raise ValueError(f"slot {{{name}}} not in allowed list")
+            if name is not None:
+                n += 1
+                if name not in EXPLANATION_SLOTS:
+                    raise ValueError(f"slot {{{name}}} not in allowed list")
+        if n < 2:
+            raise ValueError("template must use at least two {slots}")
+        return v
+
+    @field_validator("factors")
+    @classmethod
+    def _factors(cls, v: list[str]) -> list[str]:
+        for f in v:
+            if f not in EXPL_FACTORS:
+                raise ValueError(f"factor {f!r} not allowed")
         return v
 
 
@@ -186,8 +213,8 @@ class AskRow(_Row):
     @classmethod
     def _eps(cls, v: list[str]) -> list[str]:
         for e in v:
-            if not re.match(r"^(GET|POST|DELETE) /", e):
-                raise ValueError(f"endpoint {e!r} must look like 'GET /worlds/{{id}}/kpis'")
+            if e not in KNOWN_ROUTES:
+                raise ValueError(f"endpoint {e!r} is not an API route (see the endpoint table)")
         return v
 
 
