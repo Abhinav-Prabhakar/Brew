@@ -380,7 +380,7 @@
     const mat = new T.MeshStandardMaterial({ color: '#ffd2e0', emissive: '#ff4f8a', emissiveMap: tex, alphaMap: tex, transparent: true, emissiveIntensity: 5, roughness: 0.4, depthWrite: false });
     W.neonMat = mat;
     G.m(new T.PlaneGeometry(1.9, 0.74), mat, { parent: neon, cast: false });
-    G.m(G.rbox(2.05, 0.82, 0.02, 0.02), G.glass('#ffffff', { roughness: 0.15, thickness: 0.01 }), { p: [0, 0, -0.02], parent: neon, cast: false });
+    G.m(G.rbox(2.05, 0.82, 0.02, 0.02), new T.MeshPhysicalMaterial({ color: '#ffffff', transparent: true, opacity: 0.05, roughness: 0.05, clearcoat: 1, envMapIntensity: 1.2, depthWrite: false }), { p: [0, 0, -0.02], parent: neon, cast: false });
     [[-0.9, 0.33], [0.9, 0.33], [-0.9, -0.33], [0.9, -0.33]].forEach(([a, b]) => G.m(G.cyl(0.012, 0.012, 0.06, 10), G.metal(), { p: [a, b, -0.03], r: [Math.PI / 2, 0, 0], parent: neon }));
     const glow = new T.PointLight('#ff6fa0', 1.8, 3.5, 1.8);
     glow.position.set(0, 0, 0.4);
@@ -632,6 +632,12 @@
     }
   });
   W.trafficCount = () => traffic.length;
+  // nothing outside may shade the windows — the sun has to reach the floor
+  out.traverse((o) => { if (o.isMesh) o.castShadow = false; });
+  // a veil between the street and the room: night and rain dim the view out
+  const veil = G.m(new T.PlaneGeometry(40, 14), new T.MeshBasicMaterial({ color: '#16183a', transparent: true, opacity: 0, depthWrite: false }), { p: [0, 5, L.wallZ - 0.36], parent: out, cast: false, recv: false });
+  veil.renderOrder = -1;
+  W.veil = veil;
 
   /* ================================================================== */
   /* time of day + weather                                               */
@@ -651,6 +657,10 @@
     lampHeads.forEach((l) => (l.material.emissiveIntensity = night * 6));
     shopMats.forEach((m) => (m.emissiveIntensity = 0.15 + night * 0.9));
     rainLines.material.opacity = wet * 0.55;
+    veil.material.opacity = Math.min(0.78, night * 0.7 + grey * 0.14 + wet * 0.08);
+    veil.material.color.set(C('#16183a').lerp(C('#5d6274'), Math.max(0, grey - night)));
+    glassMat.opacity = 0.08 - night * 0.04;
+    glassMat.color.set(C('#ffffff').lerp(C('#3a3d5c'), night));
     rainGlass.opacity = wet * 0.85;
     roadMat.clearcoat = wet;
     roadMat.color.set(C('#5d5862').lerp(C('#3e3b44'), wet));

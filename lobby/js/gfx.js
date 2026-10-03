@@ -9,7 +9,8 @@
   /* ------------------------------------------------------------------ */
   const stage = B.$('#stage');
   const renderer = new T.WebGLRenderer({ antialias: false, powerPreference: 'high-performance', stencil: false });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  G.maxDpr = Math.min(window.devicePixelRatio, 1.5);
+  renderer.setPixelRatio(G.maxDpr);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = T.PCFSoftShadowMap;
   renderer.toneMapping = T.ACESFilmicToneMapping;
@@ -32,8 +33,8 @@
 
   /* camera rig: base pose + look-around + pointer parallax */
   const rig = {
-    pos: new T.Vector3(0, 2.55, 7.7),
-    target: new T.Vector3(0, 1.32, -3),
+    pos: new T.Vector3(0, 2.42, 7.15),
+    target: new T.Vector3(0, 1.38, -3.6),
     yaw: 0, pitch: 0, // user look-around (radians)
     par: new T.Vector2(), parT: new T.Vector2(),
   };
@@ -51,7 +52,7 @@
   let ao = null;
   try {
     ao = new X.N8AOPostPass(scene, camera, 1, 1);
-    Object.assign(ao.configuration, { aoRadius: 0.6, distanceFalloff: 0.7, intensity: 2.4, color: new T.Color('#3a1424'), gammaCorrection: false });
+    Object.assign(ao.configuration, { aoRadius: 0.6, distanceFalloff: 0.7, intensity: 2.4, color: new T.Color('#3a1424'), gammaCorrection: false, halfRes: true, depthAwareUpsampling: true });
     ao.setQualityMode('Medium');
     composer.addPass(ao);
   } catch (e) { console.warn('N8AO unavailable', e); }
@@ -59,11 +60,12 @@
   const bloom = new PP.BloomEffect({ intensity: 0.55, luminanceThreshold: 0.82, luminanceSmoothing: 0.18, mipmapBlur: true, radius: 0.72 });
   const tone = new PP.ToneMappingEffect({ mode: PP.ToneMappingMode.ACES_FILMIC });
   const vignette = new PP.VignetteEffect({ offset: 0.32, darkness: 0.42 });
-  const grade = new PP.BrightnessContrastEffect({ brightness: 0.0, contrast: 0.04 });
-  const sat = new PP.HueSaturationEffect({ saturation: 0.06 });
+  const grade = new PP.BrightnessContrastEffect({ brightness: -0.015, contrast: 0.09 });
+  const sat = new PP.HueSaturationEffect({ saturation: 0.12 });
   composer.addPass(new PP.EffectPass(camera, bloom, tone, grade, sat, vignette));
   G.bloom = bloom;
   G.tone = tone;
+  G.vignette = vignette;
   G.composer = composer;
   G.exposure = 1;
 
@@ -83,15 +85,15 @@
   /* ------------------------------------------------------------------ */
   /* lights                                                              */
   /* ------------------------------------------------------------------ */
-  const hemi = new T.HemisphereLight('#fff3f5', '#c98a9a', 0.3);
+  const hemi = new T.HemisphereLight('#ffeef2', '#b97888', 0.24);
   scene.add(hemi);
 
   // interior key: big soft "skylight" from above the camera
-  const key = new T.DirectionalLight('#fff4ec', 1.1);
+  const key = new T.DirectionalLight('#fff1e4', 1.2);
   key.position.set(-3.5, 9, 7);
   key.target.position.set(0, 0, -1);
   key.castShadow = true;
-  key.shadow.mapSize.set(4096, 4096);
+  key.shadow.mapSize.set(2048, 2048);
   Object.assign(key.shadow.camera, { left: -10, right: 10, top: 9, bottom: -9, near: 1, far: 30 });
   key.shadow.bias = -0.00025;
   key.shadow.normalBias = 0.02;
@@ -257,7 +259,7 @@
     },
     wallpaper() {
       const S = 512, c = G.canvas(S, S), x = c.getContext('2d');
-      x.fillStyle = '#f7d2da'; x.fillRect(0, 0, S, S);
+      x.fillStyle = '#f4c4d0'; x.fillRect(0, 0, S, S);
       for (let i = 0; i < 8; i++) { x.fillStyle = i % 2 ? 'rgba(255,255,255,.16)' : 'rgba(255,255,255,0)'; x.fillRect(i * 64, 0, 64, S); }
       x.fillStyle = 'rgba(255,255,255,.22)';
       for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) { x.beginPath(); x.arc(i * 64 + 32, j * 64 + (i % 2) * 32, 2.2, 0, 7); x.fill(); }
@@ -274,13 +276,18 @@
   G.mat = (color, o = {}) => {
     const k = color + JSON.stringify(o);
     if (MAT[k]) return MAT[k];
-    const p = Object.assign({ color, roughness: 0.62, metalness: 0, envMapIntensity: o.metalness ? 1 : 0.6 }, o);
+    const p = Object.assign({ color, roughness: 0.62, metalness: 0, envMapIntensity: o.metalness ? 0.8 : 0.36 }, o);
     if (p.normal) { p.normalMap = G.lib(p.normal); p.normalScale = new T.Vector2(p.ns || 0.5, p.ns || 0.5); }
     const { physical, normal, ns, ...rest } = p;
     const m = physical ? new T.MeshPhysicalMaterial(rest) : new T.MeshStandardMaterial(rest);
     return (MAT[k] = m);
   };
-  G.glass = (tint = '#ffffff', o = {}) => G.mat(tint, Object.assign({ physical: true, roughness: 0.04, metalness: 0, transmission: 1, thickness: 0.02, ior: 1.45, transparent: true, envMapIntensity: 1.3, specularIntensity: 1 }, o));
+  /** glass: true transmission in the photo studio; in the live room a reflective
+      transparent shell (transmission would re-render the whole scene every frame) */
+  G.studio = false;
+  G.glass = (tint = '#ffffff', o = {}) => G.studio
+    ? G.mat(tint, Object.assign({ physical: true, roughness: 0.04, metalness: 0, transmission: 1, thickness: 0.02, ior: 1.45, transparent: true, envMapIntensity: 1.3, specularIntensity: 1 }, o))
+    : G.mat(tint, { physical: true, roughness: Math.min(0.08, o.roughness ?? 0.04), metalness: 0, transparent: true, opacity: 0.16, envMapIntensity: 1.6, clearcoat: 1, clearcoatRoughness: 0.04, depthWrite: false, specularIntensity: 1 });
   G.metal = (color = '#d9dce3', rough = 0.22) => G.mat(color, { metalness: 1, roughness: rough });
   G.brass = () => G.mat('#d1a462', { metalness: 1, roughness: 0.28 });
   const GEO = {};
@@ -290,6 +297,50 @@
   G.cap = (r, l, cs = 6, rs = 14) => GEO[`p${r},${l}`] || (GEO[`p${r},${l}`] = new T.CapsuleGeometry(r, l, cs, rs));
   G.tor = (R, r, ts = 16, rs = 40, arc = Math.PI * 2) => GEO[`t${R},${r},${arc}`] || (GEO[`t${R},${r},${arc}`] = new T.TorusGeometry(R, r, ts, rs, arc));
   G.lathe = (pts, seg = 48) => new T.LatheGeometry(pts.map(([x, y]) => new T.Vector2(x, y)), seg);
+
+  /** batch sibling meshes that share a material into one draw call (recursively).
+      Groups keep their transforms, so joints/doors/pivots still animate. */
+  G.mergeChildren = (root) => {
+    let saved = 0;
+    const visit = (node) => {
+      if (node.userData.noMerge) return;
+      const buckets = new Map();
+      node.children.slice().forEach((c) => {
+        if (c.isMesh && !c.isInstancedMesh && !c.isSkinnedMesh && !Array.isArray(c.material) && !c.userData.noMerge && c.visible && c.geometry.attributes.position && c.geometry.attributes.normal && c.geometry.attributes.uv && !c.userData.pick && !c.customDepthMaterial) {
+          const k = c.material.uuid + (c.castShadow ? 'c' : '') + (c.receiveShadow ? 'r' : '') + c.renderOrder;
+          if (!buckets.has(k)) buckets.set(k, []);
+          buckets.get(k).push(c);
+        }
+      });
+      buckets.forEach((list) => {
+        if (list.length < 2) return;
+        const vc = !!list[0].material.vertexColors;
+        const geos = list.map((m) => {
+          m.updateMatrix();
+          let g = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone();
+          g.applyMatrix4(m.matrix);
+          const keep = vc ? ['position', 'normal', 'uv', 'color'] : ['position', 'normal', 'uv'];
+          Object.keys(g.attributes).forEach((a) => { if (!keep.includes(a)) g.deleteAttribute(a); });
+          g.morphAttributes = {};
+          g.clearGroups();
+          return g;
+        });
+        if (vc && geos.some((g) => !g.attributes.color)) return;
+        const merged = X.BufferGeometryUtils.mergeGeometries(geos, false);
+        if (!merged) return;
+        const mesh = new T.Mesh(merged, list[0].material);
+        mesh.castShadow = list[0].castShadow;
+        mesh.receiveShadow = list[0].receiveShadow;
+        mesh.renderOrder = list[0].renderOrder;
+        node.add(mesh);
+        list.forEach((m) => node.remove(m));
+        saved += list.length - 1;
+      });
+      node.children.forEach((c) => { if (!c.isMesh || c.children.length) visit(c); });
+    };
+    visit(root);
+    return saved;
+  };
 
   /** mesh helper: G.m(geo, mat, {p:[x,y,z], r:[x,y,z], s:[..]|n, cast, recv, parent}) */
   G.m = (geo, mat, o = {}) => {
@@ -372,11 +423,14 @@
   const anchors = [];
   const v3 = new T.Vector3();
   G.anchor = (el, obj, off = [0, 0, 0], o = {}) => {
-    B.$('#anchors').appendChild(el);
-    const a = { el, obj, off: new T.Vector3(...off), o };
+    const shell = document.createElement('div');
+    shell.className = 'anc' + (o.cls ? ' ' + o.cls : '');
+    shell.appendChild(el);
+    B.$('#anchors').appendChild(shell);
+    const a = { el: shell, obj, off: new T.Vector3(...off), o };
     anchors.push(a);
     return {
-      remove() { const i = anchors.indexOf(a); if (i >= 0) anchors.splice(i, 1); el.remove(); },
+      remove() { const i = anchors.indexOf(a); if (i >= 0) anchors.splice(i, 1); shell.remove(); },
       a,
     };
   };
@@ -409,6 +463,16 @@
     gsap.to(rig.target, { x: target[0], y: target[1], z: target[2], duration: dur, ease, overwrite: 'auto', onComplete: res });
   });
   G.camHome = (dur) => G.camTo(G.HOME.pos.toArray(), G.HOME.target.toArray(), dur);
+  /* The app is one canvas of rooms: moving between them is a camera move —
+     a View Transition swaps the UI chrome while GSAP pans the camera.
+     Only the lobby exists today; kitchen/storeroom/office slot in here. */
+  G.ROOMS = { lobby: { pos: G.HOME.pos.toArray(), target: G.HOME.target.toArray(), label: 'Lobby' } };
+  G.goRoom = (name, dur = 1.6) => {
+    const r = G.ROOMS[name];
+    if (!r) return Promise.resolve();
+    B.vt(() => { document.body.dataset.room = name; const chip = B.$('.room-chip'); if (chip) chip.lastChild.textContent = r.label; });
+    return G.camTo(r.pos, r.target, dur);
+  };
   G.allowLook = true;
 
   const lookDir = new T.Vector3(), tmp = new T.Vector3();
@@ -430,7 +494,21 @@
   /* ------------------------------------------------------------------ */
   /* main render loop                                                    */
   /* ------------------------------------------------------------------ */
-  let last = performance.now();
+  let last = performance.now(), frameNo = 0;
+  renderer.shadowMap.autoUpdate = false;
+  renderer.shadowMap.needsUpdate = true;
+  // adaptive resolution: trade pixels for frame rate on slower GPUs
+  let acc = 0, frames = 0, cool = 3;
+  function adapt(dt) {
+    acc += dt; frames++;
+    if (acc < 1) return;
+    const fps = frames / acc;
+    acc = 0; frames = 0;
+    if (cool-- > 0) return;
+    const pr = renderer.getPixelRatio();
+    if (fps < 42 && pr > 0.8) { renderer.setPixelRatio(Math.max(0.8, pr - 0.2)); resize(); cool = 2; }
+    else if (fps > 57 && pr < G.maxDpr) { renderer.setPixelRatio(Math.min(G.maxDpr, pr + 0.1)); resize(); cool = 4; }
+  }
   G.time = 0;
   G.render = () => {
     const now = performance.now();
@@ -439,7 +517,11 @@
     G.time += dt;
     updateCamera(dt);
     for (const fn of frameFns) fn(dt, G.time);
+    // shadows refresh at ~half rate; people move slowly enough not to notice
+    frameNo++;
+    renderer.shadowMap.needsUpdate = frameNo % 2 === 0;
     composer.render(dt);
+    adapt(dt);
     updateAnchors();
   };
   G.start = () => gsap.ticker.add(G.render);
@@ -448,16 +530,36 @@
   /* time of day lighting                                                */
   /* ------------------------------------------------------------------ */
   const C = (h) => new T.Color(h);
+  const EXP = 0.6; // global exposure (the pmndrs tone-mapping effect ignores renderer exposure)
+  const envMats = [];
+  G.normalizeEnv = () => scene.traverse((o) => [].concat(o.material || []).forEach((m) => {
+    if (m.envMapIntensity === undefined || m.userData.envBase !== undefined) return;
+    if (m.envMapIntensity === 1 && !(m.metalness > 0.5)) m.envMapIntensity = 0.38;
+    m.userData.envBase = m.envMapIntensity;
+    envMats.push(m);
+  }));
+  let lastEnv = -1;
+  const setEnvScale = (k) => {
+    if (Math.abs(k - lastEnv) < 0.01) return;
+    lastEnv = k;
+    envMats.forEach((m) => (m.envMapIntensity = m.userData.envBase * k));
+  };
   G.setDaylight = ({ day, night, golden, grey, sunX }) => {
-    sun.intensity = 3.0 * day * (1 - grey * 0.85);
+    sun.intensity = 8.5 * day * (1 - grey * 0.9);
     sun.color.copy(C('#fff1dc')).lerp(C('#ffb36b'), golden);
     sun.position.set(-11 + sunX * 22, 4 + day * 6, -18);
-    key.intensity = 0.85 + day * 0.35 - grey * 0.12;
+    key.intensity = 0.95 + day * 0.35 - grey * 0.15;
     key.color.copy(C('#fff4ec')).lerp(C('#ffe2c4'), night * 0.6);
-    hemi.intensity = 0.22 + day * 0.14;
+    hemi.intensity = 0.16 + day * 0.12;
     hemi.color.copy(C('#fff3f5')).lerp(C('#c9c2ee'), night * 0.5).lerp(C('#e4e2ee'), grey * 0.5);
     G.exposure = 1 - night * 0.08;
     G.lights.lamps.forEach((l) => (l.intensity = l.userData.base * (0.6 + night * 1.2)));
+    key.intensity *= 1 - night * 0.6;
+    hemi.intensity *= 1 - night * 0.55;
+    [sun, key, hemi].forEach((l) => (l.intensity *= EXP));
+    setEnvScale(1 - night * 0.62 - grey * 0.12);
+    fill.intensity = 0.25 * EXP;
+    G.lights.lamps.forEach((l) => (l.intensity *= 0.8));
     bloom.intensity = 0.5 + night * 0.5;
   };
 })();

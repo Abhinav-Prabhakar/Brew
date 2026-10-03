@@ -117,8 +117,8 @@
   B.wt = gsap.timeline({ smoothChildTiming: true, autoRemoveChildren: true });
   B.wt.to({}, { duration: 1e7 });
   /** tween on the world clock (scales with speed, stops on pause) */
-  B.tw = (target, vars) => B.wt.to(target, vars, B.wt.time());
-  B.twFrom = (target, from, to) => B.wt.fromTo(target, from, to, B.wt.time());
+  B.tw = (target, vars) => { const tw = gsap.to(target, vars); B.wt.add(tw, B.wt.time()); return tw; };
+  B.twFrom = (target, from, to) => { const tw = gsap.fromTo(target, from, to); B.wt.add(tw, B.wt.time()); return tw; };
 
   /* sim-time scheduler */
   const timers = [];
@@ -136,34 +136,22 @@
     }
   };
 
-  /* ---------- depth projection: ground y → sprite scale ---------- */
-  B.proj = (y) => 0.75 + (y - 440) * 0.00105;
-  B.place = (el, x, y, w, h, extraY = 0) => {
-    const s = B.proj(y);
-    gsap.set(el, { x: x - w / 2, y: y - h + extraY * s, scale: s, zIndex: Math.round(y * 10) });
-  };
-
-  /* ---------- view fitting ---------- */
-  B.view = { scale: 1, left: 0, top: 0 };
-  B.fit = () => {
-    const W = window.innerWidth, H = window.innerHeight;
-    const hud = B.$('#hud').getBoundingClientRect();
-    const topPad = hud.bottom + 10;
-    const availH = H - topPad - 10;
-    const s = Math.min((W - 24) / 1600, availH / 900);
-    const left = (W - 1600 * s) / 2;
-    const top = topPad + Math.max(0, (availH - 900 * s) / 2);
-    Object.assign(B.view, { scale: s, left, top });
-    gsap.set('#camera', { x: left, y: top, scale: s });
-  };
-  /** world coords → screen px */
-  B.w2s = (x, y) => {
-    const r = B.$('#world').getBoundingClientRect();
-    return { x: r.left + (x / 1600) * r.width, y: r.top + (y / 900) * r.height, k: r.width / 1600 };
-  };
   B.elCenter = (el) => {
     const r = el.getBoundingClientRect();
     return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  };
+
+  /** run a DOM change inside a View Transition when possible (never throws) */
+  B.vt = (fn) => {
+    if (document.startViewTransition && document.visibilityState === 'visible') {
+      try {
+        const t = document.startViewTransition(fn);
+        t.ready.catch(() => {});
+        return t.finished.catch(() => {});
+      } catch (e) { /* fall through */ }
+    }
+    fn();
+    return Promise.resolve();
   };
 
   /* ---------- toasts ---------- */
