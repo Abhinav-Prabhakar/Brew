@@ -19,3 +19,5 @@ wandb/
 runs/
 *.log
 .env
+kitchen/assets/_src/
+.shots/
