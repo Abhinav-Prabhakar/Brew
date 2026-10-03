@@ -1,0 +1,6 @@
+{"id": "EXP-FX-000", "decision_type": "price_change", "direction": "up", "factors": ["load", "forecast_delta"], "template": "Raised {item} by Rs{delta}: kitchen {load_pct}% busy and demand running {pct}% above the forecast.", "tone": "crisp"}
+{"id": "EXP-FX-001", "decision_type": "price_change", "direction": "down", "factors": ["load", "hour"], "template": "Dropped {item} to Rs{new} - the {hour} lull leaves the barista idle, so a nudge brings people in.", "tone": "warm"}
+{"id": "EXP-FX-002", "decision_type": "hide_item", "direction": "none", "factors": ["stock"], "template": "Hid {item}: only {stock_days} days of {ingredient} left and the next delivery is late.", "tone": "crisp"}
+{"id": "EXP-FX-003", "decision_type": "prep_start", "direction": "none", "factors": ["forecast_delta", "stock"], "template": "Started {qty} of {prep_item} now because the {hour} rush needs it and stock is thin.", "tone": "warm"}
+{"id": "EXP-FX-004", "decision_type": "throttle", "direction": "none", "factors": ["queue", "channel"], "template": "Paused {channel}: {orders} open delivery orders is more than the kitchen can promise on time.", "tone": "crisp"}
+{"id": "EXP-FX-005", "decision_type": "strategy_switch", "direction": "none", "factors": ["load"], "template": "Switched to {strategy} dispatch since the kitchen hit {load_pct}% and waits were stretching.", "tone": "crisp"}
