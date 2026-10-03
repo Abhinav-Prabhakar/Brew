@@ -1,4 +1,4 @@
-"""Named observation vector for policies / RL (technical.md 13.2): 179 floats."""
+"""Named observation vector for policies / RL (technical.md 13.2): 183 floats."""
 
 from __future__ import annotations
 
@@ -50,17 +50,18 @@ def _names() -> list[str]:
     n += [f"dis_{k}" for k in DISRUPTION_KINDS]
     n += [f"kappa_{k}" for k in KAPPA_CLASSES] + [f"strategy_{s}" for s in STRATEGY_PRESETS]
     n += ["throttle_zomato", "throttle_swiggy", "batch_window"]
+    n += ["replate_listed_units", "replate_expiring_value_2h", "replate_sell_through", "replate_mode"]
     return n
 
 
 NAMES = _names()
-assert len(NAMES) == 179, len(NAMES)
+assert len(NAMES) == 183, len(NAMES)
 INDEX = {n: i for i, n in enumerate(NAMES)}
 
 
 @dataclass(slots=True)
 class Observation:
-    """179-float named vector. ``get(name)`` reads one feature."""
+    """183-float named vector. ``get(name)`` reads one feature."""
 
     vec: np.ndarray
     names: list[str]
@@ -82,7 +83,7 @@ class ObservationBuilder:
 
     def build(self) -> Observation:
         w = self.w
-        v = np.zeros(179, dtype=np.float32)
+        v = np.zeros(183, dtype=np.float32)
         i = 0
         now = w.now
         tod = tod_s(now)
@@ -196,5 +197,10 @@ class ObservationBuilder:
         v[i + 1] = THROTTLE_IDX[w.delivery.throttle["swiggy"]]
         v[i + 2] = w.batch_window_s / 120.0
         i += 3
-        assert i == 179, i
+        # replate (4)
+        from .replate import observation_features
+
+        v[i : i + 4] = observation_features(w)
+        i += 4
+        assert i == 183, i
         return Observation(v, NAMES)

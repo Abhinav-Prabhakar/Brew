@@ -44,6 +44,7 @@ class PolicyB:
     code = "B"
     default_preset = "dine_first"
     default_batch_window_s = BATCH_WINDOW_S
+    default_replate_mode = "standard"
 
     def __init__(self) -> None:
         self.happy_on = False

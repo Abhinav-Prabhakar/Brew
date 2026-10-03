@@ -8,11 +8,14 @@ from typing import TYPE_CHECKING, Any
 from brew.domain.money import round2
 from brew.policies.charter import CharterViolation
 
+from .replate import ReplateBadPayload, ReplateInvalid
+
 if TYPE_CHECKING:
     from .world import World
 
 ACTION_KINDS = (
     "serve_order", "bump_order", "restock_fridge", "set_price", "feature_item", "hide_item", "throttle", "place_po",
+    "premake", "replate_list", "replate_mode",
 )  # fmt: skip
 FINISHED_GOODS = ("muffin_fg", "cheesecake_slice", "cinnamon_roll_fg")
 TOPUP_PREMIUM = 1.15
@@ -171,6 +174,50 @@ def _po(w: World, p: dict[str, Any]) -> dict[str, Any]:
     return {"po_id": po["id"], "eta_s": po["eta_s"], "total": round2(po["total"])}
 
 
+def _rp_call(fn: Any, *args: Any) -> Any:
+    """Map Replate errors onto action errors (422 ineligible / bad payload, 409 nothing to act on)."""
+    try:
+        return fn(*args)
+    except ReplateBadPayload as e:
+        raise BadPayload(str(e)) from e
+    except ReplateInvalid as e:
+        raise InvalidAction(str(e)) from e
+
+
+def _premake(w: World, p: dict[str, Any]) -> dict[str, Any]:
+    _need(p, "sku", "units")
+    sku = p["sku"]
+    if sku not in w.menu:
+        raise UnknownTarget(f"sku {sku!r} not found")
+    try:
+        units = int(p["units"])
+    except (TypeError, ValueError) as e:
+        raise BadPayload("units must be an integer") from e
+    return _rp_call(w.replate.premake, sku, units, "owner")  # type: ignore[no-any-return]
+
+
+def _replate_list(w: World, p: dict[str, Any]) -> dict[str, Any]:
+    _need(p, "sku")
+    sku = p["sku"]
+    if sku not in w.menu:
+        raise UnknownTarget(f"sku {sku!r} not found")
+    pct = p.get("discount_pct")
+    return _rp_call(w.replate.list_sku, sku, None if pct is None else float(pct), "owner")  # type: ignore[no-any-return]
+
+
+def _replate_mode(w: World, p: dict[str, Any]) -> dict[str, Any]:
+    _need(p, "mode")
+    mode = str(p["mode"])
+    if mode == "auto":  # hand control back to the active policy
+        w.replate.override = False
+        w.replate.mode = str(getattr(w.policy, "default_replate_mode", "off"))
+        return {"mode": w.replate.mode, "override": False}
+    if mode not in ("off", "gentle", "standard", "aggressive"):
+        raise BadPayload("mode must be off|gentle|standard|aggressive")
+    _rp_call(w.replate.set_mode, mode, "owner", True)
+    return {"mode": w.replate.mode, "override": True}
+
+
 _HANDLERS = {
     "serve_order": _serve,
     "bump_order": _bump,
@@ -180,4 +227,7 @@ _HANDLERS = {
     "hide_item": _hide,
     "throttle": _throttle,
     "place_po": _po,
+    "premake": _premake,
+    "replate_list": _replate_list,
+    "replate_mode": _replate_mode,
 }

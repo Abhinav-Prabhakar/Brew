@@ -24,6 +24,7 @@ from .schemas import (
     PoliciesConfig,
     PrepItem,
     RecipeBook,
+    ReplateConfig,
     ScenarioConfig,
     StaffMember,
     Station,
@@ -81,6 +82,7 @@ def load_cafe(path: str | Path | None = None) -> CafeConfig:
         personas=personas,
         catalog=tuple(CatalogItem(**c) for c in _y(d / "catalog.yaml")),
         calendar_fallback=tuple(CalendarEvent(**c) for c in _y(d / "calendar_fallback.yaml")),
+        replate=ReplateConfig(**_y(d / "replate.yaml")) if (d / "replate.yaml").exists() else ReplateConfig(),
     )
     validate_cafe(cfg)
     return cfg
@@ -172,6 +174,20 @@ def validate_cafe(cfg: CafeConfig) -> None:
     for i in cfg.ingredients:
         if i.key not in supplied:
             errs.append(f"ingredient {i.key} has no supplier")
+    for m in cfg.menu:
+        rp = m.replate
+        if rp.eligible:
+            if rp.stock_key is not None and rp.stock_key not in stock_keys:
+                errs.append(f"menu item {m.sku}: replate stock_key {rp.stock_key} unknown")
+            if rp.stock_key is None and rp.premake_hold_s <= 0:
+                errs.append(f"menu item {m.sku}: replate premake_hold_s must be > 0")
+    for name, lad in cfg.replate.ladders.items():
+        pcts = [p for _f, p in lad.rungs] + [lad.last_pct]
+        if pcts != sorted(pcts):
+            errs.append(f"replate ladder {name}: discounts must not decrease")
+        fr = [f for f, _p in lad.rungs]
+        if fr != sorted(fr, reverse=True):
+            errs.append(f"replate ladder {name}: fractions must decrease")
     for st in cfg.staff:
         for sk in st.skills:
             if sk not in stations:

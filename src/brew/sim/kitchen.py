@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 from brew.domain.timeutil import DAY_S, parse_hhmm
 
 from .engine import P_DECIDE, P_DONE
+from .replate import RP
 from .rng import Buffered, lognormal_params
 from .state import (
     T_CANCEL,
@@ -235,7 +236,10 @@ class Kitchen:
         """Create the task DAG for one unit from its recipe."""
         w = self.w
         r = w.cfg.recipes.recipes[unit.sku]
-        extra = sum(w.ix.mod[m].extra_prep_s for m in unit.mods)
+        extra = sum(w.ix.mod[m].extra_prep_s for m in unit.mods if m != RP)
+        if unit.premade:
+            self._build_premade_unit(order, unit)
+            return
         by_name: dict[str, Task] = {}
         steps = r.steps
         created: list[Task] = []
@@ -267,6 +271,21 @@ class Kitchen:
                 t.state = T_READY
                 t.ready_s = now
                 self.ready.append(t)
+
+    def _build_premade_unit(self, order: Order, unit: Unit) -> None:
+        """A unit drawn from make-ahead stock needs only a short plating / hand-off step."""
+        t = self._task(
+            "step", "serve", "pass", order.order_no, 10.0, 2.0, 1.0, sku=unit.sku, unit=unit,
+            channel=order.channel, persona=order.persona, due_s=order.promised_s, placed_s=order.placed_s,
+            bumped=order.bumped,
+        )  # fmt: skip
+        unit.tasks = [t]
+        unit.tasks_left = 1
+        order.tasks_total += 1
+        self.work_open += t.duration_mean * t.attention
+        t.state = T_READY
+        t.ready_s = self.w.now
+        self.ready.append(t)
 
     def build_order_tasks(self, order: Order) -> None:
         w = self.w
@@ -593,6 +612,8 @@ class Kitchen:
             w.on_wash_done(t.ref)
         elif k == "prep":
             self.on_prep_step_done(t)
+        elif k == "premake":
+            w.replate.on_premake_step_done(t)
 
     def _check_error(self, u: Unit, order: Order, staff: StaffState) -> bool:
         """Maybe force a remake of ``u``; returns True if it did."""
@@ -601,7 +622,8 @@ class Kitchen:
         if p <= 0 or u.remakes >= 2 or self.err.next() >= p:
             return False
         order.errors += 1
-        # remake: consume again (partial ok), rebuild the DAG
+        # remake: consume again (partial ok), rebuild the DAG (a remade unit is no longer make-ahead stock)
+        u.premade = False
         w.orders.consume_unit(order, u, remake=True)
         u.remakes += 1
         order.remakes += 1
