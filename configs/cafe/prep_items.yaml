@@ -1,0 +1,17 @@
+# Prep items live in the inventory key space. `steps` are the *active* (staffed) part;
+# the rest of lead_time_min is passive (steeping, proofing, marinating).
+- {key: coldbrew_concentrate, name: Cold brew concentrate, base_uom: ml, zone: chilled, batch_size: 4000, lead_time_min: 720, hold_time_min: 4320, quality_half_life_min: 4320, kappa_class: coldbrew_concentrate, co2e_kg_per_kg: 1.0, par: 6000, reorder_point: 1200, initial_qty: 5000, unit_weight_g: 1,
+   components: [{ingredient: coffee_beans, qty: 400}],
+   steps: [{name: setup, station: cold, duration: [600, 60], attention: 0.4}]}
+- {key: chai_base, name: Chai base, base_uom: ml, zone: chilled, batch_size: 2000, lead_time_min: 15, hold_time_min: 180, quality_half_life_min: 240, kappa_class: chai_base, co2e_kg_per_kg: 1.2, par: 4000, reorder_point: 800, initial_qty: 2000,
+   components: [{ingredient: milk, qty: 1000}, {ingredient: chai_leaves, qty: 40}, {ingredient: sugar, qty: 100}, {ingredient: ginger, qty: 20}, {ingredient: spice_mix, qty: 5}],
+   steps: [{name: brew, station: bar, duration: [600, 40], attention: 0.4}]}
+- {key: croissant_baked, name: Croissants (baked), base_uom: pc, zone: ambient, batch_size: 12, lead_time_min: 110, hold_time_min: 600, quality_half_life_min: 480, kappa_class: croissant_baked, co2e_kg_per_kg: 4.0, par: 36, reorder_point: 8, initial_qty: 18, unit_weight_g: 70, finished_good: true,
+   components: [{ingredient: croissant_dough, qty: 12}, {ingredient: butter, qty: 60}],
+   steps: [{name: bake, station: oven, duration: [1500, 60], attention: 0.2, uses_slot: true}]}
+- {key: paneer_marinade, name: Paneer tikka (marinated), base_uom: g, zone: chilled, batch_size: 1500, lead_time_min: 30, hold_time_min: 1440, quality_half_life_min: 1440, kappa_class: paneer_marinade, co2e_kg_per_kg: 5.0, par: 3000, reorder_point: 400, initial_qty: 1500,
+   components: [{ingredient: paneer, qty: 1000}, {ingredient: tikka_masala, qty: 400}],
+   steps: [{name: marinate, station: prep, duration: [600, 60], attention: 0.6}]}
+- {key: fries_cut, name: Fries (cut), base_uom: g, zone: chilled, batch_size: 3000, lead_time_min: 30, hold_time_min: 360, quality_half_life_min: 360, kappa_class: fries_cut, co2e_kg_per_kg: 0.5, par: 6000, reorder_point: 700, initial_qty: 3000,
+   components: [{ingredient: potato, qty: 3300}],
+   steps: [{name: cut, station: prep, duration: [900, 80], attention: 0.8}]}

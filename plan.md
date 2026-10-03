@@ -1220,7 +1220,8 @@ disruption_schedule:
 # Appendix C: Policy interface
 ```python
 class Policy(Protocol):
-    code: str                                   # "A".."E"
+    code: str  # "A".."E"
+
     def reset(self, world: WorldView, seed: int) -> None: ...
     def act(self, obs: Observation, point: DecisionPoint) -> Action: ...
     def explain(self, decision_id: UUID) -> Explanation: ...

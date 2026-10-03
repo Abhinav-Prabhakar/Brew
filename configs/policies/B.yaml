@@ -1,0 +1,9 @@
+code: B
+name: Heuristic
+dispatch_strategy: dine_first
+batch_window_s: 60
+pause_above: 8
+resume_below: 4
+prep: {mode: p50_morning, classes: [coldbrew_concentrate, chai_base, croissant_baked, paneer_marinade, fries_cut], top_up_ratio: 0.5}
+happy_hour: {start: "15:00", end: "17:00", drink_discount_pct: 10}
+purchasing: {mode: s_S, review_days: 1, safety_days: 1.0}
