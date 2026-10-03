@@ -1,0 +1,200 @@
+{"id": "NOTE-05-000", "text": "almond milk mein cappuccino banao", "intents": ["modifier"], "modifiers": ["almond"], "allergy": null, "urgency": 0.18, "gift_name": null}
+{"id": "NOTE-05-001", "text": "Emma ko sorry bolna, smiley banao", "intents": ["gift_message"], "modifiers": [], "allergy": null, "urgency": 0.29, "gift_name": "Emma"}
+{"id": "NOTE-05-002", "text": "no nuts at all, carrying epi pen", "intents": ["allergy"], "modifiers": ["nonuts"], "allergy": "nuts", "urgency": 0.94, "gift_name": null}
+{"id": "NOTE-05-003", "text": "for Heena - welcome back from pune", "intents": ["gift_message"], "modifiers": [], "allergy": null, "urgency": 0.28, "gift_name": "Heena"}
+{"id": "NOTE-05-004", "text": "no straw needed thx", "intents": ["packaging"], "modifiers": [], "allergy": null, "urgency": 0.14, "gift_name": null}
+{"id": "NOTE-05-005", "text": "fatafat", "intents": ["rush"], "modifiers": [], "allergy": null, "urgency": 0.99, "gift_name": null}
+{"id": "NOTE-05-006", "text": "turn the shake into bubble tea", "intents": ["other"], "modifiers": [], "allergy": null, "urgency": 0.19, "gift_name": null}
+{"id": "NOTE-05-007", "text": "late for lectures, speed pls", "intents": ["rush"], "modifiers": [], "allergy": null, "urgency": 0.77, "gift_name": null}
+{"id": "NOTE-05-008", "text": "jaldi do", "intents": ["rush"], "modifiers": [], "allergy": null, "urgency": 0.76, "gift_name": null}
+{"id": "NOTE-05-009", "text": "nice and scalding hot, cappuccino", "intents": ["modifier"], "modifiers": ["hot"], "allergy": null, "urgency": 0.17, "gift_name": null}
+{"id": "NOTE-05-010", "text": "write 'u did it Gautam' on the lid", "intents": ["gift_message"], "modifiers": [], "allergy": null, "urgency": 0.37, "gift_name": "Gautam"}
+{"id": "NOTE-05-011", "text": "same order as the person before me", "intents": ["other"], "modifiers": [], "allergy": null, "urgency": 0.1, "gift_name": null}
+{"id": "NOTE-05-012", "text": "separate bag for the cold brew", "intents": ["packaging"], "modifiers": [], "allergy": null, "urgency": 0.34, "gift_name": null}
+{"id": "NOTE-05-013", "text": "cheese toast pe jalapenos zyada", "intents": ["modifier"], "modifiers": ["jalapeno"], "allergy": null, "urgency": 0.24, "gift_name": null}
+{"id": "NOTE-05-014", "text": "severe allergy to nuts!! inform kitchen", "intents": ["allergy"], "modifiers": ["nonuts"], "allergy": "nuts", "urgency": 0.82, "gift_name": null}
+{"id": "NOTE-05-015", "text": "first date gift for Danish, make cute", "intents": ["gift_message"], "modifiers": [], "allergy": null, "urgency": 0.18, "gift_name": "Danish"}
+{"id": "NOTE-05-016", "text": "for Neel, get well soon doodle", "intents": ["gift_message"], "modifiers": [], "allergy": null, "urgency": 0.24, "gift_name": "Neel"}
+{"id": "NOTE-05-017", "text": "Uday ke liye, gift jaisa pack karo", "intents": ["gift_message", "packaging"], "modifiers": [], "allergy": null, "urgency": 0.28, "gift_name": "Uday"}
+{"id": "NOTE-05-018", "text": "allergy hai nuts ki, gloves badal do", "intents": ["allergy"], "modifiers": ["nonuts"], "allergy": "nuts", "urgency": 0.93, "gift_name": null}
+{"id": "NOTE-05-019", "text": "allergy - any trace of nuts is bad", "intents": ["allergy"], "modifiers": ["nonuts"], "allergy": "nuts", "urgency": 0.82, "gift_name": null}
+{"id": "NOTE-05-020", "text": "2 mins deadline, serious", "intents": ["rush"], "modifiers": [], "allergy": null, "urgency": 0.73, "gift_name": null}
+{"id": "NOTE-05-021", "text": "extra heat, jalapeno slices", "intents": ["spice_level", "modifier"], "modifiers": ["jalapeno"], "allergy": null, "urgency": 0.18, "gift_name": null}
+{"id": "NOTE-05-022", "text": "wrap it like a gift pls", "intents": ["packaging"], "modifiers": [], "allergy": null, "urgency": 0.28, "gift_name": null}
+{"id": "NOTE-05-023", "text": "jaldi se banao, doctor ka time", "intents": ["rush"], "modifiers": [], "allergy": null, "urgency": 0.82, "gift_name": null}
+{"id": "NOTE-05-024", "text": "just a hint of sugar in the rose milk", "intents": ["modifier"], "modifiers": ["lesssugar"], "allergy": null, "urgency": 0.31, "gift_name": null}
+{"id": "NOTE-05-025", "text": "rush order, gate closes soon", "intents": ["rush"], "modifiers": [], "allergy": null, "urgency": 0.94, "gift_name": null}
+{"id": "NOTE-05-026", "text": "need it in 3 mins tops", "intents": ["rush"], "modifiers": [], "allergy": null, "urgency": 0.72, "gift_name": null}
+{"id": "NOTE-05-027", "text": "half sugar in the chai pls", "intents": ["modifier"], "modifiers": ["lesssugar"], "allergy": null, "urgency": 0.04, "gift_name": null}
+{"id": "NOTE-05-028", "text": "sorry note for Kamala, cute cat banao", "intents": ["gift_message"], "modifiers": [], "allergy": null, "urgency": 0.11, "gift_name": "Kamala"}
+{"id": "NOTE-05-029", "text": "large karo, bahut thakaan hai", "intents": ["modifier"], "modifiers": ["large"], "allergy": null, "urgency": 0.13, "gift_name": null}
+{"id": "NOTE-05-030", "text": "dont mix hot and cold together", "intents": ["packaging"], "modifiers": [], "allergy": null, "urgency": 0.15, "gift_name": null}
+{"id": "NOTE-05-031", "text": "full teekha, jalapeno extra karo", "intents": ["spice_level", "modifier"], "modifiers": ["jalapeno"], "allergy": null, "urgency": 0.07, "gift_name": null}
+{"id": "NOTE-05-032", "text": "can u throw in another shot", "intents": ["modifier"], "modifiers": ["shot"], "allergy": null, "urgency": 0.38, "gift_name": null}
+{"id": "NOTE-05-033", "text": "two ice cubes bas", "intents": ["modifier"], "modifiers": [], "allergy": null, "urgency": 0.39, "gift_name": null}
+{"id": "NOTE-05-034", "text": "green chilli extra maro", "intents": ["spice_level"], "modifiers": [], "allergy": null, "urgency": 0.12, "gift_name": null}
+{"id": "NOTE-05-035", "text": "is foam art extra charge", "intents": ["other"], "modifiers": [], "allergy": null, "urgency": 0.05, "gift_name": null}
+{"id": "NOTE-05-036", "text": "peri peri thoda zyada", "intents": ["spice_level"], "modifiers": [], "allergy": null, "urgency": 0.39, "gift_name": null}
+{"id": "NOTE-05-037", "text": "allergic to nuts, fresh gloves pls", "intents": ["allergy"], "modifiers": ["nonuts"], "allergy": "nuts", "urgency": 0.89, "gift_name": null}
+{"id": "NOTE-05-038", "text": "add mayo and ketchup packets", "intents": ["other"], "modifiers": [], "allergy": null, "urgency": 0.05, "gift_name": null}
+{"id": "NOTE-05-039", "text": "half sugar and send a spoon", "intents": ["modifier", "cutlery"], "modifiers": ["lesssugar"], "allergy": null, "urgency": 0.28, "gift_name": null}
+{"id": "NOTE-05-040", "text": "extra shot for the espresso pls", "intents": ["modifier"], "modifiers": ["shot"], "allergy": null, "urgency": 0.18, "gift_name": null}
+{"id": "NOTE-05-041", "text": "make the latte properly hot", "intents": ["modifier"], "modifiers": ["hot"], "allergy": null, "urgency": 0.36, "gift_name": null}
+{"id": "NOTE-05-042", "text": "bring to the pink wall table", "intents": ["other"], "modifiers": [], "allergy": null, "urgency": 0.01, "gift_name": null}
+{"id": "NOTE-05-043", "text": "make the foam a leaf not heart", "intents": ["other"], "modifiers": [], "allergy": null, "urgency": 0.21, "gift_name": null}
+{"id": "NOTE-05-044", "text": "thin foam, zyada liquid", "intents": ["modifier"], "modifiers": [], "allergy": null, "urgency": 0.35, "gift_name": null}
+{"id": "NOTE-05-045", "text": "shot extra, bag tight band karo", "intents": ["modifier", "packaging"], "modifiers": ["shot"], "allergy": null, "urgency": 0.17, "gift_name": null}
+{"id": "NOTE-05-046", "text": "ek aur shot chahiye bhai", "intents": ["modifier"], "modifiers": ["shot"], "allergy": null, "urgency": 0.08, "gift_name": null}
+{"id": "NOTE-05-047", "text": "wet wipe packet bhi chahiye", "intents": ["packaging"], "modifiers": [], "allergy": null, "urgency": 0.23, "gift_name": null}
+{"id": "NOTE-05-048", "text": "dont fold the box lid inside", "intents": ["packaging"], "modifiers": [], "allergy": null, "urgency": 0.33, "gift_name": null}
+{"id": "NOTE-05-049", "text": "whatever the cook recommends", "intents": ["other"], "modifiers": [], "allergy": null, "urgency": 0.33, "gift_name": null}
+{"id": "NOTE-05-050", "text": "NUT ALLERGY!! no nuts anywhere pls", "intents": ["allergy"], "modifiers": ["nonuts"], "allergy": "nuts", "urgency": 0.83, "gift_name": null}
+{"id": "NOTE-05-051", "text": "milk se allergy, ghee bhi nahi", "intents": ["allergy"], "modifiers": [], "allergy": "lactose", "urgency": 0.82, "gift_name": null}
+{"id": "NOTE-05-052", "text": "separate bags for each item", "intents": ["packaging"], "modifiers": [], "allergy": null, "urgency": 0.32, "gift_name": null}
+{"id": "NOTE-05-053", "text": "keep on table 3, seated there", "intents": ["other"], "modifiers": [], "allergy": null, "urgency": 0.38, "gift_name": null}
+{"id": "NOTE-05-054", "text": "cant have milk at all, allergy hai", "intents": ["allergy"], "modifiers": [], "allergy": "lactose", "urgency": 0.87, "gift_name": null}
+{"id": "NOTE-05-055", "text": "write Karl on the cup sleeve", "intents": ["gift_message"], "modifiers": [], "allergy": null, "urgency": 0.18, "gift_name": "Karl"}
+{"id": "NOTE-05-056", "text": "surprise box for Milo, pink ribbon", "intents": ["gift_message", "packaging"], "modifiers": [], "allergy": null, "urgency": 0.39, "gift_name": "Milo"}
+{"id": "NOTE-05-057", "text": "bday treat for Eli, write the name", "intents": ["gift_message"], "modifiers": [], "allergy": null, "urgency": 0.19, "gift_name": "Eli"}
+{"id": "NOTE-05-058", "text": "iced not hot today, the latte", "intents": ["modifier"], "modifiers": ["iced"], "allergy": null, "urgency": 0.2, "gift_name": null}
+{"id": "NOTE-05-059", "text": "paper bag pls, no plastic", "intents": ["packaging"], "modifiers": [], "allergy": null, "urgency": 0.22, "gift_name": null}
+{"id": "NOTE-05-060", "text": "bada cup, speed mein banao", "intents": ["modifier", "rush"], "modifiers": ["large"], "allergy": null, "urgency": 0.91, "gift_name": null}
+{"id": "NOTE-05-061", "text": "bag handle strong hona chahiye", "intents": ["packaging"], "modifiers": [], "allergy": null, "urgency": 0.33, "gift_name": null}
+{"id": "NOTE-05-062", "text": "make it match my outfit", "intents": ["other"], "modifiers": [], "allergy": null, "urgency": 0.29, "gift_name": null}
+{"id": "NOTE-05-063", "text": "almond milk hi daalna pls", "intents": ["modifier"], "modifiers": ["almond"], "allergy": null, "urgency": 0.26, "gift_name": null}
+{"id": "NOTE-05-064", "text": "cut the sugar to half, rose milk", "intents": ["modifier"], "modifiers": ["lesssugar"], "allergy": null, "urgency": 0.2, "gift_name": null}
+{"id": "NOTE-05-065", "text": "fastest order first karo", "intents": ["rush"], "modifiers": [], "allergy": null, "urgency": 0.82, "gift_name": null}
+{"id": "NOTE-05-066", "text": "swap in oat milk pls", "intents": ["modifier"], "modifiers": ["oat"], "allergy": null, "urgency": 0.09, "gift_name": null}
+{"id": "NOTE-05-067", "text": "hotter than usual pls", "intents": ["modifier"], "modifiers": ["hot"], "allergy": null, "urgency": 0.14, "gift_name": null}
+{"id": "NOTE-05-068", "text": "peppery not chilli hot", "intents": ["spice_level"], "modifiers": [], "allergy": null, "urgency": 0.05, "gift_name": null}
+{"id": "NOTE-05-069", "text": "extra shot in the cold brew pls", "intents": ["modifier"], "modifiers": ["shot"], "allergy": null, "urgency": 0.1, "gift_name": null}
+{"id": "NOTE-05-070", "text": "4 extra napkins pls", "intents": ["packaging"], "modifiers": [], "allergy": null, "urgency": 0.01, "gift_name": null}
+{"id": "NOTE-05-071", "text": "decaf only", "intents": ["modifier"], "modifiers": ["decaf"], "allergy": null, "urgency": 0.09, "gift_name": null}
+{"id": "NOTE-05-072", "text": "no onion in the sandwich", "intents": ["modifier"], "modifiers": ["noonion"], "allergy": null, "urgency": 0.35, "gift_name": null}
+{"id": "NOTE-05-073", "text": "veg puff ya egg puff, jo ho", "intents": ["other"], "modifiers": [], "allergy": null, "urgency": 0.11, "gift_name": null}
+{"id": "NOTE-05-074", "text": "skip onion on the sandwich pls", "intents": ["modifier"], "modifiers": ["noonion"], "allergy": null, "urgency": 0.0, "gift_name": null}
+{"id": "NOTE-05-075", "text": "forks 8 aur paper bag", "intents": ["packaging", "cutlery"], "modifiers": [], "allergy": null, "urgency": 0.1, "gift_name": null}
+{"id": "NOTE-05-076", "text": "can the iced latte be made with oat milk", "intents": ["modifier"], "modifiers": ["oat"], "allergy": null, "urgency": 0.35, "gift_name": null}
+{"id": "NOTE-05-077", "text": "dont put the receipt inside the food bag", "intents": ["packaging"], "modifiers": [], "allergy": null, "urgency": 0.3, "gift_name": null}
+{"id": "NOTE-05-078", "text": "Nina ki shaadi, mubarak likh dena", "intents": ["gift_message"], "modifiers": [], "allergy": null, "urgency": 0.16, "gift_name": "Nina"}
+{"id": "NOTE-05-079", "text": "teekha plus jalapenos, sandwich pe", "intents": ["spice_level", "modifier"], "modifiers": ["jalapeno"], "allergy": null, "urgency": 0.33, "gift_name": null}
+{"id": "NOTE-05-080", "text": "cup holder chahiye, bike pe le jaunga", "intents": ["packaging"], "modifiers": [], "allergy": null, "urgency": 0.14, "gift_name": null}
+{"id": "NOTE-05-081", "text": "packing achhi karna, gift hai", "intents": ["packaging"], "modifiers": [], "allergy": null, "urgency": 0.09, "gift_name": null}
+{"id": "NOTE-05-082", "text": "metro chhoot jayegi, fast", "intents": ["rush"], "modifiers": [], "allergy": null, "urgency": 0.87, "gift_name": null}
+{"id": "NOTE-05-083", "text": "more cheese, dont hold back", "intents": ["modifier"], "modifiers": ["cheese"], "allergy": null, "urgency": 0.01, "gift_name": null}
+{"id": "NOTE-05-084", "text": "engagement surprise for Ryan", "intents": ["gift_message"], "modifiers": [], "allergy": null, "urgency": 0.3, "gift_name": "Ryan"}
+{"id": "NOTE-05-085", "text": "bus 7 min mein aayegi", "intents": ["rush"], "modifiers": [], "allergy": null, "urgency": 0.76, "gift_name": null}
+{"id": "NOTE-05-086", "text": "double cheese, the avo toast", "intents": ["modifier"], "modifiers": ["cheese"], "allergy": null, "urgency": 0.04, "gift_name": null}
+{"id": "NOTE-05-087", "text": "decaf pls, cups in one carrier", "intents": ["modifier", "packaging"], "modifiers": ["decaf"], "allergy": null, "urgency": 0.29, "gift_name": null}
+{"id": "NOTE-05-088", "text": "carry bag mein daal dena sab", "intents": ["packaging"], "modifiers": [], "allergy": null, "urgency": 0.08, "gift_name": null}
+{"id": "NOTE-05-089", "text": "masaledaar banao proper", "intents": ["spice_level"], "modifiers": [], "allergy": null, "urgency": 0.22, "gift_name": null}
+{"id": "NOTE-05-090", "text": "jalapeno bhar do, teekha chahiye", "intents": ["spice_level", "modifier"], "modifiers": ["jalapeno"], "allergy": null, "urgency": 0.3, "gift_name": null}
+{"id": "NOTE-05-091", "text": "gulab jamun on the waffle pls", "intents": ["other"], "modifiers": [], "allergy": null, "urgency": 0.0, "gift_name": null}
+{"id": "NOTE-05-092", "text": "decaf only pls, its 9pm", "intents": ["modifier"], "modifiers": ["decaf"], "allergy": null, "urgency": 0.12, "gift_name": null}
+{"id": "NOTE-05-093", "text": "mirchi powder zyada sprinkle", "intents": ["spice_level"], "modifiers": [], "allergy": null, "urgency": 0.14, "gift_name": null}
+{"id": "NOTE-05-094", "text": "upgrade the iced latte to large pls", "intents": ["modifier"], "modifiers": ["large"], "allergy": null, "urgency": 0.26, "gift_name": null}
+{"id": "NOTE-05-095", "text": "for Theo - happy bday, draw a balloon", "intents": ["gift_message"], "modifiers": [], "allergy": null, "urgency": 0.34, "gift_name": "Theo"}
+{"id": "NOTE-05-096", "text": "spice level 9 on 10", "intents": ["spice_level"], "modifiers": [], "allergy": null, "urgency": 0.07, "gift_name": null}
+{"id": "NOTE-05-097", "text": "decaf latte, make it fast pls", "intents": ["modifier", "rush"], "modifiers": ["decaf"], "allergy": null, "urgency": 0.91, "gift_name": null}
+{"id": "NOTE-05-098", "text": "onion garlic se allergy, confirm karo", "intents": ["allergy", "modifier"], "modifiers": ["noonion"], "allergy": "onion", "urgency": 0.86, "gift_name": null}
+{"id": "NOTE-05-099", "text": "table bill mein add kar dena", "intents": ["other"], "modifiers": [], "allergy": null, "urgency": 0.02, "gift_name": null}
+{"id": "NOTE-05-100", "text": "can u pizza-fy the toast", "intents": ["other"], "modifiers": [], "allergy": null, "urgency": 0.25, "gift_name": null}
+{"id": "NOTE-05-101", "text": "straw nahi chahiye", "intents": ["packaging"], "modifiers": [], "allergy": null, "urgency": 0.34, "gift_name": null}
+{"id": "NOTE-05-102", "text": "oat milk version of the flat white thx", "intents": ["modifier"], "modifiers": ["oat"], "allergy": null, "urgency": 0.21, "gift_name": null}
+{"id": "NOTE-05-103", "text": "thank u card for Esha pls", "intents": ["gift_message"], "modifiers": [], "allergy": null, "urgency": 0.34, "gift_name": "Esha"}
+{"id": "NOTE-05-104", "text": "dont tape the lid shut", "intents": ["packaging"], "modifiers": [], "allergy": null, "urgency": 0.02, "gift_name": null}
+{"id": "NOTE-05-105", "text": "chef ki marzi, kuch bhi", "intents": ["other"], "modifiers": [], "allergy": null, "urgency": 0.28, "gift_name": null}
+{"id": "NOTE-05-106", "text": "skip the nut crumble on top", "intents": ["modifier"], "modifiers": ["nonuts"], "allergy": null, "urgency": 0.09, "gift_name": null}
+{"id": "NOTE-05-107", "text": "dairy allergy, almond milk mein banao", "intents": ["allergy", "modifier"], "modifiers": ["almond"], "allergy": "lactose", "urgency": 0.88, "gift_name": null}
+{"id": "NOTE-05-108", "text": "no dairy at all, almond milk pls", "intents": ["allergy", "modifier"], "modifiers": ["almond"], "allergy": "lactose", "urgency": 0.89, "gift_name": null}
+{"id": "NOTE-05-109", "text": "keep the pink bag, collecting them", "intents": ["other"], "modifiers": [], "allergy": null, "urgency": 0.31, "gift_name": null}
+{"id": "NOTE-05-110", "text": "ekdum garam chahiye, thandi hai", "intents": ["modifier"], "modifiers": ["hot"], "allergy": null, "urgency": 0.06, "gift_name": null}
+{"id": "NOTE-05-111", "text": "kam cheeni, doctor bola hai", "intents": ["modifier"], "modifiers": ["lesssugar"], "allergy": null, "urgency": 0.33, "gift_name": null}
+{"id": "NOTE-05-112", "text": "Kavya passed her exams, write bravo", "intents": ["gift_message"], "modifiers": [], "allergy": null, "urgency": 0.1, "gift_name": "Kavya"}
+{"id": "NOTE-05-113", "text": "vada pav bana sakte ho", "intents": ["other"], "modifiers": [], "allergy": null, "urgency": 0.2, "gift_name": null}
+{"id": "NOTE-05-114", "text": "double shot, long drive ahead", "intents": ["modifier"], "modifiers": ["shot"], "allergy": null, "urgency": 0.27, "gift_name": null}
+{"id": "NOTE-05-115", "text": "receipt stapled outside pls", "intents": ["packaging"], "modifiers": [], "allergy": null, "urgency": 0.14, "gift_name": null}
+{"id": "NOTE-05-116", "text": "jalapenos on the sandwich, make it hot", "intents": ["spice_level", "modifier"], "modifiers": ["jalapeno"], "allergy": null, "urgency": 0.36, "gift_name": null}
+{"id": "NOTE-05-117", "text": "way less sugar, the rose milk", "intents": ["modifier"], "modifiers": ["lesssugar"], "allergy": null, "urgency": 0.04, "gift_name": null}
+{"id": "NOTE-05-118", "text": "strong shot daalo, late for work", "intents": ["modifier", "rush"], "modifiers": ["shot"], "allergy": null, "urgency": 0.84, "gift_name": null}
+{"id": "NOTE-05-119", "text": "keep it warm till i come back", "intents": ["other"], "modifiers": [], "allergy": null, "urgency": 0.31, "gift_name": null}
+{"id": "NOTE-05-120", "text": "cold coffee frappe milega", "intents": ["other"], "modifiers": [], "allergy": null, "urgency": 0.37, "gift_name": null}
+{"id": "NOTE-05-121", "text": "strictly no onion, allergic bachcha hai", "intents": ["allergy", "modifier"], "modifiers": ["noonion"], "allergy": "onion", "urgency": 0.86, "gift_name": null}
+{"id": "NOTE-05-122", "text": "no carrier, just the cup", "intents": ["packaging"], "modifiers": [], "allergy": null, "urgency": 0.11, "gift_name": null}
+{"id": "NOTE-05-123", "text": "spoon pls", "intents": ["cutlery"], "modifiers": [], "allergy": null, "urgency": 0.09, "gift_name": null}
+{"id": "NOTE-05-124", "text": "deathly nut allergy, zero cross contact", "intents": ["allergy"], "modifiers": ["nonuts"], "allergy": "nuts", "urgency": 0.81, "gift_name": null}
+{"id": "NOTE-05-125", "text": "can the matcha come iced", "intents": ["modifier"], "modifiers": ["iced"], "allergy": null, "urgency": 0.39, "gift_name": null}
+{"id": "NOTE-05-126", "text": "can the team sign my cup", "intents": ["other"], "modifiers": [], "allergy": null, "urgency": 0.16, "gift_name": null}
+{"id": "NOTE-05-127", "text": "put everything in one box", "intents": ["packaging"], "modifiers": [], "allergy": null, "urgency": 0.15, "gift_name": null}
+{"id": "NOTE-05-128", "text": "i want it how u like it", "intents": ["other"], "modifiers": [], "allergy": null, "urgency": 0.34, "gift_name": null}
+{"id": "NOTE-05-129", "text": "biggest cup u have, iced latte", "intents": ["modifier"], "modifiers": ["large"], "allergy": null, "urgency": 0.28, "gift_name": null}
+{"id": "NOTE-05-130", "text": "turant banao, late ho gaya", "intents": ["rush"], "modifiers": [], "allergy": null, "urgency": 0.9, "gift_name": null}
+{"id": "NOTE-05-131", "text": "no spoon", "intents": ["cutlery"], "modifiers": [], "allergy": null, "urgency": 0.27, "gift_name": null}
+{"id": "NOTE-05-132", "text": "spicy chutney side mein", "intents": ["spice_level"], "modifiers": [], "allergy": null, "urgency": 0.1, "gift_name": null}
+{"id": "NOTE-05-133", "text": "iced latte almond milk wali chahiye", "intents": ["modifier"], "modifiers": ["almond"], "allergy": null, "urgency": 0.37, "gift_name": null}
+{"id": "NOTE-05-134", "text": "mirchi kam, pet kharab hai", "intents": ["spice_level"], "modifiers": [], "allergy": null, "urgency": 0.36, "gift_name": null}
+{"id": "NOTE-05-135", "text": "egg allergic here, no egg wash pls", "intents": ["allergy"], "modifiers": [], "allergy": "egg", "urgency": 0.85, "gift_name": null}
+{"id": "NOTE-05-136", "text": "almond milk in the rose latte pls", "intents": ["modifier"], "modifiers": ["almond"], "allergy": null, "urgency": 0.02, "gift_name": null}
+{"id": "NOTE-05-137", "text": "spork type kuch hai", "intents": ["cutlery"], "modifiers": [], "allergy": null, "urgency": 0.01, "gift_name": null}
+{"id": "NOTE-05-138", "text": "separate bags and no cutlery pls", "intents": ["packaging", "cutlery"], "modifiers": [], "allergy": null, "urgency": 0.08, "gift_name": null}
+{"id": "NOTE-05-139", "text": "anniv for Eli and hubby, rose pls", "intents": ["gift_message"], "modifiers": [], "allergy": null, "urgency": 0.27, "gift_name": "Eli"}
+{"id": "NOTE-05-140", "text": "extra tissues in the bag pls", "intents": ["packaging"], "modifiers": [], "allergy": null, "urgency": 0.33, "gift_name": null}
+{"id": "NOTE-05-141", "text": "new job treat for Keerthi, congrats", "intents": ["gift_message"], "modifiers": [], "allergy": null, "urgency": 0.06, "gift_name": "Keerthi"}
+{"id": "NOTE-05-142", "text": "extra cheese, hurry up yaar", "intents": ["modifier", "rush"], "modifiers": ["cheese"], "allergy": null, "urgency": 0.87, "gift_name": null}
+{"id": "NOTE-05-143", "text": "large size for the filter coffee", "intents": ["modifier"], "modifiers": ["large"], "allergy": null, "urgency": 0.37, "gift_name": null}
+{"id": "NOTE-05-144", "text": "gentle on the spice pls", "intents": ["spice_level"], "modifiers": [], "allergy": null, "urgency": 0.01, "gift_name": null}
+{"id": "NOTE-05-145", "text": "dont start till i reach, 5 min", "intents": ["other"], "modifiers": [], "allergy": null, "urgency": 0.25, "gift_name": null}
+{"id": "NOTE-05-146", "text": "ek knife extra dena", "intents": ["cutlery"], "modifiers": [], "allergy": null, "urgency": 0.05, "gift_name": null}
+{"id": "NOTE-05-147", "text": "allergic to almonds n cashews, pls confirm", "intents": ["allergy"], "modifiers": ["nonuts"], "allergy": "nuts", "urgency": 0.9, "gift_name": null}
+{"id": "NOTE-05-148", "text": "oat mein", "intents": ["modifier"], "modifiers": ["oat"], "allergy": null, "urgency": 0.26, "gift_name": null}
+{"id": "NOTE-05-149", "text": "cant do milk, almond latte it is", "intents": ["allergy", "modifier"], "modifiers": ["almond"], "allergy": "lactose", "urgency": 0.98, "gift_name": null}
+{"id": "NOTE-05-150", "text": "lid tight", "intents": ["packaging"], "modifiers": [], "allergy": null, "urgency": 0.31, "gift_name": null}
+{"id": "NOTE-05-151", "text": "for Vera - good luck for the interview", "intents": ["gift_message"], "modifiers": [], "allergy": null, "urgency": 0.38, "gift_name": "Vera"}
+{"id": "NOTE-05-152", "text": "do u serve breakfast thali", "intents": ["other"], "modifiers": [], "allergy": null, "urgency": 0.29, "gift_name": null}
+{"id": "NOTE-05-153", "text": "tissues and a fork in the bag", "intents": ["packaging", "cutlery"], "modifiers": [], "allergy": null, "urgency": 0.27, "gift_name": null}
+{"id": "NOTE-05-154", "text": "no plastic packaging at all", "intents": ["packaging"], "modifiers": [], "allergy": null, "urgency": 0.38, "gift_name": null}
+{"id": "NOTE-05-155", "text": "make it an iced latte", "intents": ["modifier"], "modifiers": ["iced"], "allergy": null, "urgency": 0.04, "gift_name": null}
+{"id": "NOTE-05-156", "text": "serious peanut allergy, no peanut oil", "intents": ["allergy"], "modifiers": ["nonuts"], "allergy": "peanuts", "urgency": 0.84, "gift_name": null}
+{"id": "NOTE-05-157", "text": "cook it fast, starving and late", "intents": ["rush"], "modifiers": [], "allergy": null, "urgency": 0.9, "gift_name": null}
+{"id": "NOTE-05-158", "text": "leave it at the reception desk", "intents": ["other"], "modifiers": [], "allergy": null, "urgency": 0.0, "gift_name": null}
+{"id": "NOTE-05-159", "text": "decaf", "intents": ["modifier"], "modifiers": ["decaf"], "allergy": null, "urgency": 0.21, "gift_name": null}
+{"id": "NOTE-05-160", "text": "can the foam spell my name", "intents": ["other"], "modifiers": [], "allergy": null, "urgency": 0.2, "gift_name": null}
+{"id": "NOTE-05-161", "text": "extra cheese on the pasta pls", "intents": ["modifier"], "modifiers": ["cheese"], "allergy": null, "urgency": 0.06, "gift_name": null}
+{"id": "NOTE-05-162", "text": "half sugar, quick - signal green hai", "intents": ["modifier", "rush"], "modifiers": ["lesssugar"], "allergy": null, "urgency": 0.91, "gift_name": null}
+{"id": "NOTE-05-163", "text": "bag pls", "intents": ["packaging"], "modifiers": [], "allergy": null, "urgency": 0.01, "gift_name": null}
+{"id": "NOTE-05-164", "text": "no fork no spoon, just tissues", "intents": ["packaging", "cutlery"], "modifiers": [], "allergy": null, "urgency": 0.16, "gift_name": null}
+{"id": "NOTE-05-165", "text": "ring the bell twice only", "intents": ["other"], "modifiers": [], "allergy": null, "urgency": 0.25, "gift_name": null}
+{"id": "NOTE-05-166", "text": "jaldi banao, parcel lena bahar", "intents": ["rush"], "modifiers": [], "allergy": null, "urgency": 0.71, "gift_name": null}
+{"id": "NOTE-05-167", "text": "can it be square shaped", "intents": ["other"], "modifiers": [], "allergy": null, "urgency": 0.11, "gift_name": null}
+{"id": "NOTE-05-168", "text": "farewell Yuvan, write miss u", "intents": ["gift_message"], "modifiers": [], "allergy": null, "urgency": 0.13, "gift_name": "Yuvan"}
+{"id": "NOTE-05-169", "text": "last train pakadna, jaldi pls", "intents": ["rush"], "modifiers": [], "allergy": null, "urgency": 0.91, "gift_name": null}
+{"id": "NOTE-05-170", "text": "oat milk - jaldi, rickshaw ruka", "intents": ["modifier", "rush"], "modifiers": ["oat"], "allergy": null, "urgency": 0.96, "gift_name": null}
+{"id": "NOTE-05-171", "text": "tree nuts allergy - which bakes safe", "intents": ["allergy"], "modifiers": ["nonuts"], "allergy": "nuts", "urgency": 0.86, "gift_name": null}
+{"id": "NOTE-05-172", "text": "tissue aur spoon, bag ke andar", "intents": ["packaging", "cutlery"], "modifiers": [], "allergy": null, "urgency": 0.27, "gift_name": null}
+{"id": "NOTE-05-173", "text": "gluten se problem hai, kya safe hai", "intents": ["allergy"], "modifiers": [], "allergy": "gluten", "urgency": 0.95, "gift_name": null}
+{"id": "NOTE-05-174", "text": "bag mein", "intents": ["packaging"], "modifiers": [], "allergy": null, "urgency": 0.03, "gift_name": null}
+{"id": "NOTE-05-175", "text": "extra cheese maro bhai", "intents": ["modifier"], "modifiers": ["cheese"], "allergy": null, "urgency": 0.07, "gift_name": null}
+{"id": "NOTE-05-176", "text": "whisper the order to the barista", "intents": ["other"], "modifiers": [], "allergy": null, "urgency": 0.14, "gift_name": null}
+{"id": "NOTE-05-177", "text": "extra crispy fries karo", "intents": ["modifier"], "modifiers": [], "allergy": null, "urgency": 0.01, "gift_name": null}
+{"id": "NOTE-05-178", "text": "extra hot and quick, cab is outside", "intents": ["modifier", "rush"], "modifiers": ["hot"], "allergy": null, "urgency": 0.81, "gift_name": null}
+{"id": "NOTE-05-179", "text": "jain order, no onion no garlic", "intents": ["allergy", "modifier"], "modifiers": ["noonion"], "allergy": "onion", "urgency": 0.81, "gift_name": null}
+{"id": "NOTE-05-180", "text": "table for two near the flap board", "intents": ["other"], "modifiers": [], "allergy": null, "urgency": 0.28, "gift_name": null}
+{"id": "NOTE-05-181", "text": "spicy enough to wake me up", "intents": ["spice_level"], "modifiers": [], "allergy": null, "urgency": 0.13, "gift_name": null}
+{"id": "NOTE-05-182", "text": "house warming for Ojas, sweet note", "intents": ["gift_message"], "modifiers": [], "allergy": null, "urgency": 0.18, "gift_name": "Ojas"}
+{"id": "NOTE-05-183", "text": "spicy karo", "intents": ["spice_level"], "modifiers": [], "allergy": null, "urgency": 0.1, "gift_name": null}
+{"id": "NOTE-05-184", "text": "staple it shut, carrying far", "intents": ["packaging"], "modifiers": [], "allergy": null, "urgency": 0.3, "gift_name": null}
+{"id": "NOTE-05-185", "text": "make it like that viral reel", "intents": ["other"], "modifiers": [], "allergy": null, "urgency": 0.05, "gift_name": null}
+{"id": "NOTE-05-186", "text": "quick make, rain aa rahi hai", "intents": ["rush"], "modifiers": [], "allergy": null, "urgency": 0.88, "gift_name": null}
+{"id": "NOTE-05-187", "text": "spicy karo, jalapeno overload", "intents": ["spice_level", "modifier"], "modifiers": ["jalapeno"], "allergy": null, "urgency": 0.21, "gift_name": null}
+{"id": "NOTE-05-188", "text": "rose latte on oat milk, normal sugar ok", "intents": ["modifier"], "modifiers": ["oat"], "allergy": null, "urgency": 0.03, "gift_name": null}
+{"id": "NOTE-05-189", "text": "gift for Niharika, ribbon wala pack", "intents": ["gift_message", "packaging"], "modifiers": [], "allergy": null, "urgency": 0.21, "gift_name": "Niharika"}
+{"id": "NOTE-05-190", "text": "Theo ki promotion hai, small note", "intents": ["gift_message"], "modifiers": [], "allergy": null, "urgency": 0.11, "gift_name": "Theo"}
+{"id": "NOTE-05-191", "text": "make the latte decaf", "intents": ["modifier"], "modifiers": ["decaf"], "allergy": null, "urgency": 0.06, "gift_name": null}
+{"id": "NOTE-05-192", "text": "hand it to my friend in yellow", "intents": ["other"], "modifiers": [], "allergy": null, "urgency": 0.05, "gift_name": null}
+{"id": "NOTE-05-193", "text": "iced version of the flat white pls", "intents": ["modifier"], "modifiers": ["iced"], "allergy": null, "urgency": 0.28, "gift_name": null}
+{"id": "NOTE-05-194", "text": "burn my mouth, i dare u", "intents": ["spice_level"], "modifiers": [], "allergy": null, "urgency": 0.32, "gift_name": null}
+{"id": "NOTE-05-195", "text": "lid on tight, auto ride ahead", "intents": ["packaging"], "modifiers": [], "allergy": null, "urgency": 0.32, "gift_name": null}
+{"id": "NOTE-05-196", "text": "express make it, interview", "intents": ["rush"], "modifiers": [], "allergy": null, "urgency": 0.77, "gift_name": null}
+{"id": "NOTE-05-197", "text": "box tight karo, rain ho rahi", "intents": ["packaging"], "modifiers": [], "allergy": null, "urgency": 0.33, "gift_name": null}
+{"id": "NOTE-05-198", "text": "whatever is fastest to make", "intents": ["other"], "modifiers": [], "allergy": null, "urgency": 0.07, "gift_name": null}
+{"id": "NOTE-05-199", "text": "add grilled chicken to the sandwich", "intents": ["other"], "modifiers": [], "allergy": null, "urgency": 0.1, "gift_name": null}
