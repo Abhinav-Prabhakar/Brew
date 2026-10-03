@@ -78,6 +78,11 @@ class WorldView:
         return self._w.policy.code
 
     @property
+    def pol_params(self) -> dict[str, Any]:
+        """The active policy's YAML parameters (``configs/policies/<code>.yaml``)."""
+        return dict(self._w.pol_cfg.params.get(self._w.policy.code, {}))
+
+    @property
     def strategy(self) -> str:
         return self._w.manual_strategy
 
@@ -232,3 +237,79 @@ class WorldView:
         """Raw-material cost of one unit of ``sku`` (INR), made to order."""
         inv = self._w.inv
         return float(sum(q * inv.unit_cost[k] for k, q in inv.sku_keys[sku]))
+
+    # ----- planning helpers (policy C / E)
+    def bom(self, sku: str, carry: bool = False) -> tuple[tuple[str, float, bool], ...]:
+        """Base bill of materials ``(key, qty, is_packaging)`` of one unit (no modifiers)."""
+        return self._w.inv.bom(sku, (), carry)
+
+    def ref_price(self, sku: str) -> float:
+        return self._w.menu[sku].ref_price
+
+    def price_change_allowed(self, sku: str) -> bool:
+        """True when the charter cooldown for ``sku`` has elapsed."""
+        w = self._w
+        return w.now - w.menu[sku].last_change_s >= w.pol_cfg.charter.cooldown_s
+
+    def lots(self, key: str) -> list[tuple[float, float]]:
+        """``(qty, expires_s)`` of the lots of an inventory key, soonest-expiring first."""
+        return [(lt.qty, lt.expires_s) for lt in self._w.inv.lots[key]]
+
+    def staff_snapshot(self) -> list[dict[str, Any]]:
+        """Present staff: key, skills, attention in use and when current work finishes."""
+        out = []
+        for s in self._w.kitchen.staff_list:
+            if not s.present or s.on_break:
+                continue
+            end = max((t.end_s for t in s.active), default=self._w.now)
+            out.append(
+                {"key": s.key, "skills": dict(s.skills), "attention": s.attention_used, "busy_until": end,
+                 "speed": s.speed, "fatigue": s.fatigue}
+            )  # fmt: skip
+        return out
+
+    def equipment_slots(self) -> dict[str, tuple[int, int]]:
+        """Equipment key -> ``(slots, slots_in_use)`` for working equipment."""
+        out: dict[str, tuple[int, int]] = {}
+        for e in self._w.equip:
+            if e.up and e.slots > 0:
+                s, u = out.get(e.key, (0, 0))
+                out[e.key] = (s + e.slots, u + e.slots_used)
+        return out
+
+    def station_equipment(self, station: str) -> str | None:
+        st = self._w.kitchen.stations[station]
+        for ei in st.eq:
+            if self._w.equip[ei].slots > 0:
+                return self._w.equip[ei].key
+        return None
+
+    def station_backlog_s(self, station: str) -> float:
+        """Attention-seconds of queued (not started) work at a station."""
+        return float(
+            sum(t.duration_mean * t.attention for t in self._w.kitchen.ready if t.station == station and t.state == 1)
+        )
+
+    def specialists(self, station: str) -> int:
+        """Present staff with a specialist skill (>= 0.8) at ``station``."""
+        return sum(
+            1 for s in self._w.kitchen.staff_list if s.present and not s.on_break and s.skills.get(station, 0.0) >= 0.8
+        )
+
+    def supplier_delivery(self, supplier: str) -> tuple[float, tuple[int, ...], tuple[str, ...]]:
+        """``(mean lead hours, delivery weekdays, standing delivery times)`` of a supplier."""
+        s = self._w.ix.supplier[supplier]
+        return s.lead_time_h[0], tuple(s.delivery_days), tuple(s.standing_times)
+
+    def weekday_of_day(self, day: int) -> int:
+        return self._w.weekday(day)
+
+    def carry_share(self) -> float:
+        """Share of orders that leave in disposable packaging (takeaway + delivery), from today's mix."""
+        ob = self._w.kpi.orders_by_channel
+        tot = sum(ob.values())
+        return (ob.get("takeaway", 0) + ob.get("zomato", 0) + ob.get("swiggy", 0)) / tot if tot > 20 else 0.45
+
+    def oracle_world(self) -> Any:
+        """Oracle policy E only: direct access to the world (perfect information)."""
+        return self._w

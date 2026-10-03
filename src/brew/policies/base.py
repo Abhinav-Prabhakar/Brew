@@ -14,6 +14,19 @@ if TYPE_CHECKING:
 
 
 @dataclass(slots=True)
+class POLine:
+    ingredient: str
+    qty: float  # base units
+
+
+@dataclass(slots=True)
+class PurchaseOrder:
+    supplier: str
+    lines: list[POLine]
+    arrive_tod_s: float | None = None  # force arrival at a time of day (standing bakery deliveries)
+
+
+@dataclass(slots=True)
 class ManagerAction:
     """Manager-level decision - the same representation the RL agent outputs (M3).
 
@@ -34,6 +47,7 @@ class ManagerAction:
     premake: dict[str, int] = field(default_factory=dict)  # replate-eligible sku -> units to make ahead
     replate_mode: str | None = None  # off|gentle|standard|aggressive|custom (ignored under owner override)
     replate_discounts: dict[str, float] = field(default_factory=dict)  # lot_id -> discount % (monotone)
+    pos: list[PurchaseOrder] = field(default_factory=list)  # intra-day purchase orders (urgent top-ups)
     reason: str = ""
     factors: list[dict[str, Any]] = field(default_factory=list)
 
@@ -41,7 +55,7 @@ class ManagerAction:
         return not (
             self.price_steps or self.sku_prices or self.kappa or self.strategy or self.throttles
             or self.batch_window_s is not None or self.featured is not None or self.hide or self.prep_now
-            or self.premake or self.replate_mode is not None or self.replate_discounts
+            or self.premake or self.replate_mode is not None or self.replate_discounts or self.pos
         )  # fmt: skip
 
 
@@ -52,19 +66,6 @@ class AcceptDecision:
     kind: str = "accept"  # accept | reject | delay
     extra_promise_s: float = 0.0
     reason: str = ""
-
-
-@dataclass(slots=True)
-class POLine:
-    ingredient: str
-    qty: float  # base units
-
-
-@dataclass(slots=True)
-class PurchaseOrder:
-    supplier: str
-    lines: list[POLine]
-    arrive_tod_s: float | None = None  # force arrival at a time of day (standing bakery deliveries)
 
 
 @dataclass(slots=True)
