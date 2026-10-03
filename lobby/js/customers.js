@@ -147,7 +147,7 @@
       const per = i === 0 ? lead0 : B.pick(['student', 'leisurely', lead0]);
       const c = { id: ++uid, persona: i === 0 ? persona : per, name: B.pick(B.NAMES), state: 'enter', mood: 'neutral' };
       c.p = P.build(P.randomTraits(persona === 'group' ? per : persona));
-      c.p.root.position.set(DOOR[0] + (OFFS[i] || [0, 0])[0] * 0.3, 0, DOOR[1] - 0.9);
+      c.p.root.position.set(DOOR[0] + (OFFS[i] || [0, 0])[0] * 0.6, 0, DOOR[1] - 0.9 - i * 0.55);
       c.p.root.rotation.y = 0;
       c.p.root.visible = false;
       G.scene.add(c.p.root);
@@ -164,7 +164,7 @@
     const base = { commuter: 70, student: 95, leisurely: 120, camper: 110, group: 100 }[persona] || 90;
     lead.patienceMax = base * (B.WX[B.state.weather].wet > 0.3 ? 1.15 : 1) * B.rand(0.85, 1.15);
     lead.patience = lead.patienceMax;
-    party.forEach((m, i) => B.after(i * 0.35, () => {
+    party.forEach((m, i) => B.after(i * 0.6, () => {
       if (i === 0) B.world.door(1500);
       m.p.root.visible = true;
     }));
