@@ -395,10 +395,10 @@
   W.neonOn = (on) => { W.neonMat.emissiveIntensity = on ? 5 : 0.15; W.neonLight.intensity = on ? 1.8 : 0; };
 
   /* wall shelves, clock, framed print */
-  function shelf(x, y) {
+  function shelf(x, y, w = 1.3) {
     const g = G.group(room, [x, y, L.wallZ + 0.15]);
-    G.m(G.rbox(1.3, 0.04, 0.28, 0.01), G.mat('#fffafa', { roughness: 0.5 }), { parent: g });
-    [-0.5, 0.5].forEach((bx) => G.m(G.rbox(0.03, 0.14, 0.2, 0.01), G.brass(), { p: [bx, -0.08, -0.03], parent: g }));
+    G.m(G.rbox(w, 0.04, 0.28, 0.01), G.mat('#fffafa', { roughness: 0.5 }), { parent: g });
+    [-0.5, 0.5].forEach((bx) => G.m(G.rbox(0.03, 0.14, 0.2, 0.01), G.brass(), { p: [bx * w / 1.3, -0.08, -0.03], parent: g }));
     return g;
   }
   {
@@ -411,11 +411,11 @@
     const pot = G.m(G.lathe([[0, 0], [0.08, 0], [0.1, 0.16], [0.105, 0.17], [0, 0.17]], 24), G.mat('#f3a9bd', { roughness: 0.5 }), { p: [0.28, 0.02, 0], parent: s1 });
     for (let i = 0; i < 14; i++) G.m(G.sph(0.05, 10, 8), G.mat(i % 2 ? '#5c9a62' : '#4f8a5a', { roughness: 0.8 }), { p: [0.28 + Math.sin(i) * 0.09, 0.2 + (i % 3) * 0.03 - (i > 8 ? (i - 8) * 0.08 : 0), Math.cos(i * 1.7) * 0.06], s: [1, 0.6, 1.2], parent: s1 });
     for (let i = 0; i < 7; i++) G.m(G.sph(0.035, 10, 8), G.mat('#4f8a5a'), { p: [0.4 + i * 0.012, 0.12 - i * 0.07, 0.08], s: [1, 0.5, 1.3], parent: s1 });
-    const s2 = shelf(1.95, 1.95);
-    for (let i = 0; i < 3; i++) G.m(G.lathe([[0, 0], [0.04, 0], [0.055, 0.09], [0.058, 0.1], [0, 0.1]], 24), i === 1 ? G.mat('#f2b3c4', { roughness: 0.3 }) : G.mat('#fbf7f5', { roughness: 0.3 }), { p: [-0.45, 0.02 + i * 0.1, 0], parent: s2 });
-    [['#e46d8d', 0.1], ['#2f5a4c', 0.16], ['#ffd36b', 0.21], ['#6d93c8', 0.26]].forEach(([c, x], i) => G.m(G.rbox(0.045, 0.24 + (i % 2) * 0.03, 0.17, 0.005), G.mat(c, { roughness: 0.7 }), { p: [x, 0.14, 0], r: [0, 0, i === 3 ? 0.2 : 0], parent: s2 }));
-    G.m(G.lathe([[0, 0], [0.09, 0], [0.12, 0.12], [0.125, 0.13], [0, 0.13]], 24), G.mat('#c06540', { roughness: 0.9 }), { p: [0.45, 0.02, 0], parent: s2 });
-    [[-0.05, 0.3, -0.3], [0.05, 0.32, 0.3], [0, 0.36, 0]].forEach(([a, b, r]) => G.m(G.sph(0.06, 12, 8), G.mat('#6aa06e'), { p: [0.45 + a, b, 0], s: [0.5, 1.6, 0.5], r: [0, 0, r], parent: s2 }));
+    const s2 = shelf(1.5, 1.95, 0.92);
+    for (let i = 0; i < 3; i++) G.m(G.lathe([[0, 0], [0.04, 0], [0.055, 0.09], [0.058, 0.1], [0, 0.1]], 24), i === 1 ? G.mat('#f2b3c4', { roughness: 0.3 }) : G.mat('#fbf7f5', { roughness: 0.3 }), { p: [-0.36, 0.02 + i * 0.1, 0], parent: s2 });
+    [['#e46d8d', -0.04], ['#2f5a4c', 0.02], ['#ffd36b', 0.07], ['#6d93c8', 0.12]].forEach(([c, x], i) => G.m(G.rbox(0.045, 0.24 + (i % 2) * 0.03, 0.17, 0.005), G.mat(c, { roughness: 0.7 }), { p: [x, 0.14, 0], r: [0, 0, i === 3 ? 0.2 : 0], parent: s2 }));
+    G.m(G.lathe([[0, 0], [0.09, 0], [0.12, 0.12], [0.125, 0.13], [0, 0.13]], 24), G.mat('#c06540', { roughness: 0.9 }), { p: [0.32, 0.02, 0], parent: s2 });
+    [[-0.05, 0.3, -0.3], [0.05, 0.32, 0.3], [0, 0.36, 0]].forEach(([a, b, r]) => G.m(G.sph(0.06, 12, 8), G.mat('#6aa06e'), { p: [0.32 + a, b, 0], s: [0.5, 1.6, 0.5], r: [0, 0, r], parent: s2 }));
   }
   // wall clock (game time)
   {
