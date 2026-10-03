@@ -184,7 +184,7 @@ class WorldManager:
         wid = self._new_id(int(spec.get("seed", 7)))
         w = World(
             scenario=scn, policy=policy, seed=int(spec.get("seed", 7)), days=10**6, continuous=True,
-            start_date=start_date, world_id=wid, cash_start=spec.get("cash_start"),
+            start_date=start_date, world_id=wid, cash_start=spec.get("cash_start"), replate=spec.get("replate"),
         )  # fmt: skip
         mw = ManagedWorld(w, spec.get("kind", "live"), s)
         self._attach_db(mw)
