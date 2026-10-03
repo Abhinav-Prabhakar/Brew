@@ -1,0 +1,28 @@
+{
+  "champion": true,
+  "created_at": "2026-10-03T17:27:18.301480+00:00",
+  "git_sha": "658fc80",
+  "kind": "rider_eta",
+  "lineage": {
+    "config": "smoke",
+    "history": [
+      "00_B_101",
+      "01_B_102",
+      "02_A_103"
+    ]
+  },
+  "metrics": {
+    "coverage_p10_p90": 0.773109243697479,
+    "p50_mae_s": 180.47707959134584,
+    "p90_coverage": 0.8865546218487395,
+    "platform_pred_mae_s": 180.9329085783658,
+    "rows_test": 714
+  },
+  "name": "lgbm_quantile",
+  "params": {
+    "min_rows": 200,
+    "n_estimators": 80
+  },
+  "path": "rider_eta/lgbm_quantile/smoke",
+  "version": "smoke"
+}

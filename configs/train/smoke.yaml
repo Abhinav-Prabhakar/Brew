@@ -11,7 +11,7 @@ history:
   price_explore_prob: 0.8
   premake_explore: true
   ladder_explore: true
-  price_experiment: {groups: 12, variants: 4, seed: 500, policy: B}   # CRN price experiment for elasticity
+  price_experiment: {groups: 20, variants: 4, seed: 500, policy: B}   # CRN price experiment for elasticity
 forecast: {n_estimators: 120, folds: 3, test_days: 2, min_history: 7}
 elasticity: {alpha: 1.0e-6, shrink_k: 200}
 prep_time: {n_estimators: 80}

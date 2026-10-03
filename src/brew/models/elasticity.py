@@ -15,6 +15,8 @@ from typing import Any
 import numpy as np
 from sklearn.linear_model import PoissonRegressor
 
+MIN_ELASTICITY = 0.1  # |beta| floor imposed by the negativity constraint
+
 
 @dataclass
 class ElasticityResult:
@@ -24,6 +26,7 @@ class ElasticityResult:
     raw_beta: dict[str, float]
     category_beta: dict[str, float]
     loss: dict[str, float] | None = None  # extra log-price coefficient above the reference price, per category
+    beta_free: dict[str, float] | None = None  # shrunk estimates before the negativity constraint
 
 
 class ElasticityModel:
@@ -146,8 +149,11 @@ class ElasticityModel:
                 w = tau2 / (tau2 + sv[j] ** 2)
                 eb = w * b[j] + (1.0 - w) * bc
                 beta[skus[i]] = float((n_eff[i] * eb + shrink_k * bc) / (n_eff[i] + shrink_k))
+        beta_free = dict(beta)
+        # demand cannot rise with price: keep the planner's elasticities strictly negative
+        beta = {s_: min(b, -MIN_ELASTICITY) for s_, b in beta.items()}
         res = ElasticityResult(
-            beta=beta, se={s_: float(se[i]) for i, s_ in enumerate(skus)}, n={s_: int(n_eff[i]) for i, s_ in enumerate(skus)},
+            beta=beta, beta_free=beta_free, se={s_: float(se[i]) for i, s_ in enumerate(skus)}, n={s_: int(n_eff[i]) for i, s_ in enumerate(skus)},
             raw_beta={s_: float(beta_raw[i]) for i, s_ in enumerate(skus)}, category_beta=cat_beta,
             loss={c: float(loss_coef[cidx[c]]) for c in cat_list},
         )  # fmt: skip
@@ -164,8 +170,11 @@ class ElasticityModel:
         return float(max(ratio, 1e-6) ** self.beta(sku))
 
     def signs_ok(self) -> bool:
-        """True when every fitted beta is negative."""
-        return self.result is not None and all(b < 0 for b in self.result.beta.values())
+        """True when every shrunk estimate is negative *before* the monotonicity constraint is applied."""
+        if self.result is None:
+            return False
+        free = self.result.beta_free or self.result.beta
+        return all(b < 0 for b in free.values())
 
     # ------------------------------------------------------------------- io
     def save(self, path: str | Path) -> Path:
@@ -176,8 +185,12 @@ class ElasticityModel:
         (d / "elasticity.json").write_text(
             json.dumps(
                 {
-                    "beta": {s: {"beta": r.beta[s], "se": r.se[s], "n": r.n[s], "raw": r.raw_beta[s]} for s in r.beta},
-                    "category_beta": r.category_beta,
+                    "beta": {
+                        s: {"beta": r.beta[s], "se": r.se[s], "n": r.n[s], "raw": r.raw_beta[s],
+                            "free": (r.beta_free or r.beta)[s]}
+                        for s in r.beta
+                    },
+                    "category_beta": r.category_beta, "loss": r.loss,
                 },
                 indent=2,
             )
@@ -192,7 +205,7 @@ class ElasticityModel:
             ElasticityResult(
                 beta={s: v["beta"] for s, v in b.items()}, se={s: v["se"] for s, v in b.items()},
                 n={s: v["n"] for s, v in b.items()}, raw_beta={s: v["raw"] for s, v in b.items()},
-                category_beta=j["category_beta"],
+                category_beta=j["category_beta"], loss=j.get("loss"), beta_free={s: v.get("free", v["beta"]) for s, v in b.items()},
             )  # fmt: skip
         )
 
