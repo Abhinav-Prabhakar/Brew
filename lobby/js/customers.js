@@ -7,7 +7,7 @@
   const list = [];
   const queue = [];
   const REG = [L.printer[0] + 0.05, 1.86];
-  const QUEUE = [REG, [2.25, 1.25], [2.8, 0.62], [3.35, 0.0], [3.9, -0.62], [4.4, -1.25], [4.85, -1.9], [5.2, -2.55]];
+  const QUEUE = [REG, [2.25, 1.25], [2.8, 0.62], [3.35, 0.0], [3.9, -0.62], [4.4, -1.25], [4.85, -1.9], [5.25, -2.55], [5.75, -3.1], [6.25, -3.6], [6.7, -4.1], [7.1, -4.6]];
   const PICKUP = [[0.75, 1.05], [0.05, 0.85], [-0.65, 1.05], [-1.35, 0.85], [-2.05, 1.05], [0.4, 0.3], [-1.0, 0.3]];
   const DOOR = L.doorIn;
   const OFFS = [[0, 0], [0.42, -0.22], [-0.4, -0.2], [0.08, -0.5]];
@@ -177,7 +177,8 @@
   function advanceQueue() {
     queue.forEach((c, i) => {
       if (c.state !== 'enter' && c.state !== 'queue') return;
-      const [x, z] = QUEUE[Math.min(i, QUEUE.length - 1)];
+      let [x, z] = QUEUE[Math.min(i, QUEUE.length - 1)];
+      if (i >= QUEUE.length) { const k = i - QUEUE.length + 1; x = Math.min(7.4, x + k * 0.25); z -= k * 0.45; }
       if (c.qSlot === i && c.state === 'queue') return;
       c.qSlot = i;
       c.state = 'queue';
