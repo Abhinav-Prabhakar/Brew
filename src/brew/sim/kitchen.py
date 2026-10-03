@@ -4,7 +4,7 @@ errors/remakes, dish pit, prep jobs (technical.md 7.5)."""
 from __future__ import annotations
 
 import math
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from brew.domain.timeutil import DAY_S, parse_hhmm
 
@@ -86,7 +86,7 @@ class Kitchen:
         self.wait_by_step: dict[str, list[float]] = {}
 
     # ------------------------------------------------------------------ staff
-    def add_staff(self, s) -> StaffState:
+    def add_staff(self, s: Any) -> StaffState:
         st = StaffState(
             s.key, s.name, s.role, s.wage_per_h, dict(s.skills), s.speed, s.error_rate, s.fatigue_rate,
             s.recovery_rate, break_min=s.break_min,
@@ -223,7 +223,7 @@ class Kitchen:
 
     # ------------------------------------------------------------- task build
     def _task(
-        self, kind: str, name: str, station: str, order_no: int, mean: float, sd: float, att: float, **kw
+        self, kind: str, name: str, station: str, order_no: int, mean: float, sd: float, att: float, **kw: Any
     ) -> Task:
         self.task_seq += 1
         t = Task(self.task_seq, kind, name, station, order_no, mean, sd, att, **kw)
@@ -285,7 +285,7 @@ class Kitchen:
         self.request_dispatch()
 
     def add_service_task(
-        self, kind: str, name: str, station: str, mean: float, sd: float, att: float, ref=None, **kw
+        self, kind: str, name: str, station: str, mean: float, sd: float, att: float, ref: Any = None, **kw: Any
     ) -> Task:
         """Register / clean / wash / prep style tasks that are not part of an order DAG."""
         t = self._task(kind, name, station, 0, mean, sd, att, ref=ref, **kw)
@@ -380,6 +380,7 @@ class Kitchen:
             key = (0 if sk >= SPECIALIST else 1, -(1 if at_station else 0), -sk, s.fatigue, s.key)
             if best_key is None or key < best_key:
                 best, best_key = s, key
+        best_key2: tuple[float, float, str] | None = None
         if best is None and t.kind != "step":
             # till / cleaning / dish tasks: fall back to any staff with some skill if no specialist is present
             if not any(
@@ -394,9 +395,9 @@ class Kitchen:
                     at_station = st.staff_active.get(s.key, 0) > 0
                     if not at_station and len(st.staff_active) >= st.max_staff:
                         continue
-                    key = (-s.skills[t.station], s.fatigue, s.key)
-                    if best_key is None or key < best_key:  # type: ignore[operator]
-                        best, best_key = s, key
+                    key2 = (-s.skills[t.station], s.fatigue, s.key)
+                    if best_key2 is None or key2 < best_key2:
+                        best, best_key2 = s, key2
         return best
 
     def _pick_slot(self, t: Task) -> int:
