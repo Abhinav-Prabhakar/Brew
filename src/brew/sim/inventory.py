@@ -116,9 +116,9 @@ class Inventory:
         for mid in mods:
             for d in mods_by_id[mid].recipe_delta:
                 if d.replace:
-                    for a, b in d.replace.items():
-                        if a in comps:
-                            comps[b] = comps.get(b, 0.0) + comps.pop(a)
+                    a, b = d.replace["from"], d.replace["to"]
+                    if a in comps:
+                        comps[b] = comps.get(b, 0.0) + comps.pop(a)
                 elif d.add:
                     k = d.add["ingredient"]
                     comps[k] = comps.get(k, 0.0) + float(d.add["qty"])

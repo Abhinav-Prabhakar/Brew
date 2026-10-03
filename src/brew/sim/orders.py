@@ -131,7 +131,7 @@ class Orders:
         u.ing_quality = qmin
         return True
 
-    def commit(self, o: Order, extra_promise: float = 0.0, accept_event: bool = True) -> bool:
+    def commit(self, o: Order, extra_promise: float = 0.0, accept_event: bool = True, announce: bool = True) -> bool:
         """Consume stock, build tasks and announce. Returns False if nothing could be supplied."""
         w = self.w
         keep: list[Unit] = []
@@ -153,7 +153,8 @@ class Orders:
         if w.tele is not None:
             w.tele.order_placed(w, o)
         w.recheck_availability(w.inv.stock_dirty)
-        self.announce_placed(o)
+        if announce:
+            self.announce_placed(o)
         if accept_event:
             w.emit("order.accepted", order_no=o.order_no, promised_s=round(o.promised_s, 1))
         self.update_rail()

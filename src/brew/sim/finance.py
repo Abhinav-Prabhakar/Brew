@@ -24,11 +24,15 @@ UPI = 0.70
 CARD = 0.15
 
 
+def _zero_accounts() -> dict[str, float]:
+    return dict.fromkeys(ACCOUNTS, 0.0)
+
+
 class Ledger:
     """Per-day account totals (INR). ``capex`` and ``gst_collected`` never touch profit."""
 
     def __init__(self, keep_entries: bool = False) -> None:
-        self.day: dict[int, dict[str, float]] = defaultdict(lambda: dict.fromkeys(ACCOUNTS, 0.0))
+        self.day: dict[int, dict[str, float]] = defaultdict(_zero_accounts)
         self.total: dict[str, float] = dict.fromkeys(ACCOUNTS, 0.0)
         self.keep_entries = keep_entries
         self.entries: list[tuple[float, int, str, float]] = []
