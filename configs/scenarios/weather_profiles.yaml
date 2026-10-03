@@ -1,0 +1,19 @@
+# Hourly Markov chains over sunny, partly, cloudy, drizzle, rain (rows sum to 1).
+default:   # Bengaluru in October: mostly dry, occasional afternoon showers
+  sunny:   {sunny: 0.80, partly: 0.15, cloudy: 0.04, drizzle: 0.01, rain: 0.00}
+  partly:  {sunny: 0.20, partly: 0.62, cloudy: 0.14, drizzle: 0.03, rain: 0.01}
+  cloudy:  {sunny: 0.05, partly: 0.20, cloudy: 0.58, drizzle: 0.13, rain: 0.04}
+  drizzle: {sunny: 0.02, partly: 0.08, cloudy: 0.25, drizzle: 0.50, rain: 0.15}
+  rain:    {sunny: 0.00, partly: 0.04, cloudy: 0.20, drizzle: 0.30, rain: 0.46}
+monsoon:
+  sunny:   {sunny: 0.55, partly: 0.25, cloudy: 0.15, drizzle: 0.05, rain: 0.00}
+  partly:  {sunny: 0.10, partly: 0.45, cloudy: 0.30, drizzle: 0.10, rain: 0.05}
+  cloudy:  {sunny: 0.02, partly: 0.10, cloudy: 0.48, drizzle: 0.25, rain: 0.15}
+  drizzle: {sunny: 0.00, partly: 0.05, cloudy: 0.20, drizzle: 0.45, rain: 0.30}
+  rain:    {sunny: 0.00, partly: 0.02, cloudy: 0.13, drizzle: 0.25, rain: 0.60}
+dry:
+  sunny:   {sunny: 0.90, partly: 0.09, cloudy: 0.01, drizzle: 0.00, rain: 0.00}
+  partly:  {sunny: 0.35, partly: 0.55, cloudy: 0.10, drizzle: 0.00, rain: 0.00}
+  cloudy:  {sunny: 0.15, partly: 0.35, cloudy: 0.48, drizzle: 0.02, rain: 0.00}
+  drizzle: {sunny: 0.10, partly: 0.30, cloudy: 0.40, drizzle: 0.20, rain: 0.00}
+  rain:    {sunny: 0.05, partly: 0.20, cloudy: 0.40, drizzle: 0.25, rain: 0.10}

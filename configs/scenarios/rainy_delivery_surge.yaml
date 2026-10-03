@@ -1,0 +1,17 @@
+key: rainy_delivery_surge
+name: Rainy delivery surge
+description: Monsoon showers midday and evening plus a cricket night - aggregator orders spike and riders get scarce.
+start_date: "2026-10-06"
+weather:
+  profile: monsoon
+  initial: cloudy
+  temp_offset: -1
+  forced: [{from_h: 12, to_h: 16, state: rain}, {from_h: 19, to_h: 22, state: rain}]
+demand:
+  global_mult: 1.0
+  persona_mult: {delivery_home: 1.5, leisurely: 0.7}
+  windows: [{from: "19:30", to: "23:00", channel_mult: {zomato: 1.4, swiggy: 1.4}}]
+disruptions:
+  - {kind: rider_shortage, start: "20:00", end: "21:30", severity: 0.8}
+  - {kind: staff_late, target: barista_a, start: "07:30", end: "08:15", severity: 0.75}
+random_chaos: {rate_per_day: 0.0}

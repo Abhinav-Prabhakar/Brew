@@ -1,0 +1,6 @@
+code: A
+name: Naive FCFS
+dispatch_strategy: fcfs
+batch_window_s: 0
+prep: {mode: when_out, classes: [chai_base, coldbrew_concentrate]}
+purchasing: {mode: fixed_weekly, order_days: [0, 3], cover: par}

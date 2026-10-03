@@ -1,0 +1,6 @@
+price_grid: 5
+max_step_frac: 0.10          # |dp| <= 10% of base per change
+cooldown_s: 7200             # one change per item per 2 sim-hours
+staples_no_increase: true
+max_featured: 2
+promotion_decrease_only: true

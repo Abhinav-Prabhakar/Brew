@@ -1,0 +1,17 @@
+modifiers:
+  - {id: oat, label: oat, long: oat milk, price_delta: 40, applies_to_tags: [milk_drink], recipe_delta: [{replace: {from: milk, to: oat_milk}}], extra_prep_s: 0, overlay_icon: oat, pick_prob: {default: 0.10, student: 0.18, remote_worker: 0.16, tourist: 0.06, regular: 0.14}}
+  - {id: almond, label: almond, long: almond milk, price_delta: 50, applies_to_tags: [milk_drink], recipe_delta: [{replace: {from: milk, to: almond_milk}}], extra_prep_s: 0, overlay_icon: almond, pick_prob: {default: 0.03, student: 0.05, remote_worker: 0.05}}
+  - {id: shot, label: "+1 shot", long: extra shot, price_delta: 40, applies_to_tags: [espresso_based], applies_to: [coldbrew], recipe_delta: [{add: {ingredient: coffee_beans, qty: 18}}], extra_prep_s: 12, overlay_icon: shot, pick_prob: {default: 0.10, commuter: 0.18, student: 0.15, remote_worker: 0.2}}
+  - {id: decaf, label: decaf, long: decaf, price_delta: 0, applies_to_tags: [espresso_based], recipe_delta: [{replace: {from: coffee_beans, to: decaf_beans}}], extra_prep_s: 15, overlay_icon: decaf, pick_prob: {default: 0.03, leisurely: 0.06, family: 0.05}}
+  - {id: lesssugar, label: "1/2 sugar", long: less sugar, price_delta: 0, applies_to: [chai, filtercoffee, hotchoc, matcha, rosemilk, strawberryshake, roselatte], recipe_delta: [{scale: {ingredient: sugar, factor: 0.5}}], extra_prep_s: 0, overlay_icon: lesssugar, pick_prob: {default: 0.12, leisurely: 0.18}}
+  - {id: iced, label: iced, long: make it iced, price_delta: 20, applies_to: [latte, cappuccino, flatwhite, roselatte, matcha], recipe_delta: [{add: {ingredient: ice, qty: 120}}], extra_prep_s: 12, overlay_icon: iced, pick_prob: {default: 0.05, student: 0.09, tourist: 0.08}}
+  - {id: hot, label: xtra hot, long: extra hot, price_delta: 0, applies_to: [cappuccino, flatwhite, latte, roselatte, chai, hotchoc, matcha, filtercoffee], recipe_delta: [], extra_prep_s: 8, overlay_icon: hot, pick_prob: {default: 0.05, leisurely: 0.08}}
+  - {id: large, label: large, long: large size, price_delta: 40, applies_to_tags: [milk_drink, black_coffee], recipe_delta: [{scale: {ingredient: milk, factor: 1.3}}, {scale: {ingredient: oat_milk, factor: 1.3}}, {scale: {ingredient: almond_milk, factor: 1.3}}, {scale: {ingredient: chai_base, factor: 1.3}}, {scale: {ingredient: coldbrew_concentrate, factor: 1.3}}], extra_prep_s: 5, overlay_icon: large, pick_prob: {default: 0.05, commuter: 0.08, remote_worker: 0.1}}
+  - {id: noonion, label: onion, long: no onion, price_delta: 0, applies_to: [sandwich, cheesetoast], negation: true, recipe_delta: [{remove: pickled_onion}], extra_prep_s: 6, overlay_icon: noonion, pick_prob: {default: 0.10, family: 0.15}}
+  - {id: nonuts, label: nuts, long: nut allergy, price_delta: 0, applies_to: [avotoast, muffin, cinnamon, cheesecake, waffle], negation: true, allergy: true, recipe_delta: [], extra_prep_s: 20, overlay_icon: nonuts, pick_prob: {default: 0.03, family: 0.06}}
+  - {id: cheese, label: "+cheese", long: extra cheese, price_delta: 30, applies_to: [sandwich, cheesetoast, avotoast, pasta], recipe_delta: [{add: {ingredient: cheddar, qty: 25}}], extra_prep_s: 5, overlay_icon: cheese, pick_prob: {default: 0.12, student: 0.2}}
+  - {id: jalapeno, label: jalapeno, long: add jalapenos, price_delta: 20, applies_to: [sandwich, cheesetoast, avotoast, fries], recipe_delta: [{add: {ingredient: jalapeno, qty: 12}}], extra_prep_s: 4, overlay_icon: jalapeno, pick_prob: {default: 0.06, student: 0.1}}
+incompatible:
+  - [decaf, shot]
+  - [iced, hot]
+  - [oat, almond]

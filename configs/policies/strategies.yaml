@@ -1,0 +1,14 @@
+# priority = w_late*lateness_pressure + w_age*age + w_channel[ch] + w_persona[p] + w_batch*peers + w_bump*bumped + w_short*(1/est_s)
+presets:
+  fcfs:         {w_late: 0.0, w_age: 1.0, w_channel: {}, w_persona: {}, w_batch: 0.0, w_bump: 1000.0, w_short: 0.0}
+  edf:          {w_late: 1.0, w_age: 0.2, w_channel: {}, w_persona: {}, w_batch: 0.0, w_bump: 1000.0, w_short: 0.0}
+  dine_first:   {w_late: 0.3, w_age: 0.5, w_channel: {dine_in: 300.0, takeaway: 150.0}, w_persona: {}, w_batch: 0.0, w_bump: 1000.0, w_short: 0.0}
+  delivery_jit: {w_late: 0.6, w_age: 0.2, w_channel: {zomato: 120.0, swiggy: 120.0}, w_persona: {}, w_batch: 0.0, w_bump: 1000.0, w_short: 0.0}
+  batch_max:    {w_late: 0.3, w_age: 0.3, w_channel: {}, w_persona: {}, w_batch: 60.0, w_bump: 1000.0, w_short: 0.0}
+  throughput:   {w_late: 0.2, w_age: 0.2, w_channel: {}, w_persona: {}, w_batch: 10.0, w_bump: 1000.0, w_short: 4000.0}
+# Manual (HUD) strategies -> preset + menu tweaks. `balanced` keeps the active policy's native dispatch.
+manual:
+  balanced:       {preset: null, hide: [], drink_discount_pct: 0, label: Balanced}
+  delivery_first: {preset: delivery_jit, hide: [], drink_discount_pct: 0, label: Delivery first, channel_boost: {zomato: 250.0, swiggy: 250.0}}
+  rush_menu:      {preset: throughput, hide: [pasta, sandwich, avotoast], drink_discount_pct: 0, label: Rush menu}
+  happy_hour:     {preset: edf, hide: [], drink_discount_pct: 15, label: Happy hour, arrival_mult: 1.15}

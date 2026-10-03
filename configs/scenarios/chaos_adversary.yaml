@@ -1,0 +1,11 @@
+key: chaos_adversary
+name: Adversarial chaos (scripted)
+description: A fixed, nasty script of disruptions standing in for the RL adversary (M3). Budget of three hits per day.
+start_date: "2026-10-05"
+weather: {profile: monsoon, initial: cloudy, temp_offset: 0}
+demand: {global_mult: 1.0}
+disruptions:
+  - {kind: staff_absent, target: barista_a, start: "07:30", end: "16:30", severity: 1.0}
+  - {kind: equipment_down, target: oven, start: "12:00", end: "15:00", severity: 1.0}
+  - {kind: rider_shortage, start: "19:30", end: "21:30", severity: 1.0}
+random_chaos: {rate_per_day: 0.0}

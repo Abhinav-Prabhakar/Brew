@@ -1,0 +1,5 @@
+- {key: dine_in, name: Dine-in, kind: offline, commission: 0.0, packaging_cost: 0.0, gateway_fee: 0.015, acceptance_timeout_s: 0, throttle: false, label: DINE-IN}
+- {key: takeaway, name: Takeaway, kind: offline, commission: 0.0, packaging_cost: 0.0, gateway_fee: 0.015, acceptance_timeout_s: 0, throttle: false, label: TAKEAWAY}
+- {key: zomato, name: Aggregator Z, kind: aggregator, commission: 0.25, packaging_cost: 6.0, gateway_fee: 0.0, acceptance_timeout_s: 90, throttle: true, label: ZOMATO, share: 0.55}
+- {key: swiggy, name: Aggregator S, kind: aggregator, commission: 0.22, packaging_cost: 6.0, gateway_fee: 0.0, acceptance_timeout_s: 90, throttle: true, label: SWIGGY, share: 0.45}
+- {key: own_app, name: Own app (reserved), kind: aggregator, commission: 0.03, packaging_cost: 6.0, gateway_fee: 0.02, acceptance_timeout_s: 90, throttle: false, label: BREW, enabled: false}
