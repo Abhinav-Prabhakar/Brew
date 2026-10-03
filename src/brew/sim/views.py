@@ -200,3 +200,35 @@ class WorldView:
     def rating(self, group: str = "all") -> float:
         rep = self._w.reviews.rep
         return rep.overall() if group == "all" else rep.rating(group)
+
+    # ----- demand history & replate (M2)
+    def demand_log(self) -> Any:
+        """The in-world per-slot demand history (read-only use)."""
+        return self._w.dlog
+
+    @property
+    def replate_mode(self) -> str:
+        return self._w.replate.mode
+
+    @property
+    def replate_override(self) -> bool:
+        return self._w.replate.override
+
+    def replate_lots(self) -> list[dict[str, Any]]:
+        """Held make-ahead / finished-goods lots (listed or not) as plain dicts."""
+        return self._w.replate.lots_view()
+
+    def stock_units(self, sku: str) -> float:
+        """Usable make-ahead / finished-goods units of ``sku`` on hand."""
+        return self._w.replate.stock_units(sku)
+
+    def premake_inflight(self, sku: str) -> float:
+        return self._w.replate.inflight(sku)
+
+    def replate_eligible(self) -> list[str]:
+        return sorted(self._w.replate.sku_key)
+
+    def unit_cost(self, sku: str) -> float:
+        """Raw-material cost of one unit of ``sku`` (INR), made to order."""
+        inv = self._w.inv
+        return float(sum(q * inv.unit_cost[k] for k, q in inv.sku_keys[sku]))

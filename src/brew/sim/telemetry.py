@@ -40,6 +40,10 @@ DELIVERY_COLS = [
     "late_s",
 ]
 DECISION_COLS = ["sim_s", "decision_id", "type", "policy", "summary"]
+REPLATE_OBS_COLS = [
+    "sim_s", "sku", "lot_id", "frac_left", "discount_pct", "price_ratio", "hour", "weather", "footfall",
+    "n_competing", "remaining", "sold_next",
+]  # fmt: skip
 KPI_COLS = ["day", "revenue", "net_profit", "orders", "rating", "cash"]
 
 
@@ -157,6 +161,13 @@ def write_run(w: World, out_dir: str | Path, extra_meta: dict[str, Any] | None =
     put("tasks", TASK_COLS, tb.tasks)
     put("deliveries", DELIVERY_COLS, tb.deliveries)
     put("decisions", DECISION_COLS, tb.decisions)
+    cats = {m.sku: m.cat for m in w.cfg.menu}
+    dense = w.dlog.dense_frame(cats)
+    if len(dense):
+        pq.write_table(dense.to_arrow(), out / "demand_dense.parquet", compression="zstd")
+        counts["demand_dense"] = len(dense)
+    if w.replate.obs_rows:
+        put("replate_obs", REPLATE_OBS_COLS, w.replate.obs_rows)
     drows = []
     for (day, slot, sku, ch), (qty, price, base, feat, wst, tmp) in sorted(tb.demand.items()):
         hid = 1 if w.menu[sku].hidden else 0

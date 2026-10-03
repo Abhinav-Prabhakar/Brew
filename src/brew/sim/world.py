@@ -29,6 +29,7 @@ from .calendar import Calendar
 from .choice import ChoiceModel, weather_fit
 from .customers import Customers
 from .delivery import Delivery
+from .demandlog import DemandLog
 from .disruptions import Disruptions
 from .engine import P_CLOCK, P_DECIDE, P_TELEMETRY, Engine
 from .finance import Finance
@@ -152,6 +153,7 @@ class World:
         self.reviews = Reviews(self)
         self.fin = Finance(self, keep_ledger_entries)
         self.replate = Replate(self)
+        self.dlog = DemandLog([m.sku for m in self.cfg.menu])
         if cash_start is not None:
             self.fin.cash = cash_start
         self.kpi = Kpis(self)
@@ -341,6 +343,7 @@ class World:
         dt = date_of(day, self.start_date)
         self.cal_arrays = self.calendar.day_arrays(dt)
         self.cal_flags = self.calendar.flags(dt)
+        self.dlog.new_day(day, self.weekday(day), self.cal_flags)
         # arrival plan
         self.day_noise = float(self.rng.arrivals.lognormal(0.0, cfg.cafe.params.day_noise_sigma))
         static = self._static_mult(day)
@@ -514,6 +517,7 @@ class World:
     def run_manager(self, phase: str) -> None:
         """Expiry sweep, observation, policy decision, shield + apply."""
         self.last_manager_s = self.now
+        self.dlog.snapshot(self)
         self.sweep_expired()
         self.price_mult_dirty = True
         self.replate.tick()
