@@ -81,7 +81,9 @@ def test_idle_verdict_drops_a_stale_task_and_a_mid_task_snapshot_is_working(harn
     assert out["brk"] == ["break", True]
 
 
-def _first_time_with(app, pred_js: str, start: str = "08:05", stop: str = "10:20", step_min: int = 3) -> str | None:
+def _first_time_with(
+    app, pred_js: str, start: str = "08:05", stop: str = "10:20", step_min: int = 3
+) -> str | None:
     h, m = map(int, start.split(":"))
     end_h, end_m = map(int, stop.split(":"))
     t = h * 60 + m
@@ -96,7 +98,9 @@ def _first_time_with(app, pred_js: str, start: str = "08:05", stop: str = "10:20
 
 def test_crew_card_and_figures_show_the_task_each_person_is_really_on(open_app):
     app = open_app("morning_rush")
-    when = _first_time_with(app, "Object.values(s.tasks).some((t) => t.order_no != null && s.staff[t.staff_id]?.present)")
+    when = _first_time_with(
+        app, "Object.values(s.tasks).some((t) => t.order_no != null && s.staff[t.staff_id]?.present)"
+    )
     assert when, "the fixture has people working on tickets in the morning"
     app.room("kitchen")
     for at in ("08:40", "09:10", "09:40"):
