@@ -11,7 +11,7 @@ from brew.config.schemas import ScenarioConfig
 from brew.domain.enums import DISRUPTION_KINDS, MANUAL_DISRUPTION_KINDS
 from brew.domain.timeutil import DAY_S, parse_hhmm
 
-from .engine import P_DISRUPT, P_TELEMETRY
+from .engine import P_DECIDE, P_DISRUPT, P_TELEMETRY
 from .state import Disruption
 
 if TYPE_CHECKING:
@@ -135,6 +135,8 @@ class Disruptions:
             }
         )
         w.kitchen.request_dispatch()
+        if d.source == "manual":  # re-plan right away (after this disruption's effects), not at the next 15-min tick
+            w.engine.schedule(w.now, "REPLAN", did, P_DECIDE)
         if d.meta.get("cost_track"):  # cost-of-chaos shadow: first reading 5 sim-min in
             w.engine.schedule(w.now + COST_EVERY_S, "CHAOS_COST", (did, "active"), P_TELEMETRY)
 

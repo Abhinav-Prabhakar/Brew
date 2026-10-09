@@ -374,3 +374,20 @@ def test_unknown_stage_fails_and_smoke_dry_run_lists_every_stage():
     assert r.exit_code == 0
     for s in ("history", "bc", "ppo", "adversarial", "export", "arena"):
         assert s in r.output
+
+
+def test_policy_d_headlines_and_manual_chaos_replan(champion):
+    from brew.events.bus import ListSink
+    from brew.policies.D_rl import PolicyD
+
+    _model, d, _ = champion
+    sink = ListSink()
+    w = World(policy=PolicyD(champion=d), seed=3, days=1, sink=sink)
+    w.run_until(12 * 3600)
+    dis = w.trigger_chaos("equipment_down", "espresso", duration_min=30)
+    w.run(1)
+    decs = [e for e in sink.events if e.type == "decision.made"]
+    assert decs
+    assert all(e.data["headline"] and len(e.data["headline"]) <= 60 for e in decs)
+    re = [e for e in decs if e.data["trigger"] == dis.id]
+    assert len(re) == 1 and re[0].sim_s == pytest.approx(12 * 3600)

@@ -11,6 +11,15 @@ from typing import Any
 
 import numpy as np
 
+from brew.analysis.headline import (
+    clean,
+    compose,
+    disruption_label,
+    fit,
+    money_delta,
+    qty_text,
+    thr_phrase,
+)
 from brew.config.loader import default_cafe, default_policies, load_scenario, weather_profiles
 from brew.config.schemas import CafeConfig, ConfigIndex, PoliciesConfig, ScenarioConfig
 from brew.domain.enums import CATEGORIES, DISRUPTION_KINDS, MANUAL_DISRUPTION_KINDS
@@ -52,6 +61,7 @@ from .views import OrderView, WorldView
 
 WEEKDAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
 MANAGER_START_S = 8 * 3600
+REPLAN_GAP_S = 60.0  # no regular manager tick this soon after an immediate re-plan
 DAY_START_S = 7 * 3600
 RAIN_CH = {
     "rain": {"dine_in": 0.75, "takeaway": 0.9, "zomato": 1.5, "swiggy": 1.5},
@@ -146,6 +156,7 @@ class World:
         self.stock_init_done = False
         self.tele: TeleBuf | None = TeleBuf() if telemetry else None
         self.last_manager_s = -1.0
+        self.last_replan_s = -1e18
         # cost-of-chaos hook installed by the API layer: (disruption_id, sim_s, final) -> counterfactual profit
         self.cost_probe: Any = None
         # --- subsystems
@@ -276,6 +287,7 @@ class World:
             "INVEST_DELIVER": self.invest.deliver,
             "DIS_START": de.on_start,
             "DIS_END": de.on_end,
+            "REPLAN": self.on_replan,
             "CHAOS_COST": de.on_cost,
         }
         self._o = o
@@ -554,7 +566,8 @@ class World:
             self.engine.schedule(self.now + 300, "KPI_TICK", None, P_TELEMETRY)
 
     def on_manager(self, k: int) -> None:
-        self.run_manager("tick")
+        if self.now - self.last_replan_s >= REPLAN_GAP_S:  # a manual-chaos re-plan just ran: skip the double tick
+            self.run_manager("tick")
         nxt = self.day * DAY_S + MANAGER_START_S + (k + 1) * self.cfg.cafe.manager_tick_s
         if nxt < self.day * DAY_S + self.cfg.cafe.close_s:
             self.engine.schedule(nxt, "MANAGER", k + 1, P_DECIDE)
@@ -567,8 +580,8 @@ class World:
         self.orders.update_rail()
 
     # ------------------------------------------------------------- manager tick
-    def run_manager(self, phase: str) -> None:
-        """Expiry sweep, observation, policy decision, shield + apply."""
+    def run_manager(self, phase: str, trigger: str | None = None) -> None:
+        """Expiry sweep, observation, policy decision, shield + apply (``trigger`` = disruption id on a re-plan)."""
         self.last_manager_s = self.now
         self.dlog.snapshot(self)
         self.sweep_expired()
@@ -577,8 +590,24 @@ class World:
         obs = self.obs_builder.build()
         action = self.policy.on_manager_tick(obs, self._view)
         if action is not None and not action.is_noop():
-            self.apply_manager_action(action, by=self.policy.code)
+            self.apply_manager_action(action, by=self.policy.code, trigger=trigger)
         self.ctx_dirty = True
+
+    def on_replan(self, did: str) -> None:
+        """Immediate policy tick after a manual disruption started; always yields one ``decision.made``."""
+        d = self.dis.items.get(did)
+        if d is None or not (MANAGER_START_S <= tod_s(self.now) < self.cfg.cafe.close_s):
+            return
+        seq0 = self.decision_seq
+        if self.last_manager_s < d.start_s:  # a regular tick already ran after the disruption: don't double up
+            self.run_manager("replan", trigger=did)
+        self.last_replan_s = self.now
+        if self.decision_seq == seq0:
+            label = disruption_label(d.kind, d.target, self)
+            hl = compose([], label)
+            self.make_decision(
+                "replan", f"Re-plan after {label}: no change needed", self.policy.code, headline=hl, trigger=did
+            )
 
     def decision_context(self) -> dict[str, Any]:
         """Snapshot of the numbers an explanation may quote (explainer slots)."""
@@ -599,13 +628,16 @@ class World:
         factors: list | None = None,
         clipped: list | None = None,
         changes: list | None = None,
+        headline: str = "",
+        trigger: str | None = None,
     ) -> str:
+        headline = fit(headline or summary.split(": ")[0].lower() or typ.replace("_", " "))
         self.decision_seq += 1
         did = f"dec-{self.decision_seq:06d}"
         rec = {
             "decision_id": did, "sim_s": self.now, "type": typ, "summary": summary, "policy": by,
             "top_factors": factors or [], "clipped": clipped or [], "changes": changes or [],
-            "context": self.decision_context(),
+            "headline": headline, "trigger": trigger, "context": self.decision_context(),
         }  # fmt: skip
         self.decisions.append(rec)
         if len(self.decisions) > 2000:
@@ -620,13 +652,16 @@ class World:
             policy=by,
             top_factors=factors or [],
             clipped=clipped or [],
+            headline=headline,
+            trigger=trigger,
         )
         return did
 
     # -------------------------------------------------------- manager action
-    def apply_manager_action(self, a: ManagerAction, by: str) -> dict[str, Any]:
+    def apply_manager_action(self, a: ManagerAction, by: str, trigger: str | None = None) -> dict[str, Any]:
         """Pass a ManagerAction through the charter shield and apply what survives."""
         applied: list[str] = []
+        ph: list[tuple[int, str]] = []  # (priority, plain-English phrase) for the headline
         changes: list[dict[str, Any]] = []
         clipped: list[str] = []
         reason = a.reason
@@ -634,12 +669,14 @@ class World:
             if a.strategy in self.pol_cfg.strategies.presets:
                 self.preset = a.strategy
                 applied.append(f"dispatch strategy -> {a.strategy}")
+                ph.append((8, f"switch to {clean(a.strategy)} dispatch"))
         if a.batch_window_s is not None and a.batch_window_s != self.batch_window_s:
             self.batch_window_s = float(a.batch_window_s)
             applied.append(f"batch window {a.batch_window_s:.0f}s")
         for ch, lvl in a.throttles.items():
             if self.delivery.set_throttle(ch, lvl):
                 applied.append(f"{ch} throttle -> {lvl}")
+                ph.append((1, thr_phrase(ch, lvl)))
                 changes.append({"kind": "throttle", "channel": ch, "level": lvl})
         for k, v in a.kappa.items():
             self.kappa[k] = v
@@ -660,6 +697,15 @@ class World:
             if ok:
                 applied.append(f"{sku} -> {self.menu[sku].price:g}")
                 changes.append({"kind": "price", "item": sku, "old": old_p, "new": self.menu[sku].price})
+                if sku in a.sku_prices:
+                    nm = clean(self.ix.menu[sku].name)
+                    dl = money_delta(self.menu[sku].price - old_p)
+                    ph.append((5, f"{'discount' if a.promotion else 'nudge'} {nm} {dl}"))
+                else:
+                    cat = self.ix.menu[sku].cat
+                    if not any(p[1].startswith(f"nudge {cat} ") for p in ph):
+                        st = a.price_steps.get(cat, 0.0)
+                        ph.append((5, f"nudge {cat} prices {st * 100:+.0f}%"))
             elif why:
                 clipped.append(f"{sku}: {why}")
         # featured
@@ -676,12 +722,14 @@ class World:
                 try:
                     if self.set_featured(a.featured, True, by, reason):
                         applied.append(f"feature {a.featured}")
+                        ph.append((3, f"push {clean(self.ix.menu[a.featured].name)}"))
                 except CharterViolation as e:
                     clipped.append(str(e))
         for sku, on in a.hide.items():
             try:
                 if self.set_hidden(sku, on, "owner", by, reason or "policy"):
                     applied.append(f"{'hide' if on else 'restore'} {sku}")
+                ph.append((2, f"{'pause' if on else 'bring back'} {clean(self.ix.menu[sku].name)}"))
             except CharterViolation as e:
                 clipped.append(str(e))
         for key, qty in a.prep_now.items():
@@ -689,15 +737,19 @@ class World:
                 started = self.kitchen.start_prep(key, qty)
                 if started > 0:
                     applied.append(f"prep {key} x{started:g}")
+                    pi = self.ix.prep[key]
+                    ph.append((4, f"prep {qty_text(started, pi.base_uom)} {clean(pi.name)}"))
                     changes.append({"kind": "prep", "prep_item": key, "qty": started})
         rp = self.replate
         if a.replate_mode is not None and rp.set_mode(a.replate_mode, by):
             applied.append(f"replate mode -> {a.replate_mode}")
+            ph.append((9, f"set rescue discounts to {clean(a.replate_mode)}"))
         for sku, units in a.premake.items():
             if units > 0:
                 try:
                     res = rp.premake(sku, int(units), by)
                     applied.append(f"premake {sku} x{res['units']:g}")
+                    ph.append((4, f"make {res['units']:g} {clean(self.ix.menu[sku].name)} ahead"))
                     changes.append({"kind": "prep", "prep_item": sku, "qty": res["units"], "item": sku})
                 except ReplateError as e:
                     clipped.append(f"premake {sku}: {e}")
@@ -707,6 +759,9 @@ class World:
                 placed = self.suppliers.place(po.supplier, lines, source=by, arrive_tod_s=po.arrive_tod_s)
                 if placed is not None:
                     applied.append(f"PO {po.supplier} ({len(placed['lines'])} lines)")
+                    ln0 = placed["lines"][0]
+                    ing = self.ix.ingredient[ln0["ingredient"]]
+                    ph.append((6, f"order {qty_text(ln0['qty'], ing.base_uom)} {clean(ing.name)}"))
                     changes.append({
                         "kind": "reorder", "supplier": po.supplier, "ingredient": placed["lines"][0]["ingredient"],
                         "qty": placed["lines"][0]["qty"],
@@ -716,6 +771,8 @@ class World:
                 if rp.set_discount(lot_id, pct, by, strict=False, cap=a.replate_caps.get(lot_id)):
                     applied.append(f"replate {lot_id} -{pct:.0f}%")
                     lot = rp.lots.get(lot_id)
+                    if lot:
+                        ph.append((7, f"mark down {clean(self.ix.menu[lot.sku].name)} {pct:.0f}%"))
                     changes.append({"kind": "replate", "item": lot.sku if lot else "", "pct": pct})
             except ReplateError as e:
                 clipped.append(f"replate {lot_id}: {e}")
@@ -724,7 +781,14 @@ class World:
             summary = reason or "; ".join(applied[:3]) or "adjustments clipped by charter"
             if applied and reason:
                 summary = f"{reason}: " + "; ".join(applied[:3])
-            self.make_decision(self._decision_type(a), summary, by, a.factors, clipped, changes)
+            label = None
+            if trigger is not None and trigger in self.dis.items:
+                dd = self.dis.items[trigger]
+                label = disruption_label(dd.kind, dd.target, self)
+            hl = compose(ph, label, self.kitchen.load_pct(), bool(clipped))
+            self.make_decision(
+                self._decision_type(a), summary, by, a.factors, clipped, changes, headline=hl, trigger=trigger
+            )
         return result
 
     @staticmethod
@@ -863,7 +927,9 @@ class World:
         self.emit("strategy.changed", strategy=name, previous=prev)
         self.reapply_strategy_menu()
         self.kitchen.request_dispatch()
-        self.make_decision("strategy_switch", f"Strategy {prev} -> {name}", "owner")
+        self.make_decision(
+            "strategy_switch", f"Strategy {prev} -> {name}", "owner", headline=f"switch to {clean(name)} dispatch"
+        )
 
     def reapply_strategy_menu(self) -> None:
         ms = self.pol_cfg.strategies.manual[self.manual_strategy]
