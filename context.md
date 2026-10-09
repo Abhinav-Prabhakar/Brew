@@ -136,3 +136,107 @@
   - Lower LR / `ent_coef` for the 7- and 28-day curriculum stages (they didn't improve on the 205k peak).
   - Run RARL starting from the champion.
   - Wire the backend to the `kitchen/` frontend (not started; the user will ask).
+
+---
+
+# ROADMAP: from here to a polished demo (written 2026-10-06)
+
+**Bottom line:** the backend is close to demo-complete (sim, policies A–E, ML, trained D, about 40 REST endpoints plus WebSocket). Wiring the frontend to it is the largest single job, but **not the only one**. Still missing: one frontend direction to commit to, the screens behind the demo script (Arena, Chaos, Back office, Pantry), the "Ask Brew" copilot, sound, and demo packaging.
+
+Effort: S ≈ under ½ day, M ≈ 1–2 days, L ≈ 3+ days. `plan.md` is mostly outdated; its §1.3 definition of done and §22 demo script are still the best yardstick.
+
+**Current frontend state:**
+- **`lobby/`:** pink 3D café, complete. It has its own in-browser sim and is not wired to the backend.
+- **`kitchen/`:** night-kitchen 3D revamp from the separate chat.
+  - Scaffold committed (`05b2d0f`); `events.js`, `fx.js`, `hud.js`, `studio.js` and `tablet.js` are uncommitted, plus edits to `food.js`, `lights.js` and `props.js`.
+  - Driven by a `MockSource` emitting backend-shaped events.
+  - Its menu has frontend-only dinner SKUs (ribeye, margherita) that the backend doesn't have.
+- **`design/`:** untracked hand-inked 2D mockups (`brew.html`, lobby/kitchen/pantry). They look like another visual exploration.
+
+## Phase 0: Decisions (the user's call; blocks everything below)
+1. **Frontend direction:** night-kitchen 3D (`kitchen/`), pink café 3D (`lobby/`), the hand-inked 2D rooms (`design/`), or a hybrid (for example, 3D hero room plus 2D/glass panels for the office, arena and pantry). The rest of this roadmap assumes **one** primary frontend.
+2. **Menu:** either keep the café menu (23 backend SKUs) or add dinner plates to the backend (`configs/cafe/menu.yaml`, recipes, stations such as grill and pizza oven), then retrain the M2 models and run a short PPO fine-tune.
+3. **Demo format:** live laptop demo or recorded video, its length (plan says 5 min), offline-capable or not, and whether it needs a public URL.
+4. **Housekeeping:** commit or discard the uncommitted `kitchen/` work and the untracked `design/` folder (coordinate with the kitchen chat). Decide whether `lobby/` stays as a second room or goes into an archive. Check the `.claude/launch.json` change.
+
+## Phase 1: Integration (backend ↔ frontend). L
+1. **Backend client layer:**
+   - Write a `WsSource` (`/api/v1/ws/worlds/{id}?since_seq=`) with the same `onFrame` contract as `MockSource`, so the mock is a drop-in swap. Keep `MockSource` as an offline fallback.
+   - Hydrate from `GET /worlds/{id}/state`, then resume with `since_seq`. Handle reconnects and resync.
+   - Add a thin REST client for actions and controls (`/control`, `/actions`, `/policy`, `/chaos`, `/fork`).
+2. **One-command dev and demo run:**
+   - FastAPI also serves the static frontend, or `serve.py` proxies `/api`.
+   - Add a `launch.json` entry and a `brew-demo` CLI that starts the API, creates a demo world and opens the browser.
+3. **Event → visual coverage audit:** walk every event in `backend.md §6.3` and map each one to a visual and a sound (`plan.md §18` is the juice table). Fill the gaps on both sides. Backend events the 3D kitchen probably needs:
+   - per-station `task.started`/`task.finished` carrying a staff id;
+   - staff positions;
+   - plating or pass events;
+   - a `price.changed` reason text that's good enough to display.
+4. **Pacing:** keep visuals smooth at 1×, 10× and 60× (frame batching, interpolation, skipping minor animations at high speed). Use the backend's lagging flag.
+5. **Actions from the UI:** serve or bump an order, `set_price`, feature or hide items, throttle, premake, Replate mode, invest, chaos. Show 409/422 errors as friendly toasts.
+6. **Contract tests:** a frontend fixture recorded from the real WS stream; a JSON-schema check against `GET /events/schema`.
+
+## Phase 2: The demo-script screens (each maps to `plan.md §22`)
+1. **Hero room** (lobby or kitchen), driven live. Customers, tickets, cooking, receipts, bags and riders all come from real events. **M**
+2. **Menu book with live prices:**
+   - The price strike-through animation plus a reason from `price.changed`.
+   - A **Replate section** (discounted pre-made food) with made-at times.
+   - Carbon labels per item (CO₂e is already in the menu config). **M**
+3. **Back office ("the brain"):** **L** in total.
+   - Forecast fan charts (`/forecast`).
+   - A decision feed as sticky notes (`/decisions` plus `/decisions/{id}/explain`, which uses D's surrogate tree and the synthetic explanation templates).
+   - The bottleneck gauge (`/bottlenecks`).
+   - The investment shop (`/advisor` → `/invest`), showing the purchase dropping into the 3D scene.
+   - A ledger waterfall (`/kpis`, `/impact`).
+4. **Policy Arena:** A/B/C/D side by side on the same seed, run as 4 parallel worlds with a live cumulative-profit race and a podium. **L** in total.
+   - A "Run 30 seeds" button (`POST /arena` as a job) filling a CI table.
+   - Backend need: a way to stream 4 CRN worlds at once. Either a multi-world WS or 4 sockets, plus a "create arena worlds" helper.
+5. **Chaos console:** big buttons → `POST /worlds/{id}/chaos`. The world must *visibly* adapt (tickets reshuffle, throttle stamps, an 86 ribbon, an explanation note). **M**
+6. **Pantry / walk-in:** lots, FEFO, freshness colours, the Replate and donation crates, supplier deliveries (`/inventory`, `/fridge`, `/replate`). **M–L**
+7. **Impact board:** waste kg, CO₂e, donated kg, overload minutes, rating, profit vs baseline (`/impact`). **S–M**
+8. **Optional:** customer QR page (live menu, ETA, Now Brewing) **S**; owner daily digest card **S**; replay / time-machine scrubber using the event log and `/fork` **M**.
+
+## Phase 3: Backend features still missing for the demo
+1. **"Ask Brew" copilot** (`plan.md §19.1`): **M**
+   - Claude API with tool use over the read-only analytics endpoints, under a new `/api/v1/ask` route.
+   - The eval set already exists: `data/synthetic/clean/ask_brew_eval.jsonl` (300 rows). Add an eval harness.
+   - Needs an API key, and a graceful offline fallback.
+2. **Arena streaming helper:** create N worlds with CRN on the same seed and step them in lockstep (see Phase 2.4). **M**
+3. **Invest → visual:** make sure `investment.delivered` carries enough to spawn the 3D object, and that the next sim day shows the throughput gain. **S**
+4. **Demo scenario presets:** a curated seed or day where the morning rush, a Zomato batch, a price change, chaos recovery and an obvious bottleneck all happen in the first few sim-minutes at 10–60×. **M**
+5. **Recorded-replay fallback:** export a demo day's event stream to JSON so the frontend can play it with no backend (`plan.md §20.3`). **S**
+6. **If dinner plates are added (Phase 0.2):** add the SKUs, recipes and stations, retrain the M2 models and fine-tune D. **M**
+7. **Optional, from `plan.md §19`:** POS-CSV twin calibration, live weather (Open-Meteo), multi-cafe. These are vision items; skip unless there's time.
+
+## Phase 4: ML quality follow-ups (optional but valuable)
+1. **PPO plateau:** the best checkpoint was at 205k steps, and the 7- and 28-day curriculum stages didn't improve on it. Try a lower LR and `ent_coef`, keep 1–7-day episodes, and use KL or target_kl early stopping. Fine-tune from the champion.
+2. **RARL from the champion:** improves chaos-day profit and CVaR, which is the "visibly adapts to chaos" story.
+3. **30-seed arena with paired CIs and CVaR** for the deck: D vs C vs B vs A, on calm and chaos days.
+4. **Explanation quality:** review the surrogate-tree reasons and the template text that users will read.
+5. **Forecast:** the P50 has a negative bias; check whether the full-run model fixed it.
+
+## Phase 5: Sound (`plan.md §4`). M
+`lobby/` has synthesised Web Audio. The chosen frontend needs:
+- a cue list (about 60 cues, mapped from events);
+- mix buses (music, SFX, UI, ambience) with ducking;
+- an ambient kitchen bed and an adaptive music layer (load-reactive);
+- a mute toggle and a "calm mode".
+
+Use CC0 or licensed sources and keep a CREDITS file.
+
+## Phase 6: Polish and UX. M–L
+- **Motion system:** nothing pops, numbers roll, and a camera move between rooms (lobby, kitchen, pantry, office, arena).
+- **Onboarding:** a 20-second coach overlay. Every 3D hot-spot gets a hover tooltip and a click affordance.
+- **Performance:** stay at or under about 16 ms per frame on the M2 8 GB with the live WS stream. Check memory over a 30-minute run (no leaks from spawned customers or tickets).
+- **Accessibility:** reduced motion, captions for sounds, colour-blind-safe signals, keyboard navigation, `aria-live` for key events.
+- **States:** loading, error and reconnect states, and a backend-offline banner that falls back to replay.
+
+## Phase 7: Demo packaging and hardening. M
+- **Launch:** `uv run brew-demo` with one command does everything (API, world, frontend, browser). Also a `README` quickstart, screenshots, a recorded 3–5 min video, and the demo script rehearsed against a preset.
+- **CI:** GitHub Actions running pytest, ruff and mypy, plus a headless-browser smoke test of the frontend (loads, connects, renders tickets).
+- **Load and soak:** a WS soak test (1 h at 60×), and a test with 4 arena worlds at once.
+- **Deploy (only if a URL is needed):** a static frontend host plus the backend on a small VM. Otherwise local only.
+- **Tidy up:** archive the unused frontend directions, remove stale scripts, and refresh `docs/backend-quickstart.md` and the runbook.
+
+## Suggested order
+Phase 0 decisions → Phase 1.1–1.2 (wiring skeleton) → Phase 2.1 hero room live → Phase 3.4 demo preset → Phase 2.2, 2.5 and 2.3 (menu, chaos, office) → Phase 2.4 Arena (with 3.2) → Phase 3.1 copilot → Phase 5 sound → Phase 6 polish → Phase 7 packaging and rehearsal. Phase 4 ML work can run on the desktop in parallel at any point.
