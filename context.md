@@ -74,3 +74,25 @@
 ## Estimates (to give the user)
 - **Full training on the M2 Mac:** about 12–30 h, CPU-bound.
 - **On the desktop:** expect it to be faster mainly from more parallel envs (about 10), not from the GPU. Measure steps/s in the smoke run and give the user a real estimate.
+
+## Status update (2026-10-05, Opus resumed after Sonnet struggled; the user wants Opus to drive and only give Sonnet easy sub-tasks)
+- **M3 branch `worktree-agent-a736d2c0744d84c2f`** (head `9187d3a`, includes `main`): **not merged yet**. Fast tests, ruff and mypy pass.
+  - **Fixes since handoff:**
+    - macOS forkserver for SubprocVecEnv (torch and LightGBM OpenMP clash).
+    - Registered the shipped D champion.
+    - Torch comes from the **CUDA 12.6 index on Linux**, because the desktop driver (572.70) only supports CUDA 12.8 and the PyPI cu13 build failed.
+    - The smoke config now writes models to `data/runs/smoke/models`, so it no longer overwrites the committed `models/`.
+    - Added `docs/training-runbook.md`.
+  - **Local smoke run** (`brew-train all --config configs/train/smoke.yaml`): all 13 stages pass in 14 min. ONNX parity is 2.9e-6. On the 3-day arena D ≥ A (79.4k vs 75.1k); on the 1-day arena it isn't.
+  - **PPO from the BC start** did not improve in 20k steps (43.0 → 39.7). A run from scratch, however, **does learn**: 20.5 → 35.0 reward and ₹75k → ₹84k profit in 30k steps. The pipeline keeps the best checkpoint.
+- **Desktop:**
+  - Checked out at the M3 branch (detached). `torch 2.14.1+cu126` works with CUDA on the RTX 3050.
+  - `overnight.sh` passed its offline test: with the remote broken, snapshots were committed locally, training continued and the push failed gracefully. The remote URL has been restored.
+  - A smoke run via `overnight.sh start configs/train/smoke.yaml` was in progress, but the desktop went unreachable at the 2026-10-05 stop. Next time, run `overnight.sh status` and `stop` if needed. Also check that the `training-logs` push backlog got uploaded.
+- **Next:**
+  1. Finish or redo the desktop smoke run and confirm the final push with retries.
+  2. Merge M3 into `main`.
+  3. On the desktop, `git checkout main && git pull` and run `prepare`.
+  4. Start `full.yaml`, give the user the morning commands, and **end the chat** (no monitoring).
+- **Uncommitted `kitchen/` and `design/` changes on `main`** belong to the separate revamp chat. Leave them alone.
+
