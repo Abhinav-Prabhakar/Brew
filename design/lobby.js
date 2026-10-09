@@ -525,7 +525,7 @@ function ticketSVG(s, o, t){
 const lRail = R.layer($('l-rail'), {
   key: (it) => it.o.order_no,
   sig: (it) => `${it.o.status}|${it.tbl}|${(it.o.items || []).length}|${it.o.bumped}`,
-  html: (it) => `<g class="tk" data-ticket="${it.o.order_no}" data-status="${it.o.status}">${ticketSVG(it.s, it.o, it.t)}</g>`,
+  html: (it) => `<g class="tk" data-ticket="${it.o.order_no}" data-status="${it.o.status}" tabindex="0" role="button" aria-label="order ${it.o.order_no}, ${it.o.status}${it.o.status === 'ready' ? ': serve it' : ': bump priority'}">${it.o.status === 'ready' ? '<title>ready: click to serve</title>' : '<title>click to bump to the front</title>'}${ticketSVG(it.s, it.o, it.t)}</g>`,
   place: (r, it, isNew) => {
     if (isNew) { R.moveTo(r.el, RAIL_R + 60, it.y - 30, {instant: true, rot: 8}); r.el.style.opacity = '0'; void r.el.getBoundingClientRect(); }
     R.moveTo(r.el, it.x, it.y, {dur: .7, rot: it.rot, ease: 'cubic-bezier(.2,.9,.3,1.1)'});
@@ -576,6 +576,18 @@ function renderRail(s, t){
   if (!n) bh += tx(800, 150, s.clock?.is_open ? 'rail’s clear ♡' : 'closed for the night · see you at opening', 18, `text-anchor="middle" font-family="Caveat" font-weight="700" opacity=".55"`);
   const el = $('l-batch'); if (el.innerHTML !== bh) el.innerHTML = bh;
 }
+
+/* tickets are buttons: a READY ticket is served (hand it over now), any other ticket toggles its priority bump */
+$('l-rail').addEventListener('click', async (e) => {
+  const tk = e.target.closest('[data-ticket]'); if (!tk || !window.BrewApi) return;
+  const n = +tk.dataset.ticket, o = R.S()?.orders?.[n]; if (!o) return;
+  R.bump(tk, 'tk-tap');
+  try {
+    if (o.status === 'ready') { await BrewApi.act('serve_order', {order_no: n}); }
+    else { await BrewApi.act('bump_order', {order_no: n, on: !o.bumped}); window.BrewToast?.(o.bumped ? `#${n} back in line` : `#${n} bumped to the front ⚑`); }
+  } catch (err) { window.BrewToast?.(err.message || 'not possible right now', true); }
+});
+$('l-rail').addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('[data-ticket]')) { e.preventDefault(); e.target.closest('[data-ticket]').dispatchEvent(new MouseEvent('click', {bubbles: true})); } });
 
 /* ================================================================ live: counter */
 let bakesSig = '';
@@ -732,7 +744,7 @@ function renderBottleneck(s){
   let h = `<h3>what's limiting throughput? <small>live · last 15 min</small></h3>`;
   h += rows.map((r) => `<div class="r" data-resource="${esc(r.res)}"><span>${esc(RES_LABEL[r.res] || R.human(r.res))}</span><span class="bar2"><i style="width:${Math.round(Math.min(1, r.rho) * 100)}%;background:${col(r.rho)}"></i></span><span class="${r.res === primary && r.rho >= .6 ? 'hot' : ''}">${Math.round(r.rho * 100)}%${r.res === primary && r.rho >= .6 ? ' ← bottleneck' : ' busy'}</span></div>`).join('')
     || `<div class="r"><span>${s.clock?.is_open ? 'measuring…' : 'closed · nothing queued'}</span><span></span><span></span></div>`;
-  if (inv) { const day = inv.days_of_cover, lowc = day < 1; h += `<div class="r" data-resource="stock:${esc(inv.key)}"><span>${esc(R.human(inv.name || inv.key).toLowerCase())}</span><span class="bar2"><i style="width:${Math.round(Math.min(1, day / 3) * 100)}%;background:${lowc ? 'var(--terra)' : day < 2 ? 'var(--mustard)' : 'var(--sage)'}"></i></span><span class="${lowc ? 'hot' : ''}">${day < 1 ? `~${Math.max(1, Math.round(day * 24))} h left` : day.toFixed(1) + ' days'}</span></div>`; }
+  if (inv) { const day = inv.days_of_cover, lowc = day < 1; h += `<div class="r" data-resource="stock:${esc(inv.key)}"><span>${esc(String(inv.name || R.human(inv.key)).replace(/\s*\([^)]*\)/g, '').toLowerCase().slice(0, 22))}</span><span class="bar2"><i style="width:${Math.round(Math.min(1, day / 3) * 100)}%;background:${lowc ? 'var(--terra)' : day < 2 ? 'var(--mustard)' : 'var(--sage)'}"></i></span><span class="${lowc ? 'hot' : ''}">${day < 1 ? `~${Math.max(1, Math.round(day * 24))} h left` : day.toFixed(1) + ' days'}</span></div>`; }
   const bought = new Set((s.investments || []).map((x) => x.catalog_key));
   if (adv) {
     const cost = adv.capex ?? adv.cost ?? 0, gain = adv.delta_profit_per_day ?? adv.profit_delta_per_day ?? 0, pay = adv.payback_days ?? (gain > 0 ? cost / gain : null);

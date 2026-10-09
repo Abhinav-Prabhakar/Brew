@@ -324,7 +324,7 @@ function renderCrew(s, t){
     const stn = tk?.station || sf.station || (sf.role === 'dishwasher' ? 'dishpit' : sf.role === 'cashier' ? 'pass' : sf.role === 'cook' ? 'prep' : 'espresso');
     let x = STATION_X[stn] ?? 640;
     if (!tk && s.stations?.[stn]?.status === 'down') x += (MACHINE[stn]?.[2] || 100) / 2 + 60;   // stand clear of a broken machine
-    const n = usedX[stn] = (usedX[stn] || 0) + 1; if (n > 1) x += (n % 2 ? -1 : 1) * 46 * Math.ceil((n - 1) / 2);
+    const n = usedX[stn] = (usedX[stn] || 0) + 1; if (n > 1) x += (n % 2 ? -1 : 1) * 64 * Math.ceil((n - 1) / 2);
     const due = sf.break_due_s != null ? sf.break_due_s - t : null;
     const bub = due != null && due > 0 && due < 900 ? `break due · ${Math.ceil(due / 60)} min` : (sf.fatigue || 0) > .85 ? 'need a breather…' : null;
     items.push({sf, mode: tk ? 'work' : 'idle', x, mood: (sf.fatigue || 0) > .75 ? 'tired' : tk ? 'neutral' : 'happy', bubble: bub});
