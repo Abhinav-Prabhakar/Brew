@@ -534,6 +534,38 @@
   @keyframes spin{to{transform:rotate(360deg)}}
   body[data-actions="off"] :is([data-chaos],[data-action="invest"],[data-action="place_po"]){opacity:.5;cursor:not-allowed}
   body[data-actions="off"] #lobby-scene .tk{cursor:not-allowed}
+  /* ---- easter eggs (eggs.js) ---- */
+  .egg-z{animation:kZ 2.8s ease-out infinite}
+  .egg-stretch{transform-box:fill-box;transform-origin:50% 100%;animation:eggStretch 1.2s var(--ease-spring)}
+  @keyframes eggStretch{30%{transform:scale(1.12,.86)}60%{transform:scale(.94,1.08)}}
+  .egg-bird{transform-box:fill-box;transform-origin:50% 100%}
+  .egg-coo{animation:eggCoo .5s var(--ease-spring)}
+  @keyframes eggCoo{0%{transform:translate(1300px,182px) scale(.2)}50%{transform:translate(1300px,158px) scale(1.15)}100%{transform:translate(1300px,170px) scale(1)}}
+  .egg-drop{animation:eggDrop .8s cubic-bezier(.5,0,.9,.6) forwards}
+  @keyframes eggDrop{0%{transform:translateY(-30px);opacity:0}20%{opacity:1}85%{transform:translateY(58px);opacity:1}100%{transform:translateY(62px);opacity:0}}
+  .egg-note{animation:eggNote 2.2s ease-out forwards;opacity:0}
+  @keyframes eggNote{0%{transform:translateY(10px);opacity:0}25%{opacity:1}100%{transform:translate(10px,-46px) rotate(12deg);opacity:0}}
+  .egg-duckbody,.egg-catbody{transform-box:fill-box;transform-origin:50% 100%}
+  .egg-hop{animation:eggHop .5s var(--ease-spring)}
+  @keyframes eggHop{40%{transform:translateY(-9px) rotate(-8deg)}}
+  .egg-beat{animation:eggBeat .7s ease}
+  @keyframes eggBeat{15%,45%{transform:scale(1.35)}30%{transform:scale(1)}}
+  .egg-wiggle{animation:eggWiggle .26s ease-in-out 10}
+  @keyframes eggWiggle{25%{transform:rotate(-3deg)}75%{transform:rotate(3deg)}}
+  .egg-spin{animation:eggSpin 1s var(--ease-cam)}
+  @keyframes eggSpin{to{transform:rotate(360deg)}}
+  .egg-slidein{animation:eggSlide .7s var(--ease-out)}
+  @keyframes eggSlide{from{transform:translateX(60px);opacity:0}}
+  .egg-steam{animation:kSteam 2.6s ease-out infinite}
+  .egg-flame{transform-box:fill-box;transform-origin:50% 100%;animation:eggFlame .5s ease-in-out infinite alternate}
+  @keyframes eggFlame{to{transform:scale(.85,1.12) rotate(4deg)}}
+  .egg-star{animation:eggStar 2.4s ease-out forwards}
+  @keyframes eggStar{0%{transform:translate(120px,-50px);opacity:0}15%{opacity:1}100%{transform:translate(-260px,110px);opacity:0}}
+  .egg-sticky{position:absolute;right:34px;bottom:56px;width:230px;padding:10px 14px;background:#fbeec6;border:2px solid var(--ink);box-shadow:3px 4px 0 rgba(29,26,28,.35);transform:rotate(3deg);font:16px/21px var(--body);animation:eggSticky .5s var(--ease-spring);opacity:1!important}
+  .egg-sticky b{display:block;font-family:var(--hand);font-weight:400;font-size:21px;color:var(--pink-d)}
+  .egg-sticky i{font-family:'Caveat',cursive;font-weight:700;font-size:18px;font-style:normal;opacity:.75}
+  .egg-sticky::before{content:'';position:absolute;left:84px;top:-10px;width:60px;height:18px;background:rgba(227,178,90,.55);border:1.5px dashed rgba(29,26,28,.35);transform:rotate(-4deg)}
+  @keyframes eggSticky{from{transform:translateY(-30px) rotate(-8deg);opacity:0}}
   .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 </style>
 </head>
@@ -628,6 +660,7 @@
 <script src="camera.js"></script>
 <script src="audio.js"></script>
 <script src="a11y.js"></script>
+<script src="eggs.js"></script>
 <script>/* ?fps: frames per second + p95 frame time over the last 2 s (dev) */
   if (/[?&]fps\b/.test(location.search)) { const el = document.createElement('div'); el.id = 'fps'; document.body.appendChild(el);
     const d = []; let last = 0, shown = 0;
