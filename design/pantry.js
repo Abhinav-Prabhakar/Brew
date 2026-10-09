@@ -502,7 +502,10 @@ let orderSig = '', approving = false, approved = '';
 function renderOrder(s){
   const el = room.querySelector('.porder'); if (!el) return;
   const P = s.rest?.purchasing, orders = P ? (P.orders || (P.lines ? [P] : [])) : null;
-  const lines = (orders || []).flatMap((o) => (o.lines || []).map((l) => ({...l, eta_s: o.eta_s, supplier: o.supplier})));
+  const byIng = new Map();
+  for (const o of orders || []) for (const l of o.lines || []) { const p = byIng.get(l.ingredient);
+    if (p) { p.qty += l.qty; p.eta_s = Math.min(p.eta_s, o.eta_s); } else byIng.set(l.ingredient, {...l, eta_s: o.eta_s, supplier: o.supplier}); }
+  const lines = [...byIng.values()];
   lines.sort((a, b) => (s.inventory?.[a.ingredient]?.days_of_cover ?? 9) - (s.inventory?.[b.ingredient]?.days_of_cover ?? 9));
   const key = orders ? orders.map((o) => o.supplier + (o.lines || []).map((l) => l.ingredient + l.qty).join()).join('|') : '';
   const when = P?.next_delivery_s ?? orders?.[0]?.eta_s;

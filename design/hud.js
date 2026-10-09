@@ -44,8 +44,9 @@ function perHour(fc, t){
 function liveDot(){
   const el = $('[data-live]'), L = window.BrewLive || {};
   let st2 = L.status || 'connecting';
+  if (st2 === 'booting' || st2 === 'reconnecting') st2 = st2 === 'booting' ? 'connecting' : 'reconnecting';
   if (st2 === 'live' && (L.state?.world?.lagging || L.lagging)) st2 = 'lagging';
-  const txt = {live: 'live', connecting: 'connecting…', lagging: 'catching up', 'offline-demo': 'offline demo', offline: 'offline', replay: `replay${L.speed && L.speed !== Infinity ? ' ×' + L.speed : ''}`, dev: 'dev replay'}[st2] || st2;
+  const txt = {live: 'live', connecting: 'connecting…', booting: 'connecting…', reconnecting: 'reconnecting…', closed: 'disconnected', lagging: 'catching up', 'offline-demo': 'offline demo', offline: 'offline', replay: `replay${L.speed && L.speed !== Infinity ? ' ×' + L.speed : ''}`, dev: 'dev replay'}[st2] || st2;
   if (el.dataset.status !== st2) { el.dataset.status = st2; el.querySelector('b').textContent = txt;
     el.title = {live: 'streaming the café as it is right now', 'offline-demo': 'backend unreachable: replaying a recorded morning', lagging: 'the simulation is catching up with the wall clock'}[st2] || txt; }
 }

@@ -493,7 +493,7 @@ function cardInner(key, s, now){
     const prepIn = Object.values(s.prep || {}).filter((p) => p.state === 'cooking' && (key === 'prep' || (key === 'oven' && /croissant/.test(p.prep_key))));
     h += prepIn.length ? use(ICON[key], 10, 34, 34) + t(52, 56, `${R.human(prepIn[0].prep_key)} ×${Math.round(prepIn[0].qty)}`, 13)
        : t(w / 2, 62, s.clock?.is_open ? 'idle · ready' : 'cleaned down', 14, `text-anchor="middle" opacity=".55"`);
-    if (key === 'oven') { const cro = s.fridge?.croissant?.qty; if (cro != null) h += t(10, h.length ? 92 : 80, `pastry case: croissant ×${Math.round(cro)}`, 12, 'opacity=".7"'); }
+    if (key === 'oven') { const cro = (Array.isArray(s.fridge) ? s.fridge.find((r) => r.sku === 'croissant') : s.fridge?.croissant)?.qty; if (cro != null) h += t(10, h.length ? 92 : 80, `pastry case: croissant ×${Math.round(cro)}`, 12, 'opacity=".7"'); }
     if (key === 'dishpit') h += t(10, 104, `${s.stations?.dishpit?.queue ?? 0} in the sink`, 12.5, 'opacity=".7"');
     return h;
   }

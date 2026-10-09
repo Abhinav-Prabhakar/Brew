@@ -108,7 +108,8 @@
     advisor: () => '/advisor',
     impact: () => '/impact',
     staff: () => '/staff',
-    purchasing: () => '/purchasing',
+    purchasing: () => '/purchasing/proposal',
+    usage: (key) => '/inventory/' + encodeURIComponent(key) + '/forecast',
     comparison: () => '/api/v1/policies/comparison',
     decision_explain: (id) => '/api/v1/decisions/' + encodeURIComponent(id) + '/explain?world_id=' + encodeURIComponent(Api.config.worldId),
   };
@@ -118,6 +119,7 @@
     if (live.mode !== 'ws') return null; // replays carry no REST
     let data = await Api.get(REST[name](arg));
     if (name === 'lots') data = { key: arg, items: data.items };
+    if (name === 'usage') data = { ...data, key: arg };
     if (name === 'decision_explain' && data && !data.decision_id) data = { ...data, decision_id: arg };
     ingest({ seq: null, sim_s: state.sim_s, t: state.t, type: 'rest.' + name, data });
     return data;

@@ -280,7 +280,7 @@ const SC_Q = .72, SC_W = .78, DOOR = [1440, 548];
 const Q_SLOT = (i) => [1318 + i * 60, 548 - (i % 2) * 5];
 const W_SLOT = (i) => [1300 + i * 64, 594 + (i % 2) * 6];
 const RIDER_SLOT = (i) => [1566 - i * 46, 584];
-const STAND = new Set(['arrived', 'queued', 'ordering', 'waiting', 'balked', 'reneged', 'left']);
+const STAND = new Set(['arrived', 'queued', 'ordering', 'waiting', 'seat_wait', 'balked', 'reneged', 'left']);
 const SEATED = new Set(['seated', 'eating', 'lingering', 'paying']);
 const memo = new Map();   // party → {x, y, sc, seated, walkUntil}
 
@@ -355,7 +355,7 @@ function renderPeople(s, t){
   cs.sort((a, b) => (a.arrived_s || 0) - (b.arrived_s || 0));
   const now = performance.now();
   const queue = cs.filter((c) => c.state === 'ordering').concat(cs.filter((c) => c.state === 'queued' || c.state === 'arrived'));
-  const waiting = cs.filter((c) => c.state === 'waiting' && !(c.tables && c.tables.length));
+  const waiting = cs.filter((c) => (c.state === 'waiting' || c.state === 'seat_wait') && !(c.tables && c.tables.length));
   const standing = [], seated = [], front = [];
   const put = (c, x, y, sc, extra = {}) => {
     const mm = memo.get(c.party_id), d = mm ? Math.hypot(x - mm.x, y - mm.y) : Math.hypot(x - DOOR[0], y - DOOR[1]);
@@ -580,7 +580,7 @@ function renderRail(s, t){
 /* ================================================================ live: counter */
 let bakesSig = '';
 function renderBakes(s){
-  const f = s.fridge || {}, cro = f.croissant?.qty ?? 0, muf = f.muffin?.qty ?? 0, cin = f.cinnamon?.qty ?? 0;
+  const f = Array.isArray(s.fridge) ? Object.fromEntries(s.fridge.map((r) => [r.sku, r])) : (s.fridge || {}), cro = f.croissant?.qty ?? 0, muf = f.muffin?.qty ?? 0, cin = f.cinnamon?.qty ?? 0;
   const sig = `${Math.min(5, Math.ceil(cro / 6))}|${Math.min(2, Math.ceil(muf / 10))}|${Math.min(2, Math.ceil(cin / 10))}|${cro}|${f.croissant?.low}`;
   if (sig === bakesSig) return; bakesSig = sig;
   const nC = Math.min(5, Math.ceil(cro / 6)), pos = [[528, B-46], [568, B-46], [608, B-46], [548, B-74], [588, B-74]];

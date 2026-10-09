@@ -58,8 +58,10 @@
       'rest.inventory': ['inventory', (s, ev) => {
         const inventory = {};
         for (const r of ev.data.items || []) inventory[r.key] = { ...r };
-        return { inventory };
+        const { items, ...summary } = ev.data;
+        return { inventory, rest: { ...s.rest, inventory_summary: summary } };
       }],
+      'rest.usage': ['rest', (s, ev) => ({ rest: { ...s.rest, usage: { ...(s.rest.usage || {}), [ev.data.key]: ev.data } } })],
       'rest.lots': ['lots', (s, ev) => ({ lots: U.set(s.lots, ev.data.key, (ev.data.items || []).map((l) => ({ ...l }))) })],
       'rest.purchasing': ['rest', (s, ev) => ({ rest: { ...s.rest, purchasing: ev.data } })],
     },
