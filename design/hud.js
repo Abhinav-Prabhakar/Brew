@@ -132,6 +132,34 @@ card.addEventListener('click', () => toggle());
 card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
 document.addEventListener('click', (e) => { const box = $('#cmp'); if (!box.hidden && !box.classList.contains('folding') && !e.target.closest('#cmp, .money')) toggle(); });
 
+/* ---------- connection states: the "be right back" card, and actions paused while not live ---------- */
+const down = document.createElement('div');
+down.id = 'brb'; down.className = 'card'; down.hidden = true; down.setAttribute('role', 'status');
+document.getElementById('viewport').appendChild(down);
+let downSince = null;
+function connection(){
+  liveDot();  // the dot follows status changes immediately, not on the next 1 s tick
+  const L = window.BrewLive || {}, st = L.status || 'booting', live = st === 'live';
+  const canAct = live && L.mode === 'ws';
+  if (document.body.dataset.actions !== (canAct ? 'on' : 'off')) document.body.dataset.actions = canAct ? 'on' : 'off';
+  if (st === 'reconnecting' || st === 'closed') downSince ??= performance.now(); else downSince = null;
+  const brb = downSince != null && performance.now() - downSince > 6000, demo = st === 'offline-demo';
+  const html = brb ? `<span class="spin" aria-hidden="true"></span><div><b>we'll be right back ♡</b><br>lost the café's connection · retrying on its own, nothing is lost</div>`
+    : demo ? `<b>offline · replay</b><div>the café server is asleep, so this is a recorded morning. it switches to live the moment the server wakes.</div>` : '';
+  down.hidden = !html; down.classList.toggle('demo', demo && !brb);
+  if (html && down._h !== html) { down._h = html; down.innerHTML = html; }
+}
+// a click on anything that would call the API while we're not live: explain instead of failing
+const ACT = '[data-ticket],[data-chaos],[data-action="invest"],[data-action="place_po"]';
+document.addEventListener('click', (e) => {
+  if (document.body.dataset.actions !== 'off' || !e.target.closest(ACT)) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  const st = window.BrewLive?.status;
+  window.BrewToast?.(st === 'offline-demo' || st === 'replay' ? 'this is a replay · actions need the live café' : 'reconnecting · actions are paused until the café is back', 'bad');
+}, true);
+window.BREW_LIVE?.on?.('status', connection);
+
 R.onState(render);
-setInterval(() => render(R.S()), 1000);
+setInterval(() => { render(R.S()); connection(); }, 1000);
+connection();
 })();

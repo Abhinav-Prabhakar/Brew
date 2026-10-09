@@ -474,6 +474,17 @@
   /* dev overlay: ?fps */
   #fps{position:fixed;left:10px;bottom:10px;z-index:99;font:15px 'Patrick Hand',sans-serif;background:var(--paper);border:2px solid var(--ink);border-radius:10px 4px 10px 4px;box-shadow:3px 3px 0 var(--ink);padding:3px 10px;pointer-events:none}
   #fps b{font-family:'Gochi Hand',cursive;font-weight:400}
+  /* connection states */
+  .live[data-status="reconnecting"] i,.live[data-status="connecting"] i{background:none;box-shadow:none;border:2px dashed var(--ink);animation:spin 1.4s linear infinite}
+  #brb{left:50%;top:50%;transform:translate(-50%,-50%) rotate(-1deg);z-index:45;display:flex;gap:14px;align-items:center;padding:16px 22px;max-width:460px;font-size:17px;animation:unfold .5s var(--ease-spring)}
+  #brb b{font-family:var(--hand);font-weight:400;font-size:26px}
+  #brb.demo{top:auto;bottom:84px;left:24px;transform:rotate(-1deg);max-width:340px;font-size:15px;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 16px}
+  #brb.demo b{font-size:20px}
+  #brb[hidden]{display:none}
+  #brb .spin{width:34px;height:34px;flex:none;border-radius:50%;border:3px dashed var(--ink);animation:spin 1.6s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  body[data-actions="off"] :is([data-chaos],[data-action="invest"],[data-action="place_po"]){opacity:.5;cursor:not-allowed}
+  body[data-actions="off"] #lobby-scene .tk{cursor:not-allowed}
   .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 </style>
 </head>

@@ -171,13 +171,46 @@
       base, worldId: id, sinceSeq: snap.last_seq,
       onSnapshot: applySnapshot,
       onEvents: ingestMany,
-      onStatus: (s) => setStatus(s === 'live' ? 'live' : s === 'closed' ? 'closed' : 'reconnecting'),
+      onStatus: (s) => { setStatus(s === 'live' ? 'live' : s === 'closed' ? 'closed' : 'reconnecting'); watch(s); },
       onLagging: (l) => setStatus(undefined, l),
+      onGone: () => rejoin(p),
     });
+    // While reconnecting, ask REST whether our world still exists: the server refuses an unknown world before the
+    // WebSocket handshake (browsers only see 1006), so a 404 here is how we learn it restarted → rejoin.
+    let wd = 0;
+    function watch(s) {
+      clearInterval(wd);
+      if (s !== 'reconnecting') return;
+      wd = setInterval(async () => {
+        if (live.source !== src) return clearInterval(wd);
+        try { await Api.state(); } catch (e) { if (e && e.status === 404) { clearInterval(wd); src.stop(); rejoin(p); } }
+      }, 4000);
+    }
     live.source = src;
     src.start();
     setStatus('live', false);
     return src;
+  }
+
+  /** the server lost our world (restart): find or create the live world again, re-hydrate, stream. Retries until the
+      server answers. A fresh snapshot replaces the store, so nothing can be duplicated. */
+  let rejoinT = 0;
+  function rejoin(p) {
+    clearTimeout(rejoinT);
+    setStatus('reconnecting');
+    bootWs({ ...p, world: null, play: true }).catch(() => { rejoinT = setTimeout(() => rejoin(p), 3000); });
+  }
+
+  /** offline demo: keep asking the backend whether it's up; switch to live the moment it is */
+  function probeBackend(p) {
+    const base = p.api || defaultBase();
+    const t = setInterval(async () => {
+      if (live.status !== 'offline-demo') return clearInterval(t);
+      try { Api.configure({ base }); await Api.listWorlds(); } catch (e) { return; }
+      clearInterval(t);
+      if (live.source && live.source.stop) live.source.stop();
+      try { await bootWs(p); } catch (e) { await startReplay(DEMO_URL(), p.speed != null ? p.speed : 1, true, 'offline-demo'); probeBackend(p); }
+    }, 10000);
   }
 
   async function boot(p) {
@@ -195,6 +228,7 @@
       console.warn('[brew] backend unreachable, playing the offline demo', e);
       if (live.source && live.source.stop) live.source.stop();
       await startReplay(DEMO_URL(), p.speed != null ? p.speed : 1, true, 'offline-demo');
+      probeBackend(p);
     }
     return live;
   }

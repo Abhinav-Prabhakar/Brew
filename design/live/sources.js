@@ -24,7 +24,7 @@
      *   WebSocket, fetch, now (injected implementations); backoffMin/backoffMax/pingMs/laggingMs/tickMs (ms)
      */
     constructor(o) {
-      this.o = { backoffMin: 500, backoffMax: 8000, pingMs: 10000, laggingMs: 20000, tickMs: 1000, ...o };
+      this.o = { backoffMin: 500, backoffMax: 8000, jitter: .3, pingMs: 10000, laggingMs: 20000, tickMs: 1000, ...o };
       this.lastSeq = o.sinceSeq != null ? o.sinceSeq : null; // last seq handed to onEvents (or the snapshot's)
       this.status = 'idle'; // connecting | live | reconnecting | closed
       this.everLive = false;
@@ -75,14 +75,22 @@
       this.ws = ws;
       ws.onopen = () => { this.lastMsgAt = this._now(); };
       ws.onmessage = (m) => this._message(m.data);
-      ws.onclose = () => { if (this.ws === ws) { this.ws = null; this._scheduleReconnect(); } };
+      ws.onclose = (ev) => {
+        if (this.ws !== ws) return;
+        this.ws = null;
+        // 4404: the server no longer knows this world (it restarted). Retrying the same id is pointless: hand it to
+        // the owner (boot.js finds or creates the live world again and re-hydrates).
+        if (ev && ev.code === 4404 && this.o.onGone) { this.stopped = true; clearInterval(this.timer); this._setStatus('reconnecting'); this.o.onGone(); return; }
+        this._scheduleReconnect();
+      };
       ws.onerror = () => { /* onclose follows */ };
     }
 
     _scheduleReconnect() {
       if (this.stopped) return;
       this._setStatus('reconnecting');
-      const wait = Math.min(this.o.backoffMax, this.o.backoffMin * 2 ** this.attempt);
+      // exponential, capped, plus up to `jitter` extra so a room full of tabs doesn't reconnect in lockstep
+      const wait = Math.min(this.o.backoffMax, this.o.backoffMin * 2 ** this.attempt) * (1 + this.o.jitter * Math.random());
       this.attempt += 1;
       this.retry = setTimeout(() => this._connect(), wait);
     }
