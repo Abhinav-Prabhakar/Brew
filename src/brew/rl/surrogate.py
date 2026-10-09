@@ -137,6 +137,14 @@ class Surrogate:
                 if f["name"] not in seen:
                     seen.add(f["name"])
                     factors.append(f)
+        if not factors:  # the active dimension's tree is a single leaf (never varied in the data): use the busiest tree
+            for d in sorted(range(len(self.trees)), key=lambda i: -self.trees[i].tree_.node_count)[:2]:
+                for f in self.path_factors(d, obs):
+                    if f["name"] not in seen:
+                        seen.add(f["name"])
+                        factors.append(f)
+                if factors:
+                    break
         what = "; ".join(describe_action(d, int(vec[d])) for d in dims) or "kept the plan unchanged"
         why = ", ".join(describe_feature(f["name"], f["value"]) for f in factors[:3])
         summary = f"RL manager: {what}" + (f" (drivers: {why})" if why else "")
