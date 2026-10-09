@@ -64,10 +64,17 @@ def test_error_envelope_shapes(api_client):
     assert r.status_code == 422
 
 
-def test_policy_d_is_still_a_milestone_3_stub(api_client):
-    c = api_client
-    r = c.post(f"{API}/worlds", json={"policy": "D"})
-    assert r.status_code == 501 and r.json()["error"]["details"]["milestone"] == "M3"
+def test_policy_d_needs_a_trained_champion(api_client, tmp_path):
+    from fastapi.testclient import TestClient
+
+    # an empty model directory has no champion: D is reported as planned (501)
+    with TestClient(create_app(Settings(db_enabled=False, models_dir=str(tmp_path)))) as empty:
+        r = empty.post(f"{API}/worlds", json={"policy": "D"})
+        assert r.status_code == 501 and r.json()["error"]["details"]["milestone"] == "M3"
+        assert "D" not in empty.get(f"{API}/cafe").json()["policies"]["available"]
+    c = api_client  # the repository ships a smoke champion under models/rl_policy/D
+    assert "D" in c.get(f"{API}/cafe").json()["policies"]["available"]
+    assert c.post(f"{API}/worlds", json={"policy": "D"}).status_code == 201
     assert c.post(f"{API}/worlds", json={"policy": "C"}).status_code == 201
     assert c.post(f"{API}/worlds", json={"policy": "E"}).status_code == 201
 
@@ -351,7 +358,7 @@ def test_policy_and_strategy_switch(api_client):
     assert r.status_code == 200 and r.json()["policy"] == "B" and r.json()["strategy"] == "rush_menu"
     types = [e.type for e in mgr_world(c, wid).ring.since(0)]
     assert "policy.changed" in types and "strategy.changed" in types
-    assert c.post(f"{API}/worlds/{wid}/policy", json={"policy": "D"}).status_code == 501
+    assert c.post(f"{API}/worlds/{wid}/policy", json={"policy": "D"}).status_code == 200
     assert c.post(f"{API}/worlds/{wid}/policy", json={"policy": "C"}).status_code == 200
     assert c.post(f"{API}/worlds/{wid}/policy", json={"strategy": "nope"}).status_code == 422
     assert c.post(f"{API}/worlds/{wid}/policy", json={}).status_code == 422

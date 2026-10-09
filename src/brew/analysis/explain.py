@@ -130,8 +130,28 @@ class Explainer:
             tid = "fallback"
             if not text:
                 text = rec.get("summary", "")
+        drivers = self.drivers(rec) if rec.get("policy") == "D" else []
+        if drivers:
+            text = f"{text} Key drivers: {', '.join(drivers)}."
         return {
             "decision_id": rec["decision_id"], "type": typ, "policy": rec.get("policy", ""), "summary": rec.get("summary", ""),
             "top_factors": rec.get("top_factors", []), "clipped": rec.get("clipped", []), "text": text, "template_id": tid,
-            "sim_s": rec.get("sim_s"), "changes": rec.get("changes", []),
+            "sim_s": rec.get("sim_s"), "changes": rec.get("changes", []), "drivers": drivers,
         }  # fmt: skip
+
+    @staticmethod
+    def drivers(rec: dict[str, Any]) -> list[str]:
+        """Plain-language drivers of a learned-policy (D) decision.
+
+        Policy D attaches the observation features on the path its surrogate decision tree took
+        (``rl/surrogate.py``) as ``top_factors``; each becomes a phrase such as 'espresso station utilisation 91%'.
+        """
+        from brew.rl.surrogate import describe_feature
+        from brew.sim.observation import INDEX
+
+        out: list[str] = []
+        for f in rec.get("top_factors", []):
+            n = f.get("name", "")
+            if n in INDEX and "value" in f:
+                out.append(describe_feature(n, float(f["value"])))
+        return out[:3]

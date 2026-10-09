@@ -58,7 +58,6 @@ def train_adversary_phase(
         model.set_env(venv)
     rewards: list[float] = []
     profits: list[float] = []
-    hits: list[float] = []
 
     from stable_baselines3.common.callbacks import BaseCallback
 

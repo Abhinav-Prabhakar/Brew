@@ -26,7 +26,7 @@ from brew.sim.world import World
 
 from . import torch_setup  # noqa: F401  (must precede any torch use)
 from .actions import NVEC, encode_teacher, sanitize
-from .env import OBS_CLIP, OBS_DIM, EnvConfig, randomise_scenario
+from .env import OBS_CLIP, OBS_DIM, randomise_scenario
 from .masks import compute_masks
 from .reward import RewardConfig, RewardTracker
 
@@ -142,7 +142,7 @@ def collect_teacher(
         o += len(r["obs"])
     prof = [p for r in res for p in r["profit"]]
     stats = {
-        "episodes": n_ep, "samples": int(len(obs)), "teacher_profit_per_day": float(np.mean(prof)),
+        "episodes": n_ep, "samples": len(obs), "teacher_profit_per_day": float(np.mean(prof)),
         "wall_s": float(sum(r["wall_s"] for r in res)),
         "label_hist": {i: np.bincount(act[:, i], minlength=n).tolist() for i, n in enumerate(NVEC)},
     }  # fmt: skip

@@ -119,6 +119,8 @@ class PPOCfg(_C):
     clip_range: float = 0.2
     vf_coef: float = 0.5
     max_grad_norm: float = 0.5
+    target_kl: float | None = None  # stop a PPO update early once the approximate KL exceeds 1.5 x this
+    critic_warmup_updates: int = 0  # after BC: train only the value head for this many updates (calibrates V)
     net_arch: list[int] = Field(default_factory=lambda: [256, 256])
     curriculum: list[CurriculumStage] = Field(default_factory=lambda: [CurriculumStage()])
     eval: RLEvalCfg = RLEvalCfg()

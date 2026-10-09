@@ -21,7 +21,7 @@ uv run brew-eval --policies C --seeds 5 --replate-ab --params '{"replate": {"lis
 ```
 
 * Policies: `A` naive, `B` heuristic, `C` optimised (forecasts, newsvendor, pricing ladder, CP-SAT plan,
-  replate markdown), `E` oracle (C with perfect information). `D` (RL) arrives in M3.
+  replate markdown), `D` learned RL manager (M3, below), `E` oracle (C with perfect information).
 * Models live in `models/{kind}/{name}/{version}/` with `models/registry.json`; `GET /api/v1/models` lists the
   champions. Policy C falls back to built-in moving-average / default elasticities when no model is present.
 * Replate: `replate.yaml`, the `replate:` blocks in `menu.yaml`, actions `premake`, `replate_list`,
@@ -42,3 +42,32 @@ uv run brew-eval --policies C --seeds 5 --replate-ab --params '{"replate": {"lis
   `/decisions/{id}/explain`, `/models`, `/reviews` (with the cause tagger's reading).
 * `uv run python -c "from brew.synth.catalog import calibrate_suppliers"` re-seeds suppliers from the
   LLM supplier catalogue (opt-in; the default cafe is unchanged).
+
+## M3 - learning (Policy D)
+
+```bash
+uv run brew-train all --config configs/train/smoke.yaml --run-dir runs/smoke_test     # ~20 min on the laptop
+uv run brew-train all --config configs/train/full.yaml --dry-run                      # validate the desktop plan
+uv run brew-train all --config configs/train/full.yaml --run-dir runs/full --device auto --resume   # desktop
+uv run brew-train ppo --config configs/train/smoke.yaml --run-dir runs/smoke_test --resume          # one stage
+uv run brew-eval --policies A,B,C,D --seeds 3 --days 3                                # D = models/rl_policy/D champion
+uv run tensorboard --logdir runs/smoke_test/tb
+```
+
+* Stages (after the M2 stages): `bc` (behaviour cloning of Policy C) -> `ppo` (MaskablePPO, curriculum 1 -> 7 -> 28
+  days, VecNormalize) -> `adversarial` (RARL: adversary vs frozen protagonist, then protagonist vs a
+  50 % random / 30 % adversary / 20 % calm mix) -> `export` (best candidate on calm + chaos, ONNX, parity check,
+  surrogate tree, registry) -> `arena` (A/B/C/D).
+* Run directory: `config.yaml` (resolved), `progress.json` (heartbeat <= 60 s: stage, step, steps/s, eta,
+  last eval), `metrics.json`, `train.log`, `eval/*.json`, `tb/`, `checkpoints/` (resumable), `markers/` (completed
+  stages for `--resume`), `champion/{policy.onnx,obs_norm.json,meta.json,surrogate.joblib}`.  The champion is
+  copied to `models/rl_policy/D/<version>/` and registered; `GET /api/v1/cafe` lists `D` as available once it exists.
+* The env (`brew.rl.env.BrewManagerEnv`): one step = one manager tick (900 sim-s, 57 ticks/day), 183-float named
+  observation, `MultiDiscrete([5,5,5,5, 5,5,5,5, 6, 4,4, 4, 24, 2,2,2, 4, 4])`, `action_masks()` (96 flat),
+  reward in `brew.rl.reward`.  The executor (`brew.policies.D_rl.ManagerExecutor`) turns an action into Policy C's
+  machinery: price steps through the charter shield, kappa-quantile prep, make-ahead level, Replate ladder mode,
+  strategy preset + batch window for C's weighted-EDF dispatch, throttles; purchasing and intake stay with C.
+* Everything is offline (no wandb, no downloads).  `--device auto` uses CUDA when torch sees it (the RTX 3050
+  desktop), otherwise the CPU; PPO with small MLPs is simulation-bound, so `--workers N` (SubprocVecEnv) matters more.
+* macOS note: `brew.rl.torch_setup` imports LightGBM and OR-tools before torch and pins torch to one thread - the
+  other import order segfaults LightGBM (duplicate OpenMP runtimes).  Always import torch through `brew.rl`.

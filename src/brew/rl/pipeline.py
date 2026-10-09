@@ -40,7 +40,7 @@ class Tee:
     """stdout + file."""
 
     def __init__(self, path: Path, stream: Any) -> None:
-        self.f = open(path, "a", buffering=1)
+        self.f = open(path, "a", buffering=1)  # noqa: SIM115 - closed with the process
         self.s = stream
 
     def write(self, x: str) -> int:
@@ -107,7 +107,7 @@ def plan(cfg: TrainConfig, bench: bool = True) -> dict[str, Any]:
     bounds, acc = [], 0.0
     for st in p.curriculum:
         acc += float(st.frac)
-        bounds.append(int(round(p.total_timesteps * acc / fr)))
+        bounds.append(round(p.total_timesteps * acc / fr))
     if abs(fr - 1.0) > 1e-6:
         issues.append(f"curriculum fractions sum to {fr}, not 1.0 (they are normalised)")
     ms_step = None
@@ -236,7 +236,7 @@ def stage_bc(ctx: Ctx) -> dict[str, Any]:
     d = ctx.run_dir / "bc"
     d.mkdir(parents=True, exist_ok=True)
     model.save(str(d / "bc_model.zip"))
-    prior = {"obs_mean": met["obs_mean"], "obs_var": met["obs_var"], "ret_scale": met["ret_scale"], "count": int(len(data.obs))}
+    prior = {"obs_mean": met["obs_mean"], "obs_var": met["obs_var"], "ret_scale": met["ret_scale"], "count": len(data.obs)}
     (d / "prior.json").write_text(json.dumps(prior))
     try:
         from torch.utils.tensorboard import SummaryWriter

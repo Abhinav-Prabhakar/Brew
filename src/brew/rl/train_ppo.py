@@ -156,6 +156,12 @@ def _callback_cls() -> Any:
         def _on_rollout_end(self) -> None:
             t = self.t
             t.monitor.update(step=self.num_timesteps)
+            if t.frozen:  # critic warm-up after BC: the first updates train V only
+                if t.warm_left <= 0:
+                    t.set_actor_frozen(False)
+                    t.monitor.log(f"  critic warm-up done at step {self.num_timesteps}: policy unfrozen")
+                else:
+                    t.warm_left -= 1
             if self._ep_rewards:
                 self.logger.record("rollout/ep_rew_raw_mean", float(np.mean(self._ep_rewards[-20:])))
             if time.time() - self._t_log > 30:
@@ -205,13 +211,15 @@ class PPOTrainer:
         self.next_eval = 0
         self.next_ckpt = int(cfg.checkpoint_every)
         self.pending_tb: list[tuple[int, float, float]] = []
+        self.frozen = False
+        self.warm_left = 0
         self.model: Any = None
         self.venv: Any = None
         self.evaluator: Evaluator | None = None
         bounds, acc = [], 0.0
         for st in cfg.curriculum:
             acc += float(st.frac)
-            bounds.append(int(round(self.total_steps * min(1.0, acc / sum(float(s.frac) for s in cfg.curriculum)))))
+            bounds.append(round(self.total_steps * min(1.0, acc / sum(float(s.frac) for s in cfg.curriculum))))
         bounds[-1] = self.total_steps
         self.bounds = bounds
 
@@ -270,6 +278,12 @@ class PPOTrainer:
         return zips[-1] if zips else None
 
     # ------------------------------------------------------------------ training
+    def set_actor_frozen(self, flag: bool) -> None:
+        pol = self.model.policy
+        for p in [*pol.mlp_extractor.policy_net.parameters(), *pol.action_net.parameters()]:
+            p.requires_grad_(not flag)
+        self.frozen = flag
+
     def _env_for_stage(self, idx: int) -> EnvConfig:
         st = self.cfg.curriculum[idx]
         rw = RewardConfig(**{**self.env_base.reward.__dict__, "shaping_scale": float(st.shaping)})
@@ -337,6 +351,10 @@ class PPOTrainer:
             )
             if ck is None and si == 0 and not self.evals:
                 self.evaluate(self.model, 0)  # step 0 = the BC initialisation
+                if self.init_model is not None and int(getattr(cfg, "critic_warmup_updates", 0)) > 0:
+                    self.warm_left = int(cfg.critic_warmup_updates)
+                    self.set_actor_frozen(True)
+                    mon.log(f"critic warm-up: policy frozen for the first {self.warm_left} update(s)")
             remaining = self.bounds[si] - self.model.num_timesteps
             if remaining > 0:
                 self.model.learn(
@@ -360,7 +378,7 @@ class PPOTrainer:
             "MlpPolicy", venv, learning_rate=self.lr, n_steps=int(cfg.n_steps), batch_size=int(cfg.batch_size),
             n_epochs=int(cfg.n_epochs), gamma=float(cfg.gamma), gae_lambda=float(cfg.gae_lambda),
             clip_range=float(cfg.clip_range), ent_coef=float(cfg.ent_coef), vf_coef=float(cfg.vf_coef),
-            max_grad_norm=float(cfg.max_grad_norm), policy_kwargs={"net_arch": list(cfg.net_arch)}, device=self.device,
+            max_grad_norm=float(cfg.max_grad_norm), target_kl=cfg.target_kl, policy_kwargs={"net_arch": list(cfg.net_arch)}, device=self.device,
             seed=int(cfg.seed), tensorboard_log=str(self.run_dir / "tb"), verbose=0,
         )  # fmt: skip
         if self.init_model is not None:  # BC weights

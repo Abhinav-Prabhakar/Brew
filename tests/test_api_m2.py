@@ -100,7 +100,7 @@ def test_arena_job_lifecycle_and_validation(c):
     assert set(s) == {"A", "B"} and "vs_A" in s["B"] and len(s["B"]["profit_by_seed"]) == 2
     assert j["progress"]["done"] == j["progress"]["total"] == 4
     assert c.get(f"{API}/arena/arena-99999").status_code == 404
-    assert c.post(f"{API}/arena", json={"policies": ["A", "D"], "seeds": [1], "days": 1}).status_code == 422
+    assert c.post(f"{API}/arena", json={"policies": ["A", "Z"], "seeds": [1], "days": 1}).status_code == 422
     assert c.post(f"{API}/arena", json={"policies": ["A"], "seeds": [], "days": 1}).status_code == 422
     assert c.post(f"{API}/arena", json={"policies": ["A"], "scenario": "nope", "seeds": [1], "days": 1}).status_code == 422
 

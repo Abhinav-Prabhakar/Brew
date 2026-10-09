@@ -10,7 +10,7 @@ from fastapi import APIRouter, Request
 
 from brew.config.loader import default_cafe, default_policies, list_scenarios, load_scenario, repo_root
 from brew.events.schema import event_json_schema
-from brew.policies.registry import AVAILABLE, PLANNED
+from brew.policies.registry import available, planned
 from brew.settings import get_settings
 from brew.version import __version__
 
@@ -45,7 +45,7 @@ def health(request: Request) -> dict[str, Any]:
 
 
 @router.get("/cafe")
-def cafe() -> dict[str, Any]:
+def cafe(request: Request) -> dict[str, Any]:
     """Cafe profile, menu, channels, personas, stations, equipment, tables, catalog."""
     c = default_cafe()
     pol = default_policies()
@@ -67,8 +67,8 @@ def cafe() -> dict[str, Any]:
         "suppliers": [{"key": s.key, "name": s.name, "lead_time_h": s.lead_time_h, "is_local": s.is_local} for s in c.suppliers],
         "scenarios": [{"key": k, "name": load_scenario(k).name, "description": load_scenario(k).description} for k in list_scenarios()],
         "policies": {
-            "available": list(AVAILABLE),
-            "planned": PLANNED,
+            "available": list(available(request.app.state.settings.resolved_models_dir())),
+            "planned": planned(request.app.state.settings.resolved_models_dir()),
             "strategies": list(pol.strategies.manual),
             "presets": list(pol.strategies.presets),
         },

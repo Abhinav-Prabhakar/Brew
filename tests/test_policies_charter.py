@@ -150,9 +150,9 @@ def test_b_happy_hour_prices_in_dead_hours():
     assert w.menu["latte"].price == w.menu["latte"].base
 
 
-def test_policy_d_is_a_stub_c_and_e_exist():
-    with pytest.raises(NotImplementedError, match="M3"):
-        make_policy("D")
+def test_policy_d_needs_a_champion_c_and_e_exist(tmp_path):
+    with pytest.raises(FileNotFoundError, match="champion"):
+        make_policy("D", models_dir=tmp_path)
     assert make_policy("C").code == "C" and make_policy("E").code == "E"
 
 

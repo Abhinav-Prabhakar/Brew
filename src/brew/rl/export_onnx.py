@@ -20,7 +20,7 @@ from brew.sim.observation import NAMES
 
 from . import torch_setup  # noqa: F401
 from .actions import DIM_NAMES, N_LOGITS, NVEC
-from .onnx_runtime import OnnxManagerModel, normalize_obs
+from .onnx_runtime import OnnxManagerModel
 
 
 def _logits_module(policy: Any) -> Any:
@@ -88,7 +88,7 @@ def parity_check(
     from .onnx_runtime import masked_argmax
 
     agree = float(np.mean([np.array_equal(masked_argmax(ref[i], None), masked_argmax(got[i], None)) for i in range(len(obs))]))
-    return {"max_abs_diff": diff, "tol": tol, "ok": bool(diff < tol), "n_obs": int(len(obs)), "argmax_agreement": agree}
+    return {"max_abs_diff": diff, "tol": tol, "ok": bool(diff < tol), "n_obs": len(obs), "argmax_agreement": agree}
 
 
 def parity_observations(n: int, seed: int, real: np.ndarray | None = None) -> np.ndarray:

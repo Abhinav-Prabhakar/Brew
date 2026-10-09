@@ -9,6 +9,7 @@ learner sharing the box with N simulation workers does not oversubscribe the cor
 
 from __future__ import annotations
 
+import importlib
 import os
 import sys
 
@@ -20,8 +21,8 @@ os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "3")
 
 # Order matters on macOS: LightGBM and OR-tools must load their OpenMP runtimes *before* torch does,
 # otherwise LightGBM segfaults on the first Booster load.
-import lightgbm  # noqa: E402,F401
-from ortools.sat.python import cp_model  # noqa: E402,F401
+for _m in ("lightgbm", "ortools.sat.python.cp_model"):
+    importlib.import_module(_m)
 
 import torch  # noqa: E402
 
