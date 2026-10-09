@@ -1,8 +1,9 @@
 """Tiny static server for local development (no caching, so edits show up on reload).
-POST /__shot saves a PNG data-URL body to BREW_SHOTS (dev-only screenshot hook)."""
+POST /__shot saves a PNG data-URL body to BREW_SHOTS (dev-only screenshot hook).
+Usage: serve.py [port] [root]  (root defaults to this folder; e.g. `kitchen` for the night kitchen)."""
 import http.server, functools, os, sys, base64
 
-SHOTS = os.environ.get('BREW_SHOTS')
+SHOTS = os.environ.get('BREW_SHOTS') or os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.shots')
 
 class NoCache(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):
@@ -22,5 +23,6 @@ class NoCache(http.server.SimpleHTTPRequestHandler):
             self.send_response(404); self.end_headers()
 
 port = int(sys.argv[1]) if len(sys.argv) > 1 else 5178
-root = os.path.dirname(os.path.abspath(__file__))
+here = os.path.dirname(os.path.abspath(__file__))
+root = os.path.join(os.path.dirname(here), sys.argv[2]) if len(sys.argv) > 2 else here
 http.server.ThreadingHTTPServer(('127.0.0.1', port), functools.partial(NoCache, directory=root)).serve_forever()

@@ -1,6 +1,7 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "lobby", "runtimeExecutable": "python3", "runtimeArgs": ["lobby/serve.py", "5179"], "port": 5179 }
+    { "name": "lobby", "runtimeExecutable": "python3", "runtimeArgs": ["lobby/serve.py", "5179"], "port": 5179 },
+    { "name": "kitchen", "runtimeExecutable": "python3", "runtimeArgs": ["lobby/serve.py", "5180", "kitchen"], "port": 5180 }
   ]
 }
