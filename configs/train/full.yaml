@@ -27,7 +27,7 @@ eval:                          # M2 arena (C vs A/B/E); the final D arena is `fi
   days: 7
   scenario: weekday_normal
   replate_ab: true
-  workers: 8
+  workers: 6
 bc:                            # BC on 200 days of Policy C (29 episodes of 7 days over mixed scenarios)
   days: 200
   episode_days: 7
@@ -54,7 +54,7 @@ ppo:                           # technical.md 13.5
     - {days: 1, frac: 0.2, shaping: 1.0}
     - {days: 7, frac: 0.4, shaping: 0.65}
     - {days: 28, frac: 0.4, shaping: 0.3}
-  eval: {every: 100000, seeds: 10, days: 7, scenario: weekday_normal, base_seed: 1000, workers: 10}   # 7-day eval episodes (not 28)
+  eval: {every: 100000, seeds: 10, days: 7, scenario: weekday_normal, base_seed: 1000, workers: 4}   # 7-day eval episodes (not 28); 4 workers: the 10 PPO env workers stay alive (~0.5 GB each) and WSL has 10 GiB
   checkpoint_every: 100000
   scenarios: [weekday_normal, weekend_brunch, rainy_delivery_surge, heatwave, exam_week, festival, chaos_random]
   domain_randomisation: true
@@ -75,4 +75,4 @@ final_eval:
   seeds: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
   days: [7]
   scenario: weekday_normal
-  workers: 8
+  workers: 6
