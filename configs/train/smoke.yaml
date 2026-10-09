@@ -21,7 +21,7 @@ text: {source: clean, test_size: 0.25, seed: 0}
 eval:
   policies: [A, B, C]
   seeds: [1, 2, 3]
-  days: 1
+  days: 3
   scenario: weekday_normal
   replate_ab: true
   workers: 0
