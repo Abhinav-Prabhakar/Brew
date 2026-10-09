@@ -53,11 +53,12 @@ def test_hydrate_maps_every_snapshot_key(harness):
           return Object.keys(s);
         }"""
     )
-    for k in (
+    expected = (
         "seq sim_s t world clock weather day kpis policy menu combos replate orders rail batches customers tables shelf "
         "receipts payments reviews staff tasks stations equipment prep stock fridge inventory lots pos decisions bottleneck "
         "disruptions investments rest"
-    ).split():
+    )
+    for k in expected.split():
         assert k in keys, f"state.{k} missing (design/live/README.md state shape)"
     snap = fx("morning_rush")[1]["data"]
     s = harness.evaluate(

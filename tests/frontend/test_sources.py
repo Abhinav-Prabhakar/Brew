@@ -55,13 +55,12 @@ def test_ws_connects_with_since_seq_and_delivers_frames(ws_page):
         """async () => {
           const src = __mk(); src.start(); await __sleep(10);
           const ws = __ws[0];
-          ws._msg(%s);
+          ws._msg(HELLO);
           ws._msg({ frame: 1, events: [__ev(101), __ev(102)] });
           ws._msg({ frame: 2, events: [__ev(103)] });
           await __sleep(10); src.stop();
           return { url: ws.url, got: __got, status: __status, hello: __hello.length };
-        }"""
-        % json.dumps(hello())
+        }""".replace("HELLO", json.dumps(hello()))
     )
     assert out["url"] == "ws://127.0.0.1:8000/api/v1/ws/worlds/w1?since_seq=100"
     assert out["got"] == [101, 102, 103]
@@ -72,17 +71,16 @@ def test_ws_reconnect_resumes_after_the_last_applied_seq_without_gaps_or_duplica
     out = ws_page.evaluate(
         """async () => {
           const src = __mk(); src.start(); await __sleep(10);
-          __ws[0]._msg(%s);
+          __ws[0]._msg(HELLO1);
           __ws[0]._msg({ frame: 1, events: [__ev(101), __ev(102), __ev(103)] });
           __ws[0].close();                                   // the network drops
           await __sleep(120);                                // backoff (20 ms) then reconnect
           const second = __ws[1];
-          second._msg(%s);
+          second._msg(HELLO2);
           second._msg({ frame: 1, events: [__ev(103), __ev(104), __ev(105)] });   // the server replays from the ring: 103 overlaps
           await __sleep(10); src.stop();
           return { urls: __ws.map((w) => w.url), got: __got, status: __status };
-        }"""
-        % (json.dumps(hello()), json.dumps(hello(103)))
+        }""".replace("HELLO1", json.dumps(hello())).replace("HELLO2", json.dumps(hello(103)))
     )
     assert out["urls"][0].endswith("since_seq=100")
     assert out["urls"][1].endswith("since_seq=103"), "reconnect resumes with the last applied seq"
@@ -96,15 +94,14 @@ def test_ws_backoff_grows_then_resets_after_hello(ws_page):
           const src = __mk(); src.start(); await __sleep(5);
           for (let i = 0; i < 4; i++) { __ws[i].close(); await __sleep(i === 0 ? 40 : 130); }      // never says hello
           const gaps = __ws.slice(1).map((w, i) => w.t - __ws[i].t);
-          __ws[__ws.length - 1]._msg(%s);
+          __ws[__ws.length - 1]._msg(HELLO);
           const n = __ws.length;
           const closedAt = performance.now();
           __ws[n - 1].close(); await __sleep(60);
           const afterHello = __ws[n].t - closedAt;
           src.stop();
           return { gaps, afterHello, n };
-        }"""
-        % json.dumps(hello())
+        }""".replace("HELLO", json.dumps(hello()))
     )
     g = out["gaps"]
     assert g[0] >= 18 and g[1] >= 35 and g[2] >= 70 and max(g) < 400, "20 -> 40 -> 80 ms (capped at 80)"
@@ -117,7 +114,7 @@ def test_ws_resync_refetches_state_and_resumes_after_it(ws_page):
           const calls = [];
           window.fetch = async (url) => { calls.push(url); await __sleep(40); return { ok: true, json: async () => ({ last_seq: 500, clock: { sim_s: 1 } }) }; };
           const src = __mk(); src.start(); await __sleep(10);
-          __ws[0]._msg(%s);
+          __ws[0]._msg(HELLO);
           __ws[0]._msg({ resync: true, last_seq: 500 });
           // frames arriving while the snapshot is in flight are buffered; those the snapshot already covers are dropped
           __ws[0]._msg({ frame: 1, events: [__ev(498), __ev(499), __ev(500), __ev(501)] });
@@ -127,8 +124,7 @@ def test_ws_resync_refetches_state_and_resumes_after_it(ws_page):
           await __sleep(10);
           const out = { calls, snaps: __snaps, got: __got, lastSeq: src.lastSeq, sockets: __ws.length };
           src.stop(); return out;
-        }"""
-        % json.dumps(hello())
+        }""".replace("HELLO", json.dumps(hello()))
     )
     assert out["calls"] == ["http://127.0.0.1:8000/api/v1/worlds/w1/state"]
     assert out["snaps"] == [500]
@@ -140,14 +136,13 @@ def test_ws_resync_when_the_server_cannot_replay_on_connect(ws_page):
         """async () => {
           window.fetch = async () => ({ ok: true, json: async () => ({ last_seq: 9000, clock: { sim_s: 1 } }) });
           const src = __mk({ sinceSeq: 3 }); src.start(); await __sleep(10);
-          __ws[0]._msg(%s);
+          __ws[0]._msg(HELLO);
           __ws[0]._msg({ resync: true, last_seq: 9000 });      // hello, then resync (since_seq fell out of the ring buffer)
           await __sleep(30);
           __ws[0]._msg({ frame: 1, events: [__ev(9001), __ev(9002)] });
           await __sleep(10); src.stop();
           return { snaps: __snaps, got: __got };
-        }"""
-        % json.dumps(hello(9000))
+        }""".replace("HELLO", json.dumps(hello(9000)))
     )
     assert out == {"snaps": [9000], "got": [9001, 9002]}
 
@@ -171,15 +166,14 @@ def test_ws_a_gap_in_the_sequence_triggers_a_resync(ws_page):
         """async () => {
           window.fetch = async () => ({ ok: true, json: async () => ({ last_seq: 120, clock: { sim_s: 1 } }) });
           const src = __mk(); src.start(); await __sleep(10);
-          __ws[0]._msg(%s);
+          __ws[0]._msg(HELLO);
           __ws[0]._msg({ frame: 1, events: [__ev(101)] });
           __ws[0]._msg({ frame: 2, events: [__ev(110), __ev(111)] });     // 102..109 never arrived
           await __sleep(40);
           __ws[0]._msg({ frame: 3, events: [__ev(121)] });
           await __sleep(10); src.stop();
           return { snaps: __snaps, got: __got };
-        }"""
-        % json.dumps(hello())
+        }""".replace("HELLO", json.dumps(hello()))
     )
     assert out == {"snaps": [120], "got": [101, 121]}
 
@@ -188,15 +182,14 @@ def test_ws_duplicate_and_overlapping_frames_are_deduped(ws_page):
     out = ws_page.evaluate(
         """async () => {
           const src = __mk(); src.start(); await __sleep(10);
-          __ws[0]._msg(%s);
+          __ws[0]._msg(HELLO);
           __ws[0]._msg({ frame: 1, events: [__ev(101), __ev(102), __ev(103)] });
           __ws[0]._msg({ frame: 1, events: [__ev(101), __ev(102), __ev(103)] });   // the very same frame again
           __ws[0]._msg({ frame: 2, events: [__ev(102), __ev(103), __ev(104)] });   // overlapping
           __ws[0]._msg({ frame: 3, events: [__ev(50), __ev(104)] });               // stale
           await __sleep(10); src.stop();
           return __got;
-        }"""
-        % json.dumps(hello())
+        }""".replace("HELLO", json.dumps(hello()))
     )
     assert out == [101, 102, 103, 104]
 
@@ -205,7 +198,7 @@ def test_ws_silence_marks_lagging_and_a_heartbeat_clears_it(ws_page):
     out = ws_page.evaluate(
         """async () => {
           const src = __mk(); src.start(); await __sleep(10);
-          __ws[0]._msg(%s);
+          __ws[0]._msg(HELLO);
           await __sleep(400);                               // > laggingMs (250) without any frame or heartbeat
           const lagging = src.lagging;
           __ws[0]._msg({ hb: { sim_s: 1, last_seq: 100 } });
@@ -214,8 +207,7 @@ def test_ws_silence_marks_lagging_and_a_heartbeat_clears_it(ws_page):
           const stillOk = src.lagging;
           src.stop();
           return { lagging, after, stillOk, seq: __lag };
-        }"""
-        % json.dumps(hello())
+        }""".replace("HELLO", json.dumps(hello()))
     )
     assert out["lagging"] is True and out["after"] is False and out["stillOk"] is False
     assert out["seq"] == [True, False]
@@ -225,12 +217,11 @@ def test_ws_pings_while_connected(ws_page):
     out = ws_page.evaluate(
         """async () => {
           const src = __mk(); src.start(); await __sleep(10);
-          __ws[0]._msg(%s);
+          __ws[0]._msg(HELLO);
           await __sleep(220);
           src.stop();
           return __ws[0].sent;
-        }"""
-        % json.dumps(hello())
+        }""".replace("HELLO", json.dumps(hello()))
     )
     assert len(out) >= 2 and all(m == {"op": "ping"} for m in out)
 
@@ -239,11 +230,10 @@ def test_ws_stop_closes_and_does_not_reconnect(ws_page):
     out = ws_page.evaluate(
         """async () => {
           const src = __mk(); src.start(); await __sleep(10);
-          __ws[0]._msg(%s);
+          __ws[0]._msg(HELLO);
           src.stop(); await __sleep(150);
           return { sockets: __ws.length, state: __ws[0].readyState, status: src.status };
-        }"""
-        % json.dumps(hello())
+        }""".replace("HELLO", json.dumps(hello()))
     )
     assert out == {"sockets": 1, "state": 3, "status": "closed"}
 

@@ -12,7 +12,7 @@ import re
 import warnings
 from collections import Counter
 from datetime import datetime
-from functools import lru_cache
+from functools import cache
 from pathlib import Path
 from typing import Any
 
@@ -29,7 +29,7 @@ DEMO = ROOT / "design" / "data" / "demo-stream.jsonl"
 PENDING_BACKEND = {"station.load", "staff.status", "chaos.cost"}  # reducers exist, backend emits them from the next regeneration on
 
 
-@lru_cache(maxsize=None)
+@cache
 def load(name: str) -> list[dict[str, Any]]:
     return [json.loads(line) for line in (FIXTURES / f"{name}.jsonl").read_text().splitlines() if line]
 

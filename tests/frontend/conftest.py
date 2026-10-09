@@ -1,7 +1,11 @@
 """Frontend test fixtures: a static file server for the repo and a headless-Chromium harness page.
 
-One Chromium for the whole session (pytest-playwright's ``browser``); every test file shares the harness page
-unless it needs its own init scripts (fake WebSocket, fake clock).
+One headless Chromium for the whole frontend package; every test file shares the harness page unless it needs its own
+init scripts (fake WebSocket, fake clock).
+
+The browser is our own package-scoped fixture (shadowing pytest-playwright's session-scoped ``browser``) on purpose:
+Playwright's sync API keeps an asyncio loop running in the main thread until it is stopped, which would break the
+asyncio-based backend tests that run after this package ("Runner.run() cannot be called from a running event loop").
 """
 
 from __future__ import annotations
@@ -38,7 +42,17 @@ def serve(directory: Path) -> tuple[http.server.ThreadingHTTPServer, str]:
     return srv, f"http://127.0.0.1:{srv.server_address[1]}"
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="package")
+def browser() -> Iterator[object]:
+    from playwright.sync_api import sync_playwright
+
+    with sync_playwright() as p:
+        b = p.chromium.launch()
+        yield b
+        b.close()
+
+
+@pytest.fixture(scope="package")
 def static_url() -> Iterator[str]:
     """The repository root served statically (design/ and tests/fixtures/ both reachable)."""
     srv, url = serve(ROOT)
@@ -46,12 +60,12 @@ def static_url() -> Iterator[str]:
     srv.shutdown()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="package")
 def harness_url(static_url: str) -> str:
     return static_url + "/design/live/harness.html"
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="package")
 def harness(browser, harness_url: str) -> Iterator[object]:  # type: ignore[no-untyped-def]
     """A page with the live scripts + test helpers (window.T) loaded; console errors collected in .errors."""
     ctx = browser.new_context()
