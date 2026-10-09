@@ -168,7 +168,12 @@ def _po(w: World, p: dict[str, Any]) -> dict[str, Any]:
         if ing not in ok:
             raise BadPayload(f"{ing!r} is not sold by {sup}")
         lines[ing] = float(qty)
-    po = w.suppliers.place(sup, lines, source="owner")
+    tod = p.get("arrive_tod_s")  # optional: standing-delivery time of day (the proposal's order carries it)
+    try:
+        arrive = None if tod is None else float(tod)
+    except (TypeError, ValueError) as e:
+        raise BadPayload("arrive_tod_s must be a number of seconds since midnight") from e
+    po = w.suppliers.place(sup, lines, source="owner", arrive_tod_s=arrive)
     if po is None:
         raise BadPayload("empty purchase order")
     return {"po_id": po["id"], "eta_s": po["eta_s"], "total": round2(po["total"])}

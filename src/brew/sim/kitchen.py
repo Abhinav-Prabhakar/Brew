@@ -163,6 +163,7 @@ class Kitchen:
         s.break_pending = False
         s.break_done = True
         s.on_break = True
+        s.break_end_s = w.now + s.break_min * 60.0
         w.emit("staff.break_started", staff_id=s.key, detail="")
         w.engine.schedule(w.now + s.break_min * 60.0, "BREAK_END", s.key, P_DONE)
 
@@ -466,15 +467,20 @@ class Kitchen:
         learn = 1.0 + 0.3 * math.exp(-staff.exp_days / 10.0)
         dur = base / staff.speed * (1.0 + k * staff.fatigue) * learn
         if n > 1:
+            solo = dur  # what one task of this step takes this staff member right now
             dur *= 1.0 + t0.batch_factor * (n - 1)
+            # n tasks one-by-one take n*solo; together solo*(1+bf*(n-1)) -> saves (n-1)*(1-bf)*solo
+            saves_s = round((n - 1) * (1.0 - t0.batch_factor) * solo, 1)
             self.batch_seq += 1
             bid = self.batch_seq
             onos = sorted({t.order_no for t in tasks})
             w.emit(
-                "batch.formed", batch_id=f"b{bid}", station=t0.station, step=t0.name, order_nos=onos, size=n
+                "batch.formed", batch_id=f"b{bid}", station=t0.station, step=t0.name, order_nos=onos, size=n,
+                saves_s=saves_s,
             )
             w.emit(
-                "batch.started", batch_id=f"b{bid}", station=t0.station, step=t0.name, order_nos=onos, size=n
+                "batch.started", batch_id=f"b{bid}", station=t0.station, step=t0.name, order_nos=onos, size=n,
+                saves_s=saves_s,
             )
             self.batches_today += 1
             self.live_batches[bid] = set(onos)

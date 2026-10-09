@@ -166,6 +166,7 @@ class BatchFormed(D):
     step: str
     order_nos: list[int]
     size: int
+    saves_s: float = 0.0  # sim-seconds saved vs running the tasks one by one
 
 
 class BatchStarted(D):
@@ -174,6 +175,7 @@ class BatchStarted(D):
     step: str
     order_nos: list[int]
     size: int
+    saves_s: float = 0.0  # sim-seconds saved vs running the tasks one by one
 
 
 class OrderReady(D):
@@ -413,6 +415,34 @@ class EquipmentUp(D):
     station: str
 
 
+class StationRow(D):
+    station: str
+    util: float  # busy share over the last 15 sim-min, 0..1
+    queue: int  # tasks waiting for the station
+    in_use: int  # equipment slots in use (staff working there when slots == 0)
+    slots: int
+    status: Literal["up", "down"]
+    down_until_s: float | None = None
+
+
+class StationLoad(D):
+    stations: list[StationRow]
+
+
+class StaffRow(D):
+    staff_id: str
+    fatigue: float
+    station: str | None = None
+    task: str | None = None
+    state: Literal["working", "idle", "break", "off", "absent"]
+    break_due_s: float | None = None
+    break_end_s: float | None = None
+
+
+class StaffStatus(D):
+    staff: list[StaffRow]
+
+
 # ---- management -------------------------------------------------------------------
 class KpiTick(D):
     cash: float
@@ -453,6 +483,15 @@ class ChaosResolved(D):
     disruption_id: str
     kind: str
     target: str | None = None
+
+
+class ChaosCost(D):
+    disruption_id: str
+    kind: str
+    cost_inr: float  # profit_counterfactual - profit_actual (today's profit, CRN fork without the disruption)
+    profit_actual: float
+    profit_counterfactual: float
+    phase: Literal["active", "resolved", "final"] = "active"
 
 
 class StrategyChanged(D):
@@ -544,11 +583,14 @@ EVENT_MODELS: dict[str, type[D]] = {
     "staff.late": StaffEvent,
     "equipment.down": EquipmentDown,
     "equipment.up": EquipmentUp,
+    "station.load": StationLoad,
+    "staff.status": StaffStatus,
     "kpi.tick": KpiTick,
     "decision.made": DecisionMade,
     "bottleneck.changed": BottleneckChanged,
     "chaos.triggered": ChaosTriggered,
     "chaos.resolved": ChaosResolved,
+    "chaos.cost": ChaosCost,
     "strategy.changed": StrategyChanged,
     "policy.changed": PolicyChanged,
     "throttle.changed": ThrottleChanged,

@@ -62,7 +62,7 @@ def tables(mw: MW) -> dict[str, Any]:
 @router.get("/worlds/{wid}/inventory")
 def inventory(mw: MW) -> dict[str, Any]:
     with mw.lock:
-        return _wrap(mw, rm.inventory(mw.world))
+        return _wrap(mw, rm.inventory_summary(mw.world))
 
 
 @router.get("/worlds/{wid}/inventory/{key}/lots")
@@ -102,6 +102,13 @@ def shelf(mw: MW) -> dict[str, Any]:
 def staff(mw: MW) -> dict[str, Any]:
     with mw.lock:
         return _wrap(mw, rm.staff(mw.world))
+
+
+@router.get("/worlds/{wid}/stations")
+def stations(mw: MW) -> dict[str, Any]:
+    """Per-station load: util (15 sim-min), queue, slots in use, up/down."""
+    with mw.lock:
+        return _wrap(mw, rm.stations(mw.world))
 
 
 @router.get("/worlds/{wid}/equipment")
@@ -169,4 +176,5 @@ def decisions(mw: MW, since_seq: int = 0) -> dict[str, Any]:
 @router.get("/worlds/{wid}/disruptions")
 def disruptions(mw: MW) -> dict[str, Any]:
     with mw.lock:
+        mw.refresh_costs()
         return _wrap(mw, rm.disruptions(mw.world))

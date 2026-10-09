@@ -13,7 +13,7 @@ import numpy as np
 
 from brew.config.loader import default_cafe, default_policies, load_scenario, weather_profiles
 from brew.config.schemas import CafeConfig, ConfigIndex, PoliciesConfig, ScenarioConfig
-from brew.domain.enums import CATEGORIES, DISRUPTION_KINDS
+from brew.domain.enums import CATEGORIES, DISRUPTION_KINDS, MANUAL_DISRUPTION_KINDS
 from brew.domain.ids import uuid7
 from brew.domain.timeutil import DAY_S, date_of, epoch_ms, hhmm, parse_hhmm, tod_s, weekday_of
 from brew.events.bus import EventRecord, EventSink
@@ -31,7 +31,7 @@ from .combos import Combos
 from .customers import Customers
 from .delivery import Delivery
 from .demandlog import DemandLog
-from .disruptions import Disruptions
+from .disruptions import Disruptions, default_target
 from .engine import P_CLOCK, P_DECIDE, P_TELEMETRY, Engine
 from .finance import Finance
 from .forecast_ma import MaForecast
@@ -39,6 +39,7 @@ from .inventory import Inventory
 from .investments import Investments
 from .kitchen import Kitchen
 from .kpis import Kpis
+from .loadboard import Loadboard
 from .observation import KAPPA_CLASSES, ObservationBuilder
 from .orders import Orders
 from .replate import Replate, ReplateError
@@ -145,10 +146,13 @@ class World:
         self.stock_init_done = False
         self.tele: TeleBuf | None = TeleBuf() if telemetry else None
         self.last_manager_s = -1.0
+        # cost-of-chaos hook installed by the API layer: (disruption_id, sim_s, final) -> counterfactual profit
+        self.cost_probe: Any = None
         # --- subsystems
         self.inv = Inventory(self, self.cfg)
         self.choice = ChoiceModel(self.cfg)
         self.kitchen = Kitchen(self)
+        self.loadboard = Loadboard(self)
         self.orders = Orders(self)
         self.customers = Customers(self)
         self.delivery = Delivery(self)
@@ -199,6 +203,13 @@ class World:
         s = self.sink
         if s is not None:
             s.emit(EventRecord(self.seq, self.engine.now, type_, data))
+
+    def emit_lazy(self, type_: str, build: Any) -> None:
+        """Like :meth:`emit` but only builds the payload (``build() -> dict``) when a sink is attached."""
+        self.seq += 1
+        s = self.sink
+        if s is not None:
+            s.emit(EventRecord(self.seq, self.engine.now, type_, build()))
 
     def new_id(self) -> str:
         if not self.id_rng_buf:
@@ -265,6 +276,7 @@ class World:
             "INVEST_DELIVER": self.invest.deliver,
             "DIS_START": de.on_start,
             "DIS_END": de.on_end,
+            "CHAOS_COST": de.on_cost,
         }
         self._o = o
 
@@ -327,6 +339,7 @@ class World:
         if not self.stock_init_done:
             self.init_stock()
         self.kpi.reset()
+        self.inv.mark_day()
         self.replate.reset_day()
         self.combos.reset_day()
         self.customers.walkouts_today = self.customers.balks_today = self.customers.reneges_today = 0
@@ -455,6 +468,9 @@ class World:
             self._refresh_price_mult()
         m = self.reviews.reputation_mult(channel) * self.price_mult[persona] * self.trend_mult
         m *= self.dis.demand_mult(persona, channel)
+        if self.dis.storm:  # the day plan assumed the planned weather: re-weight to the storm
+            planned = self.weather_plan.get(int(tod_s(self.now) // 3600), "partly")
+            m *= RAIN_CH.get(self.weather_state, {}).get(channel, 1.0) / RAIN_CH.get(planned, {}).get(channel, 1.0)
         if channel in ("zomato", "swiggy"):
             m *= self.delivery.rank[channel]
         if persona == "regular":
@@ -488,6 +504,12 @@ class World:
         )
         self.kitchen.on_minute()
         self.bn.sample()
+        self.loadboard.sample()
+        cf = self.cfg.cafe
+        if cf.open_s <= tod_s(self.now) < cf.close_s:
+            self.emit_lazy("station.load", lambda: {"stations": self.loadboard.station_rows()})
+        if self.loadboard.any_staff_present():
+            self.emit_lazy("staff.status", lambda: {"staff": self.loadboard.staff_rows()})
         if int(self.now) % 300 == 0:
             self.replate.tick()
         if self.pending_hides:
@@ -500,13 +522,28 @@ class World:
             self.engine.schedule(self.now + 60, "CLOCK", None, P_CLOCK)
 
     def on_weather(self, h: int) -> None:
-        st = self.weather_plan[h]
+        st = "rain" if self.dis.storm else self.weather_plan[h]  # a manual storm holds the weather
         T = wx.temperature(h, st, self.scenario.weather.temp_offset)
         if st != self.weather_state or h == 7:
             self.weather_state = st
             self.temp_c = T
             self.rain_mm_h = wx.RAIN_MM_H[st]
             self.emit("weather.changed", state=st, temp_c=T, rain_mm_h=self.rain_mm_h)
+        else:
+            self.temp_c = T
+        self.ctx_dirty = True
+
+    def force_weather(self, state: str | None) -> None:
+        """Chaos hook: hold the weather at ``state`` (a storm) or, with ``None``, return to the planned hour."""
+        if state is None:
+            h = min(22, max(7, int(tod_s(self.now) // 3600)))
+            state = self.weather_plan.get(h, "partly")
+        T = wx.temperature(self.now % DAY_S / 3600.0, state, self.scenario.weather.temp_offset)
+        if state != self.weather_state:
+            self.weather_state = state
+            self.temp_c = T
+            self.rain_mm_h = wx.RAIN_MM_H[state]
+            self.emit("weather.changed", state=state, temp_c=T, rain_mm_h=self.rain_mm_h)
         else:
             self.temp_c = T
         self.ctx_dirty = True
@@ -1154,8 +1191,10 @@ class World:
         duration_min: float = 60.0,
         source: str = "manual",
     ) -> Any:
-        if kind not in DISRUPTION_KINDS:
+        if kind not in DISRUPTION_KINDS and kind not in MANUAL_DISRUPTION_KINDS:
             raise ValueError(f"unknown disruption kind {kind!r}")
+        if target is None and source == "manual":
+            target = default_target(self, kind)
         return self.dis.trigger(kind, target, severity, duration_min=duration_min, source=source)
 
     # -------------------------------------------------------------------- fork
@@ -1164,14 +1203,15 @@ class World:
     ) -> World:
         """Independent copy (no sinks); identical RNG streams unless ``reseed`` is given."""
         shared = [self.cfg, self.ix, self.pol_cfg, self.scenario, self.corp, self.calendar, self.profiles]
-        sink0, h0, view0, tele_sink = self.sink, self._h, self._view, None
+        sink0, h0, view0, tele_sink, probe0 = self.sink, self._h, self._view, None, self.cost_probe
         self.sink = None
         self._h = {}
+        self.cost_probe = None
         buf = io.BytesIO()
         try:
             _Pickler(buf, shared).dump(self)
         finally:
-            self.sink, self._h = sink0, h0
+            self.sink, self._h, self.cost_probe = sink0, h0, probe0
             del tele_sink, view0
         buf.seek(0)
         child: World = _Unpickler(buf, shared).load()

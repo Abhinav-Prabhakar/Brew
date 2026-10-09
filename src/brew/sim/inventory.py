@@ -43,6 +43,7 @@ class Inventory:
         self.lot_seq = 0
         self.cost_mult = 1.0  # price_shock disruption
         self.stock_dirty: set[str] = set()
+        self.day_mark: dict[str, float] = {}  # cumulative consume at day start (usage-so-far = consume - mark)
         for i in cfg.ingredients:
             self._register(
                 i.key,
@@ -114,6 +115,10 @@ class Inventory:
         self.unit_cost[key] = cost
         self.is_pack[key] = pack
         self.weight_g[key] = wt
+
+    def mark_day(self) -> None:
+        """Snapshot cumulative consumption (called at day start) so today's usage can be read off."""
+        self.day_mark = {k: m["consume"] for k, m in self.mov.items()}
 
     # ------------------------------------------------------------------ bom
     def bom(self, sku: str, mods: tuple[str, ...], carry: bool) -> tuple[tuple[str, float, bool], ...]:

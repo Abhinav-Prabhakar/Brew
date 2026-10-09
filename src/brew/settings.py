@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     pacer_cpu_budget_s: float = 0.03
     max_worlds: int = 32
     git_sha: str = "unknown"
+    serve_design: bool = True  # serve design/ (the hand-drawn frontend) at / from the same origin
 
     def resolved_database_url(self) -> str:
         if self.database_url:

@@ -44,3 +44,17 @@ def day_b():
     w.run(1)
     w.test_sink = sink  # type: ignore[attr-defined]
     return w
+
+
+@pytest.fixture
+def gap_client():
+    """TestClient on a fresh app (no DB); ``client.app_`` is the app."""
+    from fastapi.testclient import TestClient
+
+    from brew.api.app import create_app
+    from brew.settings import Settings
+
+    app = create_app(Settings(db_enabled=False))
+    with TestClient(app) as cl:
+        cl.app_ = app  # type: ignore[attr-defined]
+        yield cl

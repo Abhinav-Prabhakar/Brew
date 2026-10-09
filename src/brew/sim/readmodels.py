@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, Any
 from brew.domain.timeutil import DAY_S, hhmm, iso, tod_s
 from brew.domain.timeutil import WEEKDAYS as _WD
 
+from .loadboard import break_rule
+
 if TYPE_CHECKING:
     from .state import Order
     from .world import World
@@ -175,6 +177,41 @@ def tables(w: World) -> dict[str, Any]:
     return {"tables": tabs, "combinable": [list(p) for p in w.cfg.tables.combinable]}
 
 
+# Freshness classes of a lot (and of a row = its soonest-expiring lot). A lot is
+#   expiring: <= 24 h of life left, or (<= 10 % of its shelf life left and <= 7 days left)
+#   soon:     <= 72 h left, or (<= 30 % of its shelf life left and <= 14 days left)
+#   fresh:    otherwise
+# (the share rule is capped by an absolute window so that 6-month beans are not "expiring" at 18 days left)
+EXPIRING_H, EXPIRING_FRAC, EXPIRING_CAP_H = 24.0, 0.10, 7 * 24.0
+SOON_H, SOON_FRAC, SOON_CAP_H = 72.0, 0.30, 14 * 24.0
+
+
+def freshness_of(w: World, lt: Any) -> str:
+    """``fresh`` | ``soon`` | ``expiring`` for a lot, by remaining hours and remaining share of its shelf life."""
+    left_h = (lt.expires_s - w.now) / 3600.0
+    frac = (lt.expires_s - w.now) / max(1.0, lt.expires_s - lt.received_s)
+    if left_h <= EXPIRING_H or (frac <= EXPIRING_FRAC and left_h <= EXPIRING_CAP_H):
+        return "expiring"
+    if left_h <= SOON_H or (frac <= SOON_FRAC and left_h <= SOON_CAP_H):
+        return "soon"
+    return "fresh"
+
+
+def inventory_summary(w: World) -> dict[str, Any]:
+    """Inventory rows plus the pantry's value-weighted freshness split (fresh + soon + expiring = 1)."""
+    rows = inventory(w)
+    val = {"fresh": 0.0, "soon": 0.0, "expiring": 0.0}
+    for r in rows:
+        for lt in w.inv.lots[r["key"]]:
+            val[freshness_of(w, lt)] += lt.qty * lt.unit_cost
+    tot = sum(val.values())
+    fr = {k: round(v / tot, 4) for k, v in val.items()} if tot > 0 else {"fresh": 1.0, "soon": 0.0, "expiring": 0.0}
+    return {"items": rows, "freshness": fr, "value_inr": round(tot, 2), "freshness_rules": {
+        "expiring": f"<= {EXPIRING_H:g} h left, or <= {EXPIRING_FRAC:.0%} of shelf life (and <= {EXPIRING_CAP_H / 24:g} d) left",
+        "soon": f"<= {SOON_H:g} h left, or <= {SOON_FRAC:.0%} of shelf life (and <= {SOON_CAP_H / 24:g} d) left",
+        "fresh": "otherwise"}}
+
+
 def inventory(w: World) -> list[dict[str, Any]]:
     out = []
     for key in w.inv.onhand:
@@ -186,8 +223,14 @@ def inventory(w: World) -> list[dict[str, Any]]:
         use = w.ma.key_usage_per_day(key)
         on = w.inv.onhand[key]
         lots = w.inv.lots[key]
+        sup = w.suppliers.item_of.get(key)
+        cost = w.inv.unit_cost[key]
         out.append(
             {
+                "supplier": w.ix.supplier[sup[0]].name if sup else None, "supplier_key": sup[0] if sup else None,
+                "co2e_kg_per_kg": (ing or prep).co2e_kg_per_kg,  # type: ignore[union-attr]
+                "unit_cost": round(cost, 4), "value_inr": round(sum(lt.qty * lt.unit_cost for lt in lots), 2),
+                "freshness": freshness_of(w, lots[0]) if lots else None,
                 "key": key, "name": ing.name if ing else prep.name,  # type: ignore[union-attr]
                 "kind": "ingredient" if ing else "prep", "uom": uom, "on_hand": round(on, 2),
                 "par": ing.par if ing else prep.par,  # type: ignore[union-attr]
@@ -273,11 +316,20 @@ def shelf(w: World) -> dict[str, Any]:
     }
 
 
+def stations(w: World) -> list[dict[str, Any]]:
+    """Per-station load rows (same shape as the ``station.load`` event)."""
+    return w.loadboard.station_rows()
+
+
 def staff(w: World) -> list[dict[str, Any]]:
     out = []
+    status = {r["staff_id"]: r for r in w.loadboard.staff_rows()}
     for s in w.kitchen.staff_list:
+        r = status[s.key]
         out.append(
             {
+                "state": r["state"], "break_due_s": r["break_due_s"], "break_end_s": r["break_end_s"],
+                "break_rule": break_rule(s), "break_min": s.break_min,
                 "id": s.key, "name": s.name, "role": s.role, "present": s.present, "on_break": s.on_break, "absent": s.absent,
                 "station": s.station if s.active else None, "task": s.task_name if s.active else None,
                 "attention": round(s.attention_used, 2), "fatigue": round(s.fatigue, 3), "wage_per_h": s.wage,
@@ -318,7 +370,17 @@ def impact(w: World) -> dict[str, Any]:
     off = []
     for d in ds:
         off.append(max(d["p95_wait_s"].get("dine_in", 0), d["p95_wait_s"].get("takeaway", 0)))
+    # waste per day: the last 7 days incl. today (today's running total if the day is not closed yet)
+    by_day = [
+        {"day": d["day"], "date": d.get("date"), "waste_kg": round(d["waste_kg"], 3), "partial": False}
+        for d in ds
+        if w.day - 6 <= d["day"] <= w.day
+    ]
+    if not any(r["day"] == w.day for r in by_day):
+        by_day.append({"day": w.day, "date": w.date_str(), "waste_kg": round(w.kpi.waste_kg, 3), "partial": True})
+    today_kg = next(r["waste_kg"] for r in by_day if r["day"] == w.day)
     return {
+        "waste_kg_today": today_kg, "waste_kg_by_day": by_day,
         "economic": {
             "net_profit_per_day": avg("net_profit"), "revenue_per_day": avg("revenue"),
             "revenue_per_labour_hour": avg("revenue_per_labour_hour"), "profit_today": w.kpi.profit_today(),
@@ -364,7 +426,7 @@ def decisions(w: World, since_seq: int = 0) -> list[dict[str, Any]]:
 
 def disruptions(w: World) -> list[dict[str, Any]]:
     return [
-        {"id": d.id, "kind": d.kind, "target": d.target, "severity": d.severity, "start_s": d.start_s, "end_s": d.end_s, "source": d.source, "active": d.active, "resolved": d.resolved}
+        {"id": d.id, "kind": d.kind, "target": d.target, "severity": d.severity, "start_s": d.start_s, "end_s": d.end_s, "source": d.source, "active": d.active, "resolved": d.resolved, "cost_inr": d.meta.get("cost_inr")}
         for d in w.dis.items.values()
     ]  # fmt: skip
 
@@ -387,6 +449,7 @@ def state(w: World) -> dict[str, Any]:
         "shelf": shelf(w),
         "staff": staff(w),
         "equipment": equipment(w),
+        "stations": stations(w),
         "policy": {
             "policy": w.policy.code,
             "strategy": w.manual_strategy,
