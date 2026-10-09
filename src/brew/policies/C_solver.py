@@ -76,6 +76,8 @@ def _merge(base: dict[str, Any], over: dict[str, Any]) -> dict[str, Any]:
 class PolicyC:
     """Optimised policy (solver + forecasts). Usable as a behaviour-cloning teacher via :meth:`manager_action`."""
 
+    forecast_refresh_slots: int = 1  # LightGBM re-predict interval in manager ticks (the RL training env uses 4)
+
     code = "C"
     default_preset = "edf"
     default_batch_window_s = 45.0
@@ -153,6 +155,7 @@ class PolicyC:
         skus = [m.sku for m in cfg.menu]
         cats = [m.cat for m in cfg.menu]
         self.demand = DemandService(skus, cats, self.bundle.forecaster, self.P["forecast"]["dispersion"])
+        self.demand.raw_every = max(1, int(self.forecast_refresh_slots))
         self.last_decision = {}
         self.plan_start = {}
         self.plan_at = -1e9

@@ -181,8 +181,7 @@ class BrewManagerEnv(gym.Env):  # type: ignore[type-arg]
         days = int(options.get("days", self.cfg.days))
         scn, start = self._build_scenario(name, options)
         self.executor = ManagerExecutor(models_dir=self.cfg.models_dir, use_models=self.cfg.use_models)
-        if self.executor.demand is not None:
-            self.executor.demand.raw_every = max(1, int(self.cfg.forecast_refresh_slots))
+        self.executor.forecast_refresh_slots = int(self.cfg.forecast_refresh_slots)  # applied in reset()
         self.world = World(scenario=scn, policy=self.executor, seed=int(seed), days=days, start_date=start)
         self.tracker = RewardTracker(self.world, self.cfg.reward)
         self.tracker.cfg.shaping_scale = self.shaping_scale
