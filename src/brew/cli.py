@@ -185,9 +185,11 @@ def seed_main() -> None:
 
 # ------------------------------------------------------- brew-train / brew-eval
 train_app = typer.Typer(
-    help="Training pipeline stages (history, forecast, elasticity, ...).", no_args_is_help=True, add_completion=False
+    help="Training pipeline: M2 stages, then bc / ppo / adversarial / export / arena (`all` runs everything).",
+    no_args_is_help=True,
+    add_completion=False,
 )
-M3_STAGES = ("bc", "ppo", "adversarial", "export")
+M3_STAGES = ("bc", "ppo", "adversarial", "export", "arena")
 
 
 def _train_cfg(config: Path) -> object:
@@ -205,26 +207,56 @@ def _report(stage: str, res: dict) -> None:
 
 @train_app.command("stage")
 def train_stage(
-    stage: str = typer.Argument(..., help="history|forecast|elasticity|prep_time|rider_eta|text|replate|eval|all"),
+    stage: str = typer.Argument(
+        ..., help="history|forecast|elasticity|prep_time|rider_eta|text|replate|eval | bc|ppo|adversarial|export|arena | all"
+    ),
     config: Path = typer.Option(Path("configs/train/smoke.yaml"), "--config", help="Train config YAML."),
-    device: str = typer.Option("auto", help="Reserved for M3 (RL) stages."),
+    run_dir: Path = typer.Option(None, "--run-dir", help="Run directory (config.yaml, progress.json, metrics.json, champion/ ...)."),
+    resume: bool = typer.Option(False, "--resume", help="Skip completed stages; resume PPO from the last checkpoint."),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Validate the config and print the plan; run nothing."),
+    device: str = typer.Option("", "--device", help="auto|cpu|cuda (default: the config's, i.e. auto = CUDA when available)."),
+    workers: int = typer.Option(0, "--workers", help="Parallel PPO environment workers (0 = the config's n_envs)."),
+    models_dir: str = typer.Option("", "--models-dir", help="Override the config's models directory (champion registry)."),
 ) -> None:
-    """Run one pipeline stage (or ``all`` M2 stages) from a train config."""
-    from brew.train.pipeline import M2_STAGES, run_all, run_stage
+    """Run one pipeline stage, or ``all`` of them in order (M2 stages, bc, ppo, adversarial, export, arena)."""
+    import json
+    import traceback
 
-    cfg = _train_cfg(config)
-    if stage in M3_STAGES:
-        console.print(f"stage '{stage}' belongs to milestone M3 (learning) - not available yet.")
-        raise typer.Exit(0)
-    if stage == "all":
-        t0 = time.perf_counter()
-        res = run_all(cfg, M2_STAGES, log=lambda m: console.print(m))  # type: ignore[arg-type]
-        console.print(f"[green]all M2 stages done in {time.perf_counter() - t0:.1f}s[/green]")
-        for k, v in res.items():
-            _report(k, v)
+    from brew.rl.pipeline import ALL_STAGES, plan, print_plan, resolve_config, run_pipeline
+    from brew.train.pipeline import M2_STAGES, run_stage
+
+    base = _train_cfg(config)
+    known = (*M2_STAGES, *M3_STAGES, "all")
+    if stage not in known:
+        console.print(f"unknown stage {stage!r}; choose one of: {', '.join(known)}")
+        raise typer.Exit(2)
+    if stage == "all" or stage in M3_STAGES or run_dir is not None or dry_run:
+        import time as _t
+
+        rd = run_dir
+        if rd is None and not dry_run:
+            rd = Path("runs") / f"{base.name}_{_t.strftime('%Y%m%d-%H%M%S')}"  # type: ignore[attr-defined]
+        cfg = resolve_config(base, rd, workers or None, device or None, models_dir or None)  # type: ignore[arg-type]
+        stages = ALL_STAGES if stage == "all" else (stage,)
+        if dry_run:
+            pl = plan(cfg)
+            print_plan(pl, console.print)
+            if rd is not None:
+                rd.mkdir(parents=True, exist_ok=True)
+                (rd / "plan.json").write_text(json.dumps(pl, indent=2, default=str))
+            raise typer.Exit(0 if pl["valid"] else 1)
+        assert rd is not None
+        try:
+            res = run_pipeline(cfg, rd, stages, resume=resume)
+        except Exception:
+            traceback.print_exc()
+            raise typer.Exit(1) from None
+        console.print(f"[green]done[/green]: {len(res['stages'])} stage(s); see {rd / 'metrics.json'}")
         return
+    cfg = base
     res1 = run_stage(stage, cfg)  # type: ignore[arg-type]
     _report(stage, res1)
+
 
 
 def train_main() -> None:

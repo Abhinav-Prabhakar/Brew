@@ -72,6 +72,98 @@ class EvalCfg(_C):
     workers: int = 0  # 0 = sequential
 
 
+class BCCfg(_C):
+    """Behaviour cloning of Policy C (technical.md 13.5)."""
+
+    days: int = 5  # days of Policy C rolled out (smoke 5, full 200)
+    episode_days: int = 5
+    epochs: int = 60
+    batch_size: int = 256
+    lr: float = 1e-3
+    gamma: float = 0.99
+    seed: int = 900
+    workers: int | str = 1  # teacher rollouts in parallel (<= 2 on the laptop; 'auto' = min(16, cpu - 2))
+    scenarios: list[str] = Field(default_factory=lambda: ["weekday_normal"])
+    domain_randomisation: bool = False
+
+
+class CurriculumStage(_C):
+    days: int = 1  # episode length in sim days
+    frac: float = 1.0  # share of total_timesteps
+    shaping: float = 1.0  # shaping_scale (reward penalties) during the stage
+
+
+class RLEvalCfg(_C):
+    every: int = 5000  # env steps between evaluations (also one before training starts)
+    seeds: int = 3  # held-out seeds base_seed .. base_seed + seeds - 1
+    days: int = 1
+    scenario: str = "weekday_normal"
+    base_seed: int = 1000
+    workers: int | str = 1  # parallel eval envs (SubprocVecEnv when > 1)
+
+
+class PPOCfg(_C):
+    """MaskablePPO (sb3-contrib), MlpPolicy, curriculum over episode length."""
+
+    total_timesteps: int = 20000
+    n_envs: int | str = 4  # int or "auto" = min(16, cpu - 2)
+    vec: str = "dummy"  # dummy | subproc
+    n_steps: int = 128
+    batch_size: int = 256
+    n_epochs: int = 10
+    gamma: float = 0.99
+    gae_lambda: float = 0.95
+    lr_start: float = 3e-4
+    lr_end: float = 3e-4
+    ent_coef: float = 0.01
+    clip_range: float = 0.2
+    vf_coef: float = 0.5
+    max_grad_norm: float = 0.5
+    net_arch: list[int] = Field(default_factory=lambda: [256, 256])
+    curriculum: list[CurriculumStage] = Field(default_factory=lambda: [CurriculumStage()])
+    eval: RLEvalCfg = RLEvalCfg()
+    checkpoint_every: int = 10000
+    scenarios: list[str] = Field(default_factory=lambda: ["weekday_normal"])
+    domain_randomisation: bool = False
+    chaos: str = "none"  # none | random | mix
+    seed: int = 0
+
+
+class AdvCfg(_C):
+    """RARL: alternate k adversary / protagonist iterations (technical.md 13.5)."""
+
+    total_timesteps: int = 5000  # adversary env steps over all iterations
+    iterations: int = 2  # k
+    protagonist_steps: int = 1024  # protagonist PPO steps per iteration (vs the frozen adversary mix)
+    n_envs: int | str = 2
+    n_steps: int = 128
+    batch_size: int = 128
+    lr: float = 3e-4
+    ent_coef: float = 0.02
+    chaos_mix: list[float] = Field(default_factory=lambda: [0.5, 0.3, 0.2])  # random / adversary / calm
+    scenario: str = "weekday_normal"
+    days: int = 1
+    vec: str = "dummy"
+    seed: int = 7
+
+
+class ExportCfg(_C):
+    parity_obs: int = 256
+    parity_tol: float = 1e-4
+    surrogate_depth: int = 4
+    surrogate_days: int = 2  # days of policy rollout used to fit the surrogate tree
+    surrogate_seeds: int = 2
+    version: str = ""  # default: <config name>-<git sha>
+
+
+class FinalEvalCfg(_C):
+    policies: list[str] = Field(default_factory=lambda: ["A", "B", "C", "D"])
+    seeds: list[int] = Field(default_factory=lambda: [1, 2, 3])
+    days: int | list[int] = 3  # one arena per entry
+    scenario: str = "weekday_normal"
+    workers: int = 1
+
+
 class TrainConfig(_C):
     name: str = "smoke"
     runs_dir: str = "data/runs"
@@ -84,6 +176,12 @@ class TrainConfig(_C):
     replate_model: QuantileModelCfg = QuantileModelCfg()
     text: TextCfg = TextCfg()
     eval: EvalCfg = EvalCfg()
+    bc: BCCfg = BCCfg()
+    ppo: PPOCfg = PPOCfg()
+    adversarial: AdvCfg = AdvCfg()
+    export: ExportCfg = ExportCfg()
+    final_eval: FinalEvalCfg = FinalEvalCfg()
+    device: str = "auto"
 
     def run_dir(self) -> Path:
         p = Path(self.runs_dir)
@@ -92,6 +190,17 @@ class TrainConfig(_C):
     def models_path(self) -> Path:
         p = Path(self.models_dir)
         return p if p.is_absolute() else repo_root() / p
+
+
+def resolve_n_envs(n: int | str) -> int:
+    """``auto`` = min(16, cpu - 2), never below 1."""
+    import os
+
+    if isinstance(n, str):
+        if n != "auto":
+            return max(1, int(n))
+        return max(1, min(16, (os.cpu_count() or 4) - 2))
+    return max(1, int(n))
 
 
 def load_train_config(path: str | Path) -> TrainConfig:

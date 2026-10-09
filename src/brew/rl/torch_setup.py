@@ -1,7 +1,8 @@
 """Import torch safely next to LightGBM / OR-tools and keep everything offline.
 
-On macOS, torch and LightGBM / OR-tools ship separate OpenMP runtimes; when LightGBM is imported first,
-``torch.nn.init.orthogonal_`` (LAPACK QR) can deadlock.  Limiting torch to one intra-op thread avoids it
+On macOS, torch and LightGBM / OR-tools ship separate OpenMP runtimes.  Import order is fixed here (LightGBM,
+OR-tools, then torch): the other order segfaults LightGBM; and with LightGBM first,
+``torch.nn.init.orthogonal_`` (LAPACK QR) can deadlock unless torch is limited to one intra-op thread
 (and is plenty for the small MLPs: the simulation dominates).  On Linux the thread count is capped at 4 so a
 learner sharing the box with N simulation workers does not oversubscribe the cores.
 """
@@ -16,6 +17,11 @@ os.environ.setdefault("WANDB_MODE", "disabled")
 os.environ.setdefault("HF_HUB_OFFLINE", "1")
 os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "3")
+
+# Order matters on macOS: LightGBM and OR-tools must load their OpenMP runtimes *before* torch does,
+# otherwise LightGBM segfaults on the first Booster load.
+import lightgbm  # noqa: E402,F401
+from ortools.sat.python import cp_model  # noqa: E402,F401
 
 import torch  # noqa: E402
 

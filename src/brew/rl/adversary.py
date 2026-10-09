@@ -152,6 +152,11 @@ ADV_OBS_DIM = 183 + 3
 Protagonist = Callable[[np.ndarray, np.ndarray], np.ndarray]
 
 
+def make_adv_env(env_config: Any, files: tuple[str, str]) -> AdversaryEnv:
+    """Top-level (picklable) factory so adversary envs can run in ``SubprocVecEnv`` workers."""
+    return AdversaryEnv(env_config, protagonist_files=files)
+
+
 class AdversaryEnv(gym.Env):  # type: ignore[type-arg]
     """Gymnasium env for the adversary.  One step = one manager tick of the protagonist's world.
 
@@ -161,7 +166,10 @@ class AdversaryEnv(gym.Env):  # type: ignore[type-arg]
 
     metadata: dict[str, Any] = {"render_modes": []}
 
-    def __init__(self, env_config: Any = None, protagonist: Protagonist | None = None) -> None:
+    def __init__(
+        self, env_config: Any = None, protagonist: Protagonist | None = None,
+        protagonist_files: tuple[str, str] | None = None,
+    ) -> None:
         super().__init__()
         from .env import BrewManagerEnv, EnvConfig
 
@@ -169,6 +177,7 @@ class AdversaryEnv(gym.Env):  # type: ignore[type-arg]
         cfg = EnvConfig(**{**cfg.__dict__, "chaos": "none"})
         self.inner = BrewManagerEnv(cfg)
         self.protagonist = protagonist
+        self.protagonist_files = protagonist_files  # (model.zip, vecnormalize.pkl): loaded lazily in the worker
         self.sched = DisruptionScheduler()
         self.observation_space = spaces.Box(-100.0, 100.0, (ADV_OBS_DIM,), np.float32)
         self.action_space = spaces.MultiDiscrete(ADV_NVEC)
@@ -184,8 +193,21 @@ class AdversaryEnv(gym.Env):  # type: ignore[type-arg]
         self._mask = self.sched.mask(w)
         return adversary_obs(proto_obs, self.sched, w)
 
+    def _load_protagonist(self) -> None:
+        if self.protagonist is None and self.protagonist_files is not None:
+            from .train_ppo import load_policy
+
+            model, norm = load_policy(self.protagonist_files[0], self.protagonist_files[1], device="cpu")
+
+            def fn(obs: np.ndarray, mask: np.ndarray) -> np.ndarray:
+                a, _ = model.predict(norm(obs[None]), action_masks=mask[None], deterministic=True)
+                return np.asarray(a[0], dtype=np.int64)
+
+            self.protagonist = fn
+
     def reset(self, *, seed: int | None = None, options: dict[str, Any] | None = None) -> tuple[np.ndarray, dict[str, Any]]:
         super().reset(seed=seed)
+        self._load_protagonist()
         self.sched = DisruptionScheduler()
         proto_obs, _info = self.inner.reset(seed=seed, options=options)
         self._obs = self._observe(proto_obs)
@@ -199,7 +221,7 @@ class AdversaryEnv(gym.Env):  # type: ignore[type-arg]
         assert w is not None
         a = np.asarray(action, dtype=np.int64).reshape(-1)
         injected = False
-        if self._mask[a[0]] if a[0] < N_KINDS else False:
+        if a[0] < N_KINDS and self._mask[a[0]]:
             injected = self.sched.apply(w, a)
         proto_obs = self.inner.last_obs_vec()
         pa = (
