@@ -61,12 +61,12 @@ snapshot() { # run_dir log_dir
     { head -n 300 "$log/train.log"; echo "…"; tail -n 3000 "$log/train.log"; } > "$dst/train.log.excerpt"
     [ "$(stat -c %s "$log/train.log")" -lt 20000000 ] && gzip -c "$log/train.log" > "$dst/train.log.gz"
   fi
-  if [ -d "$run" ]; then
-    find "$run" -maxdepth 3 \( -name 'metrics*.json' -o -name 'progress.json' -o -name 'config.yaml' -o -name 'eval*.json' -o -name '*.csv' \) \
-      -size -5M -exec cp -f --parents {} "$dst/" \; 2>/dev/null
+  if [ -d "$run" ]; then   # copy with paths relative to the run dir (no absolute-path nesting)
+    ( cd "$run" && find . -maxdepth 3 \( -name 'metrics*.json' -o -name 'progress.json' -o -name 'config.yaml' -o -name 'eval*.json' -o -name '*.csv' \) \
+        -size -5M -exec cp -f --parents {} "$dst/" \; ) 2>/dev/null
     if [ "${PUSH_MODEL:-0}" = 1 ]; then
-      find "$run" -path '*champion*' -name '*.onnx' -size -5M -exec cp -f --parents {} "$dst/" \; 2>/dev/null
-      find "$run" -path '*champion*' -name 'obs_norm.json' -exec cp -f --parents {} "$dst/" \; 2>/dev/null
+      ( cd "$run" && find . -path '*champion*' \( -name '*.onnx' -o -name 'obs_norm.json' -o -name 'meta.json' \) -size -5M \
+          -exec cp -f --parents {} "$dst/" \; ) 2>/dev/null
     fi
   fi
   ( cd "$LOGS_WT" && git add -A runs >/dev/null 2>&1 && \
