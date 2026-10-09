@@ -54,11 +54,21 @@
   .clock{width:max-content;white-space:nowrap}
   .clock > *{flex:none}
   .clock .time{min-width:190px}
-  .live{display:inline-flex;align-items:center;gap:6px;border:2px solid var(--ink);border-radius:999px;padding:0 10px 0 8px;font-size:15px;line-height:24px;background:#fff;white-space:nowrap}
-  .live i{width:10px;height:10px;border-radius:50%;border:1.5px solid var(--ink);background:var(--ok);box-shadow:0 0 6px var(--ok);animation:pulse 2s ease-in-out infinite}
-  .live[data-status="lagging"] i,.live[data-status="connecting"] i{background:var(--warn);box-shadow:0 0 6px var(--warn)}
-  .live[data-status="offline-demo"] i,.live[data-status="offline"] i{background:var(--bad);box-shadow:0 0 6px var(--bad);animation:blink 1.2s steps(2) infinite}
-  .live[data-status="replay"] i{background:var(--pink-d);box-shadow:none}
+  /* the clock is a button: tap to fast-forward (1× → 5× → 20× → 60× → 1×). Its connection status lives in data-status
+     (no visible pill; the "be right back" card speaks up when it matters) */
+  .clock{cursor:pointer;transition:transform .25s ease}
+  .clock:hover{transform:translateX(-50%) translateY(-2px) rotate(.4deg)}
+  .clock:active{transform:translateX(-50%) translate(2px,2px);box-shadow:2px 2px 0 var(--ink)}
+  .clock.nope{animation:clockNope .45s ease}
+  @keyframes clockNope{25%{transform:translateX(calc(-50% - 5px))}55%{transform:translateX(calc(-50% + 5px))}80%{transform:translateX(calc(-50% - 2px))}}
+  .clock .ff{display:inline-flex;align-items:center;gap:1px;font-family:var(--hand);font-size:19px;line-height:24px;border:2px solid var(--ink);border-radius:999px;padding:0 9px 0 6px;background:var(--pink-d);color:#fff;text-shadow:1px 1px 0 var(--ink);box-shadow:2px 2px 0 var(--ink)}
+  .clock .ff i{font-style:normal;display:inline-block;animation:ffw .7s steps(3) infinite}
+  .clock .ff.pop{animation:ffPop .45s var(--ease-spring)}
+  @keyframes ffw{0%{opacity:.35;transform:translateX(-2px)}50%{opacity:1}100%{opacity:.35;transform:translateX(2px)}}
+  @keyframes ffPop{0%{transform:scale(.4) rotate(-12deg)}60%{transform:scale(1.18) rotate(4deg)}100%{transform:none}}
+  .clock[data-ahead] .time{text-decoration:underline dotted var(--pink-d) 2px;text-underline-offset:5px}
+  .clock .hint{position:absolute;left:50%;top:calc(100% + 8px);translate:-50% 0;font-family:'Caveat',cursive;font-weight:700;font-size:19px;color:var(--pink-d);white-space:nowrap;opacity:0;transform:translateY(-4px);transition:opacity .25s ease, transform .25s ease;pointer-events:none}
+  .clock:hover .hint,.clock:focus-visible .hint{opacity:1;transform:none}
   @keyframes pulse{50%{opacity:.45}}
   .hudr{position:absolute;right:18px;top:12px;display:flex;gap:10px;align-items:stretch}
   .hudr > .card{position:relative}
@@ -74,6 +84,15 @@
   .money .amt{font-variant-numeric:tabular-nums;min-width:150px}
   .money .amt.neg{color:var(--terra-ink)}
   .money .up.down{background:#fbe1d9}
+  /* money in: "+₹415" rises out of the profit card as the printer cuts the bill; the amount gives a little hop */
+  .money .plus{position:absolute;right:26px;top:30px;font-family:var(--hand);font-size:22px;color:#4f7a45;text-shadow:1.5px 1.5px 0 #fffdf9;pointer-events:none;white-space:nowrap;animation:plusUp 1.6s var(--ease-out) forwards}
+  @keyframes plusUp{0%{opacity:0;transform:translateY(16px) rotate(var(--r,0deg)) scale(.7)}18%{opacity:1;transform:translateY(0) rotate(var(--r,0deg)) scale(1.08)}75%{opacity:1}100%{opacity:0;transform:translateY(-30px) rotate(var(--r,0deg))}}
+  .money .amt.tick{animation:tick .4s var(--ease-spring)}
+  @keyframes tick{40%{transform:translateY(-3px) scale(1.04)}}
+  .confetti{position:absolute;z-index:70;width:9px;height:13px;border:1.5px solid var(--ink);border-radius:2px;pointer-events:none;animation:confetti 1.5s cubic-bezier(.2,.6,.4,1) forwards}
+  .confetti.g{width:auto;height:auto;border:0;font:22px/1 var(--hand);color:var(--pink-d);text-shadow:1px 1px 0 var(--ink)}
+  @keyframes confetti{0%{transform:translate(-50%,-50%) scale(.4);opacity:1}100%{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) rotate(var(--rot));opacity:0}}
+  ::selection{background:var(--pink);color:var(--ink)}
   .bgm{display:flex;flex-direction:column;align-items:center;gap:0;font:13px var(--body,'Patrick Hand');opacity:.8;background:none;border:0;cursor:pointer;color:var(--ink)}
   .bgm.off svg path:last-child{opacity:.15} .bgm.off{opacity:.55}
   #soundpanel{right:0;top:calc(100% + 10px);width:230px;padding:10px 14px;z-index:40;display:flex;flex-direction:column;gap:6px;font-size:16px;animation:unfold .45s var(--ease-spring);transform-origin:90% 0}
@@ -102,6 +121,10 @@
   .tab:hover{transform:translateY(-2px)}
   .tab.on{background:var(--pink-d);color:#fff;text-shadow:1px 1px 0 var(--ink);transform:translateY(-4px) rotate(-2deg)}
   .tab.nope{animation:nope .45s ease}
+  /* keycap hints: tiny, tucked under each tab, they surface when the tabs are hovered */
+  .tab{position:relative}
+  .tab kbd{position:absolute;left:50%;bottom:-17px;translate:-50% 0;font:11px/13px var(--body);min-width:15px;padding:0 3px;border:1.6px solid var(--ink);border-bottom-width:2.6px;border-radius:4px;background:#fffdf9;color:var(--ink);text-shadow:none;opacity:0;transition:opacity .25s ease;pointer-events:none}
+  .tabs:hover kbd,.tabs:focus-within kbd{opacity:.75}
   @keyframes nope{20%{transform:translateX(-4px) rotate(-3deg)}45%{transform:translateX(4px) rotate(3deg)}70%{transform:translateX(-2px)}}
 
 
@@ -135,7 +158,7 @@
   #lobby-scene .tk:hover{filter:drop-shadow(0 3px 0 rgba(224,126,82,.6))}
   #lobby-scene .tk[data-status="ready"]:hover{filter:drop-shadow(0 4px 0 var(--pink-d))}
   #lobby-scene .tk:focus{outline:none;filter:drop-shadow(0 0 3px var(--pink-d))}
-  .l-print{animation:print 1.2s steps(12) both}
+  .l-print{animation:print 1.5s steps(18) both}  /* in step with the printer sound (audio.js bill) */
   @keyframes print{from{clip-path:inset(0 0 100% 0)}to{clip-path:inset(0 0 0 0)}}
   .l-bell{transform-box:fill-box;transform-origin:50% 100%}
   .l-bell.ring{animation:kBell 1.2s ease-in-out}
@@ -369,8 +392,37 @@
   .nm small{font-size:13.5px;line-height:16px;opacity:.68;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .nm .why{font-style:normal;font-family:'Caveat',cursive;font-weight:700;font-size:17px;line-height:17px;min-height:0;color:#4f7a45}
   .row.up .why{color:var(--terra-ink)}
-  .row .why:empty{display:none}
-  .row.up .nm small,.row.down .nm small{display:none} /* the live reason replaces the description: constant row height */
+  .row .why{display:none}  /* item rows say why in pictures (.mk) and on hover (#mb-tip), never in a line of text */
+  /* a repriced item: a small inked arrow by the price, the reasons as tiny doodles after the name */
+  .mk{display:inline-flex;align-items:center;gap:1px;margin-left:2px;opacity:0;transform:scale(.6);transition:opacity .3s ease, transform .4s var(--ease-spring)}
+  .row.up .mk,.row.down .mk{opacity:1;transform:none}
+  .mk svg{width:17px;height:17px;overflow:visible}
+  .arw{width:16px;height:26px;overflow:visible;align-self:center;opacity:0;transition:opacity .3s ease}
+  .row.up .arw,.row.down .arw{opacity:1}
+  .row.down .arw{transform:scaleY(-1)}
+  .row.up .arw{color:var(--terra)} .row.down .arw{color:#5f7d55}
+  .card-c .arw,.rrow .arw{display:none}
+  .row{cursor:help}
+  .row:hover::before{transform:scaleX(1);opacity:.35;transition:opacity .25s ease, transform .35s var(--ease-out)}
+  #mb-tip{position:absolute;z-index:8;width:300px;background:#fffdf9;border:3px solid var(--ink);border-radius:14px 18px 12px 16px;box-shadow:5px 6px 0 var(--ink);
+    padding:9px 13px 10px;pointer-events:none;opacity:0;transform:translateY(6px) rotate(-.6deg);transition:opacity .18s ease, transform .25s var(--ease-out);font-size:14px;line-height:18px}
+  #mb-tip.on{opacity:1;transform:rotate(-.6deg)}
+  #mb-tip .th{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+  #mb-tip .th b{font-family:var(--hand);font-weight:400;font-size:21px;line-height:22px}
+  #mb-tip .pp{font-family:var(--hand);font-size:19px;white-space:nowrap;font-variant-numeric:tabular-nums}
+  #mb-tip .pp s{opacity:.5;font-size:15px;text-decoration-color:var(--terra);text-decoration-thickness:2px;margin-right:4px}
+  #mb-tip .pp.up b{color:var(--terra-ink)} #mb-tip .pp.down b{color:#4f7a45}
+  #mb-tip .rng{position:relative;height:32px;margin:4px 2px 2px}
+  #mb-tip .rng .ln{position:absolute;left:0;right:0;top:9px;height:7px;border:1.8px solid var(--ink);border-radius:5px;background:linear-gradient(90deg,#e4efd9,#fdeee4 50%,#fbe1d9)}
+  #mb-tip .rng .base{position:absolute;top:4px;width:2.5px;height:17px;background:var(--ink);opacity:.45;border-radius:2px;translate:-50% 0}
+  #mb-tip .rng .now{position:absolute;top:5px;width:15px;height:15px;border:2.5px solid var(--ink);border-radius:50%;background:var(--pink-d);translate:-50% 0;box-shadow:1px 1px 0 var(--ink)}
+  #mb-tip .rng small{position:absolute;top:19px;font-size:11px;line-height:12px;opacity:.6}
+  #mb-tip .drv{display:grid;grid-template-columns:20px 1fr 76px;gap:6px;align-items:center;margin-top:3px;font-size:13.5px}
+  #mb-tip .drv svg{width:18px;height:18px;overflow:visible}
+  #mb-tip .dv{position:relative;height:9px;border-left:0}
+  #mb-tip .dv::before{content:'';position:absolute;left:50%;top:-3px;bottom:-3px;width:1.6px;background:var(--ink);opacity:.5}
+  #mb-tip .dv i{position:absolute;top:0;height:9px;border:1.6px solid var(--ink);border-radius:3px}
+  #mb-tip .who{margin-top:5px;font-family:'Caveat',cursive;font-weight:700;font-size:17px;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .leaf{width:15px;height:15px}
   .staple{font-family:var(--body);font-size:11px;border:1.6px solid var(--ink);border-radius:999px;padding:0 6px;line-height:15px;background:#e4efd9}
   .dots{align-self:end;margin-bottom:12px;width:40px;border-bottom:2.5px dotted rgba(29,26,28,.4)}
@@ -430,15 +482,13 @@
   .nudge{animation:nudge .45s ease}
   @keyframes nudge{25%{translate:-6px 0}55%{translate:6px 0}80%{translate:-3px 0}}
 
-  .mb-ui,.mb-close,.mb-live{position:absolute;opacity:0;transform:translateY(8px);transition:opacity .35s ease, transform .35s ease;pointer-events:none}
-  #mb.opened .mb-ui,#mb.opened .mb-close,#mb.opened .mb-live{opacity:1;transform:none;pointer-events:auto}
+  .mb-ui,.mb-close{position:absolute;opacity:0;transform:translateY(8px);transition:opacity .35s ease, transform .35s ease;pointer-events:none}
+  #mb.opened .mb-ui,#mb.opened .mb-close{opacity:1;transform:none;pointer-events:auto}
   .mb-ui{left:50%;bottom:20px;translate:-50% 0;display:flex;align-items:center;gap:14px}
   .mb-dots{display:flex;gap:9px}
   .mb-dots .d{width:15px;height:15px;border:2.5px solid var(--ink);border-radius:50%;background:#fff;transition:background-color .3s ease, transform .3s ease}
   .mb-dots .d.on{background:var(--pink-d);transform:scale(1.2)}
   .mb-close{right:34px;top:96px}
-  .mb-live{left:34px;top:100px;background:#fff;display:inline-flex;align-items:center;gap:6px;font-size:15px}
-  .mb-live i{width:9px;height:9px;border-radius:50%;background:var(--bad);border:1.5px solid var(--ink);animation:blink 1.2s steps(2) infinite}
   body.reading .tabs{pointer-events:none;opacity:.35;transition:opacity .4s ease}
   @media (prefers-reduced-motion: reduce){.mb-book,.leaf3d{transition:none!important}}
   body.still *{animation:none!important;transition:none!important}
@@ -475,7 +525,6 @@
   #fps{position:fixed;left:10px;bottom:10px;z-index:99;font:15px 'Patrick Hand',sans-serif;background:var(--paper);border:2px solid var(--ink);border-radius:10px 4px 10px 4px;box-shadow:3px 3px 0 var(--ink);padding:3px 10px;pointer-events:none}
   #fps b{font-family:'Gochi Hand',cursive;font-weight:400}
   /* connection states */
-  .live[data-status="reconnecting"] i,.live[data-status="connecting"] i{background:none;box-shadow:none;border:2px dashed var(--ink);animation:spin 1.4s linear infinite}
   #brb{left:50%;top:50%;transform:translate(-50%,-50%) rotate(-1deg);z-index:45;display:flex;gap:14px;align-items:center;padding:16px 22px;max-width:460px;font-size:17px;animation:unfold .5s var(--ease-spring)}
   #brb b{font-family:var(--hand);font-weight:400;font-size:26px}
   #brb.demo{top:auto;bottom:84px;left:24px;transform:rotate(-1deg);max-width:340px;font-size:15px;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 16px}
@@ -534,11 +583,12 @@
       <div class="word">brew<span style="font-size:30px">♡</span></div>
       <div class="sub">café sim · <span data-date>connecting…</span></div>
     </div>
-    <div class="card clock">
+    <div class="card clock" data-live data-status="connecting" role="button" tabindex="0" aria-label="fast-forward the café">
       <svg class="wx" width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"></svg>
       <div class="time" aria-live="off">—</div>
-      <span class="chip fc" hidden></span>
-      <span class="live" data-live title="connecting…"><i></i><b>live</b></span>
+      <span class="chip fcst" hidden></span>
+      <span class="ff" hidden></span>
+      <span class="hint" aria-hidden="true">tap to fast-forward »</span>
     </div>
     <div class="hudr">
     <div class="card money" role="button" tabindex="0" aria-expanded="false" aria-controls="cmp" title="compare policies">
@@ -550,9 +600,9 @@
     </div>
     <div class="card cmp" id="cmp" hidden></div>
     <nav class="tabs" aria-label="Rooms">
-      <button class="tab on" data-go="lobby">lobby</button>
-      <button class="tab" data-go="kitchen">kitchen</button>
-      <button class="tab" data-go="pantry">pantry</button>
+      <button class="tab on" data-go="lobby" aria-keyshortcuts="1">lobby<kbd aria-hidden="true">1</kbd></button>
+      <button class="tab" data-go="kitchen" aria-keyshortcuts="2">kitchen<kbd aria-hidden="true">2</kbd></button>
+      <button class="tab" data-go="pantry" aria-keyshortcuts="3">pantry<kbd aria-hidden="true">3</kbd></button>
     </nav>
   </div>
 </div></div></div>
@@ -610,11 +660,15 @@
     const to = e.target.closest('[data-go]');
     if (to) return go(to.dataset.go);
   });
+  // ← → walk between rooms; 1 2 3 jump straight there (closing the menu book first). Never while typing or sliding a control.
   addEventListener('keydown', e => {
-    const i = ROOMS.indexOf(body.dataset.room);
+    if (e.metaKey || e.ctrlKey || e.altKey || e.target.closest?.('input, textarea, select, [contenteditable]')) return;
+    const i = ROOMS.indexOf(body.dataset.room), n = '123'.indexOf(e.key);
+    if (n >= 0) { if (window.BREW_MENUBOOK?.isOpen) BREW_MENUBOOK.close(); if (ROOMS[n] !== body.dataset.room) go(ROOMS[n]); else document.querySelector(`.tab[data-go="${ROOMS[n]}"]`)?.classList.add('nope'); return; }
     if (e.key === 'ArrowRight') go(ROOMS[Math.min(ROOMS.length - 1, i + 1)]);
     if (e.key === 'ArrowLeft') go(ROOMS[Math.max(0, i - 1)]);
   });
+  tabs.forEach(t => t.addEventListener('animationend', () => t.classList.remove('nope')));
   go(location.hash.slice(1) || 'lobby', true);
 
   const frame = document.getElementById('frame');

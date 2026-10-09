@@ -212,7 +212,6 @@ let TXT = '';
   TXT += tx(112, 456, '~ coffee ~', 17, 'text-anchor="middle" font-family="Gochi Hand"') + tx(228, 456, '~ bakes ~', 17, 'text-anchor="middle" font-family="Gochi Hand"');
   TXT += row(64, 162, 480, 'latte', 'latte') + row(64, 162, 499, 'cold brew', 'coldbrew') + row(64, 162, 518, 'matcha', 'matcha') + row(64, 162, 537, 'espresso', 'espresso');
   TXT += row(180, 278, 480, 'croissant', 'croissant') + row(180, 278, 499, 'avo toast', 'avotoast') + row(180, 278, 518, 'cheesecake', 'cheesecake') + row(180, 278, 537, 'muffin', 'muffin');
-  TXT += `<rect x="118" y="388" width="104" height="24" rx="12" fill="${C.pink}" ${st(2)}/><circle cx="134" cy="400" r="4.5" fill="${C.terra}" class="l-blink"/>` + tx(178, 405, 'live prices', 14, 'text-anchor="middle"');
 }
 TXT += `<text x="1374" y="${B-64}" text-anchor="middle" font-family="Gochi Hand" font-size="14" fill="${I}">tips ♡</text>`;
 TXT += `<text x="1440" y="${B-110}" font-family="Gochi Hand" font-size="22" fill="${C.pinkD}" opacity=".7">♪</text><text x="1470" y="${B-128}" font-family="Gochi Hand" font-size="17" fill="${C.pinkD}" opacity=".5">♫</text>`;

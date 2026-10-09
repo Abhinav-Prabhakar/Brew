@@ -40,15 +40,15 @@ function perHour(fc, t){
   return Math.round(next.reduce((a, x) => a + (x.p50 || 0), 0) * 4 / Math.max(1, new Set(next.map((x) => x.slot)).size));
 }
 
-/* ---------- connection dot ---------- */
+/* ---------- connection status: no pill on screen any more (the clock card carries it in data-status for tests and
+   assistive tech; the "be right back" / "offline replay" cards below speak up when it matters) ---------- */
 function liveDot(){
   const el = $('[data-live]'), L = window.BrewLive || {};
   let st2 = L.status || 'connecting';
   if (st2 === 'booting' || st2 === 'reconnecting') st2 = st2 === 'booting' ? 'connecting' : 'reconnecting';
   if (st2 === 'live' && (L.state?.world?.lagging || L.lagging)) st2 = 'lagging';
   const txt = {live: 'live', connecting: 'connecting…', booting: 'connecting…', reconnecting: 'reconnecting…', closed: 'disconnected', lagging: 'catching up', 'offline-demo': 'offline demo', offline: 'offline', replay: `replay${L.speed && L.speed !== Infinity ? ' ×' + L.speed : ''}`, dev: 'dev replay'}[st2] || st2;
-  if (el.dataset.status !== st2) { el.dataset.status = st2; el.querySelector('b').textContent = txt;
-    el.title = {live: 'streaming the café as it is right now', 'offline-demo': 'backend unreachable: replaying a recorded morning', lagging: 'the simulation is catching up with the wall clock'}[st2] || txt; }
+  if (el.dataset.status !== st2) { el.dataset.status = st2; el.dataset.conn = txt; clockTitle(); }
 }
 
 /* ---------- profit + rating ---------- */
@@ -64,19 +64,21 @@ function comparison(s){
   return {get, c};
 }
 let hudSig = '';
+const card = $('.money');
 function render(s){
   if (!s) return;
   const t = R.now(), tod = R.tod(t), open = !!s.clock?.is_open, night = tod < 6.2 * 3600 || tod > 19.4 * 3600;
   $('.clock .time').textContent = `${s.clock?.weekday || ''} · ${R.hm12(t)}`;
-  liveDot();
+  liveDot(); paintRate(s);
   const date = s.clock?.date ? new Date(s.clock.date + 'T00:00:00') : null;
   const fcN = perHour(s.rest?.forecast, t);
   const sig = [s.weather?.state, night, s.clock?.date, open, fcN, daypart(tod, open), s.kpis?.profit_today, s.kpis?.rating, s.kpis?.rating_n, s.policy?.policy, !!s.rest?.comparison].join('|');
   if (sig === hudSig) return; hudSig = sig;
   $('.clock .wx').innerHTML = weatherIcon(s.weather?.state, night);
   $('.clock .wx').setAttribute('aria-label', `${s.weather?.state || ''} ${s.weather?.temp_c != null ? Math.round(s.weather.temp_c) + '°C' : ''}`);
-  const fc = $('.clock .fc');
-  fc.hidden = false; fc.textContent = daypart(tod, open) + (fcN != null && open ? ` · ~${fcN} items/hr forecast` : s.weather?.temp_c != null ? ` · ${Math.round(s.weather.temp_c)}°C` : '');
+  const fc = $('.clock .fcst');
+  fc.hidden = false; fc.textContent = daypart(tod, open) + (fcN != null && open ? ` · ~${fcN}/hr` : s.weather?.temp_c != null ? ` · ${Math.round(s.weather.temp_c)}°C` : '');
+  fc.title = fcN != null && open ? `forecast: about ${fcN} items in the next hour (P50)` : '';
   hud.querySelector('[data-date]').textContent = date ? `${s.clock.weekday} ${date.getDate()} ${MON[date.getMonth()]}` : '—';
   const k = s.kpis || {}, amt = $('.money .amt');
   R.roll(amt, k.profit_today ?? 0, money); amt.classList.toggle('neg', (k.profit_today ?? 0) < 0);
@@ -89,7 +91,90 @@ function render(s){
     vs.title = `policy ${me} averages ${money(cmp.get(me).mean_profit)}/day vs ${money(cmp.get('A').mean_profit)} for naive (arena, ${(cmp.c.seeds || []).length || 10} seeds × ${cmp.c.days || 7} days)`;
   } else vs.hidden = true;
   if (!$('#cmp').hidden) drawCmp(s);
+  milestone(k.profit_today, s.clock?.date);
 }
+
+/* ---------- the clock fast-forwards: tap it (or press f) → 1× → 5× → 20× → 60× → 1×. Once it runs fast the café
+   leaves the real wall clock behind for good (sim time never goes back); 1× after that just runs on from there. ---------- */
+const RATES = [1, 5, 20, 60], clockEl = $('.clock'), ffEl = $('.clock .ff');
+let shownRate = 1;
+function paintRate(s){
+  const rate = s?.world?.rate ?? 1, ahead = !!(s?.world?.detached || rate > 1);
+  clockEl.toggleAttribute('data-ahead', ahead);
+  if (rate === shownRate && ffEl.hidden === (rate <= 1)) return;
+  const was = shownRate; shownRate = rate;
+  ffEl.hidden = rate <= 1; ffEl.innerHTML = `<i>»</i>${rate}×`;
+  if (rate > 1 && rate !== was) R.bump(ffEl, 'pop');
+  clockTitle();
+}
+function clockTitle(){
+  const s = R.S() || {}, rate = s.world?.rate ?? 1, next = RATES[(RATES.indexOf(rate) + 1) % RATES.length] ?? 1;
+  const ahead = s.world?.detached || rate > 1;
+  clockEl.title = `${rate > 1 ? `fast-forwarding at ${rate}×` : ahead ? 'running ahead of the real clock' : 'the café, in real time'} · tap for ${next === 1 ? 'real-time pace' : next + '×'}`
+    + (clockEl.dataset.conn && clockEl.dataset.status !== 'live' ? ` · ${clockEl.dataset.conn}` : '');
+  clockEl.setAttribute('aria-label', `${rate > 1 ? `fast-forwarding at ${rate} times` : 'normal speed'}; press to change to ${next === 1 ? 'normal speed' : next + ' times'}`);
+  const hint = clockEl.querySelector('.hint'); if (hint) hint.textContent = next === 1 ? 'tap to slow back down' : rate > 1 ? `tap for ${next}× »»` : 'tap to fast-forward »';
+}
+let ffBusy = false;
+async function fastForward(){
+  const L = window.BrewLive || {}, s = R.S() || {};
+  if (ffBusy) return;
+  if (L.status !== 'live' || L.mode !== 'ws' || !window.BrewApi?.speed) {
+    R.bump(clockEl, 'nope'); window.BrewToast?.(L.status === 'replay' || L.status === 'offline-demo' ? 'this is a replay · fast-forward needs the live café' : 'fast-forward needs the live café', 'bad'); return; }
+  const rate = s.world?.rate ?? 1, next = RATES[(RATES.indexOf(rate) + 1) % RATES.length] ?? 1;
+  ffBusy = true; window.BREW_LIVE?.emit?.('ui.ff', {rate: next});
+  try { const r = await BrewApi.speed(next); const w = r?.world || r;
+    if (w && w.rate != null && R.S()?.world) { R.S().world.rate = w.rate; if (w.detached != null) R.S().world.detached = w.detached; }
+    paintRate(R.S()); if (!s.world?.detached && next > 1) window.BrewToast?.(`»» ${next}× · the café runs ahead of real time now`); }
+  catch (e) { R.bump(clockEl, 'nope'); window.BrewToast?.(e.message || 'could not change speed', 'bad'); }
+  finally { ffBusy = false; }
+}
+clockEl.addEventListener('click', fastForward);
+clockEl.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fastForward(); } });
+clockEl.addEventListener('animationend', () => clockEl.classList.remove('nope'));
+addEventListener('keydown', (e) => { if ((e.key === 'f' || e.key === 'F') && !e.metaKey && !e.ctrlKey && !e.altKey && !e.target.closest?.('input, textarea, select, [contenteditable]')) fastForward(); });
+
+/* ---------- money in: each bill's total floats up into today's profit when the printer cuts it ---------- */
+let floatSum = 0, floatT = null;
+window.BREW_LIVE?.on?.('payment.received', (d, ev) => {
+  const L = window.BrewLive || {};
+  if (!d?.amount || (ev?.sim_s != null && Math.abs(R.now() - ev.sim_s) > 45 * Math.max(1, (R.S()?.world?.rate ?? 1) / 10))) return;  // catch-up: no confetti
+  if (!['live', 'replay', 'offline-demo', 'dev'].includes(L.status)) return;
+  floatSum += d.amount;
+  if (floatT) return;   // a rush: several bills ride up together
+  const wait = window.BrewAudio?.billLeft?.() ?? 1.4;
+  floatT = setTimeout(() => { floatT = null; const n = floatSum; floatSum = 0; floatMoney(n); }, Math.min(2.2, wait + .1) * 1000);
+});
+function floatMoney(n){
+  if (R.reduced) return;
+  const el = document.createElement('span'); el.className = 'plus'; el.textContent = '+' + money(n);
+  el.style.setProperty('--r', ((Math.random() * 10) - 5).toFixed(1) + 'deg');
+  card.appendChild(el); setTimeout(() => el.remove(), 1700);
+  R.bump($('.money .amt'), 'tick');
+}
+/* little milestones: the first time today's profit crosses ₹10k / 25k / 50k / 1L, the card throws a handful of confetti */
+const MILES = [10000, 25000, 50000, 100000];
+let mileDate = null, mileTop = null;
+function milestone(p, date){
+  if (p == null) return;
+  if (date !== mileDate || mileTop == null) { mileDate = date; mileTop = MILES.filter((m) => p >= m).pop() ?? 0; return; }  // no confetti for what was already true
+  const hit = MILES.filter((m) => p >= m && m > mileTop).pop(); if (!hit) return;
+  mileTop = hit; window.BREW_LIVE?.emit?.('ui.milestone', {amount: hit});
+  confetti(card, 18); window.BrewToast?.(`₹${hit >= 1e5 ? hit / 1e5 + 'L' : hit / 1000 + 'k'} profit today ♡`);
+}
+/** a handful of paper confetti from an element (shared with eggs.js) */
+function confetti(from, n = 16, glyphs){
+  if (R.reduced || !from) return;
+  const v = document.getElementById('viewport'), vr = v.getBoundingClientRect(), k = vr.width / 1600, r = from.getBoundingClientRect();
+  const x0 = (r.left + r.width / 2 - vr.left) / k, y0 = (r.top + r.height / 2 - vr.top) / k;
+  const cols = ['#f7c3a3', '#e07e52', '#8fa585', '#e3b25a', '#fdeee4'];
+  for (let i = 0; i < n; i++) { const c = document.createElement('i'); c.className = 'confetti';
+    if (glyphs) { c.textContent = glyphs[i % glyphs.length]; c.classList.add('g'); } else c.style.background = cols[i % cols.length];
+    const a = Math.random() * Math.PI * 2, d = 60 + Math.random() * 120;
+    c.style.cssText += `;left:${x0}px;top:${y0}px;--dx:${(Math.cos(a) * d).toFixed(0)}px;--dy:${(Math.sin(a) * d * .6 + 90).toFixed(0)}px;--rot:${(Math.random() * 720 - 360).toFixed(0)}deg;animation-delay:${(Math.random() * .12).toFixed(2)}s`;
+    v.appendChild(c); setTimeout(() => c.remove(), 1700); }
+}
+window.BrewHUD = {fastForward, confetti, floatMoney};
 
 /* ---------- policy comparison (click the profit card) ---------- */
 function drawCmp(s){
@@ -120,7 +205,6 @@ function drawCmp(s){
     <div class="note">${note}${note ? ' · ' : ''}today so far: ${money(s.kpis?.profit_today ?? 0)}</div>
     <div style="font-size:12.5px;opacity:.6;margin-top:2px">dots = one simulated week each · bar = 95% CI of the mean · tick = mean</div>`;
 }
-const card = $('.money');
 // unfold: the card grows from the profit chip and its chart is inked in once; fold: it shrinks back, then hides
 function toggle(){ const box = $('#cmp'), opening = box.hidden || box.classList.contains('folding');
   clearTimeout(box._t); card.setAttribute('aria-expanded', String(opening));

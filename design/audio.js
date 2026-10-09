@@ -98,8 +98,80 @@
       if (ctx.createStereoPanner) { const p = ctx.createStereoPanner(); p.pan.setValueAtTime(px(x), T); p.pan.linearRampToValueAtTime(1, T + 2.6); g.connect(p).connect(DEST || sfxBus); } else g.connect(DEST || sfxBus);
       o.start(T); lfo.start(T); o.stop(T + 3); lfo.stop(T + 3);
       tone({f: 1500, t: .05, d: .08, g: .025, type: 'square', p: px(x)}); tone({f: 1500, t: .17, d: .12, g: .025, type: 'square', p: px(x)}); },
+    /* the bill: a thermal receipt printer at the register. One stepper-motor voice for the whole job (a buzzy saw
+       through the plastic body's resonance, chopped by the motor's steps), gated line by line with the tiny stalls a
+       real printer makes while it waits for data; the QR prints slower and lower (dense graphics); a smooth paper
+       feed; then the auto-cutter: a short motor grunt, the blade snap and the slip dropping. Returns its length. */
+    bill(n = 8, x = 150) {
+      const T = T0(), p = px(x), dest = DEST || sfxBus, J = () => .8 + Math.random() * .4;
+      const mot = ctx.createOscillator(); mot.type = 'sawtooth';
+      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1750; bp.Q.value = .8;
+      const body = ctx.createBiquadFilter(); body.type = 'peaking'; body.frequency.value = 430; body.Q.value = 2.2; body.gain.value = 9;
+      const vca = ctx.createGain(); vca.gain.value = .62;
+      const steps = ctx.createOscillator(); steps.type = 'square'; steps.frequency.value = 68;
+      const depth = ctx.createGain(); depth.gain.value = .38; steps.connect(depth).connect(vca.gain);
+      const gate = ctx.createGain(); gate.gain.setValueAtTime(0, T);
+      mot.connect(bp).connect(body).connect(vca).connect(gate);
+      const fr = ctx.createBufferSource(); fr.buffer = noiseBuf; fr.loop = true;            // paper sliding over the head
+      const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 3200;
+      const fg = ctx.createGain(); fg.gain.value = .5; fr.connect(hp).connect(fg).connect(gate);
+      pan(gate, p).connect(dest);
+      let t = T + .03;
+      const line = (dur, f, g) => { mot.frequency.setValueAtTime(f, t); steps.frequency.setValueAtTime(f / 17, t);
+        gate.gain.setTargetAtTime(g, t, .004); t += dur; };
+      const stall = (dur) => { gate.gain.setTargetAtTime(.006, t, .005); t += dur; };
+      for (let i = 0; i < n; i++) { line(.05 * J(), 1080 + Math.random() * 140, .085); if (Math.random() < .55) stall(.02 * J()); }
+      stall(.05);
+      for (let i = 0; i < 6; i++) line(.06, 820 + (i % 2) * 30, .1);                  // the QR: slow, dense, lower
+      gate.gain.setTargetAtTime(.07, t, .01); mot.frequency.setValueAtTime(1350, t);     // feed: smooth, a step higher
+      steps.frequency.setValueAtTime(140, t); mot.frequency.linearRampToValueAtTime(1500, t + .28); t += .3;
+      gate.gain.setTargetAtTime(0, t, .012);
+      for (const o of [mot, steps, fr]) { o.start(T); o.stop(t + .1); }
+      const c = t + .08 - T;                                                              // the auto-cutter
+      tone({t: c, f: 190, f2: 120, type: 'sawtooth', a: .01, d: .07, g: .05, p});
+      noise({t: c + .075, type: 'highpass', f: 2600, d: .025, g: .2, p});
+      tone({t: c + .075, f: 950, f2: 480, type: 'triangle', d: .045, g: .05, p});
+      noise({t: c + .12, f: 1300, q: .7, a: .01, d: .14, g: .035, p});
+      billEnd = T + c + .2;
+      return c + .2;
+    },
+    /* money in, after the bill: a cash drawer (lever clack, drawer roll, bell), the UPI soundbox chime every Indian
+       counter has, or the card terminal's double beep */
+    drawer(t = 0) { const p = px(150);
+      noise({t, f: 1500, q: 2, d: .03, g: .14, p}); tone({t, f: 140, f2: 80, d: .08, g: .1, p});
+      noise({t: t + .05, type: 'lowpass', f: 380, f2: 900, a: .03, d: .22, g: .1, p});
+      [2390, 3580, 5170, 6010].forEach((f, i) => tone({t: t + .11 + i * .004, f, d: 1 - i * .18, g: .045 / (1 + i * .6), p}));
+      tone({t: t + .32, f: 110, f2: 70, d: .1, g: .1, p}); },
+    soundbox(t = 0) { const p = px(150);
+      tone({t, f: 987.8, type: 'triangle', a: .01, d: .18, g: .07, p}); tone({t: t + .14, f: 1479.98, type: 'triangle', a: .01, d: .55, g: .07, p});
+      tone({t: t + .14, f: 2959.96, d: .25, g: .012, p}); },
+    beep(t = 0) { const p = px(150); [0, .17].forEach((d) => tone({t: t + d, f: 2730, type: 'square', d: .09, a: .003, g: .022, p})); },
     register() { noise({f: 1800, d: .08, g: .1, q: 2, p: .4}); [2093, 2637, 3136].forEach((f, i) => tone({f, t: .08 + i * .015, d: .8, g: .04, p: .4})); },
     coin() { tone({f: 1568, d: .08, g: .05, p: .4}); tone({f: 2093, t: .07, d: .3, g: .05, p: .4}); },
+    /* fast-forward: a tape motor spinning up (or winding down to real time) */
+    ff(up = true) { const T = T0(), o = ctx.createOscillator(); o.type = 'sawtooth';
+      o.frequency.setValueAtTime(up ? 90 : 520, T); o.frequency.exponentialRampToValueAtTime(up ? 560 : 80, T + .45);
+      const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.setValueAtTime(up ? 600 : 2400, T); f.frequency.exponentialRampToValueAtTime(up ? 2600 : 500, T + .45);
+      const g = ctx.createGain(); env(g, T, .04, .05, .5); o.connect(f).connect(g).connect(DEST || sfxBus); o.start(T); o.stop(T + .6);
+      noise({type: 'bandpass', f: up ? 900 : 2600, f2: up ? 3200 : 700, q: .7, a: .05, d: .42, g: .05}); },
+    /* ---- easter-egg voices (eggs.js) ---- */
+    cuckoo(n = 1) { for (let i = 0; i < Math.min(12, n); i++) { const t = i * .62;
+      tone({t, f: 784, type: 'triangle', a: .01, d: .2, g: .07, p: .6}); tone({t: t + .2, f: 622, type: 'triangle', a: .01, d: .32, g: .07, p: .6}); } },
+    purr(x) { const T = T0(), s = ctx.createBufferSource(); s.buffer = brownBuf; s.loop = true;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 260;
+      const am = ctx.createGain(); am.gain.value = 0; const lfo = ctx.createOscillator(); lfo.frequency.value = 24; const lg = ctx.createGain(); lg.gain.value = .5;
+      lfo.connect(lg).connect(am.gain); const g = ctx.createGain(); g.gain.setValueAtTime(.0001, T); g.gain.linearRampToValueAtTime(.5, T + .3); g.gain.setValueAtTime(.5, T + 1.6); g.gain.exponentialRampToValueAtTime(.0001, T + 2.4);
+      s.connect(lp).connect(am).connect(g); pan(g, px(x)).connect(DEST || sfxBus); s.start(T); lfo.start(T); s.stop(T + 2.5); lfo.stop(T + 2.5); },
+    squeak(x, hi = 1) { tone({f: 1900 * hi, f2: 2900 * hi, d: .09, g: .05, type: 'triangle', p: px(x)}); tone({t: .1, f: 2700 * hi, f2: 1700 * hi, d: .12, g: .04, type: 'triangle', p: px(x)}); },
+    kettle() { const T = T0(), o = ctx.createOscillator(); o.frequency.setValueAtTime(1500, T); o.frequency.linearRampToValueAtTime(2350, T + 1.4);
+      const g = ctx.createGain(); g.gain.setValueAtTime(.0001, T); g.gain.linearRampToValueAtTime(.035, T + .9); g.gain.setValueAtTime(.035, T + 1.6); g.gain.exponentialRampToValueAtTime(.0001, T + 2);
+      const vib = ctx.createOscillator(); vib.frequency.value = 6; const vg = ctx.createGain(); vg.gain.value = 18; vib.connect(vg).connect(o.frequency);
+      o.connect(g).connect(DEST || sfxBus); o.start(T); vib.start(T); o.stop(T + 2.1); vib.stop(T + 2.1);
+      noise({f: 2500, q: .8, a: .6, d: 1.3, g: .03}); },
+    radio() { for (let i = 0; i < 7; i++) noise({t: i * .05, f: 800 + Math.random() * 3000, q: 3, d: .05, g: .06, p: .75});
+      tone({t: .12, f: 1200, f2: 300, d: .25, g: .02, type: 'sine', p: .75}); },
+    clink() { tone({f: 3200, d: .18, g: .05, p: .2}); tone({t: .06, f: 4100, d: .3, g: .04, p: .2}); tone({t: .13, f: 2700, d: .25, g: .025, p: .2}); },
+    jingle() { [523.25, 659.25, 783.99, 1046.5, 783.99, 1046.5, 1318.5].forEach((f, i) => tone({t: i * .09, f, type: 'square', d: .1, a: .004, g: .03})); },
     bell(x) { tone({f: 2637, d: 1.1, g: .08, p: px(x)}); tone({f: 2637 * 2.4, d: .4, g: .015, p: px(x)}); tone({f: 1318, d: .6, g: .02, p: px(x)}); duck(); },
     warn(x) { [0, .16].forEach((t) => tone({f: 880, f2: 660, t, d: .11, g: .07, type: 'square', p: px(x)})); },
     sparks(x) { for (let i = 0; i < 10; i++) noise({t: .2 + i * .03 + Math.random() * .04, type: 'highpass', f: 3500 + Math.random() * 3000, d: .02, g: .12, p: px(x)}); tone({t: .2, f: 140, f2: 70, d: .18, g: .12, p: px(x)}); },
@@ -123,7 +195,9 @@
   };
   const GAP = {click: .03, chime: .9, slide: .12, clip: .1, tear: .15, printer: .6, page: .2, pen: .25, stamp: .2, huff: .5, scooter: 1.5,
     register: .5, coin: .15, bell: .35, warn: .5, sparks: .5, sparkle: .4, fridgeOpen: .4, fridgeClose: .4, thud: .15, whoosh: .3,
-    espresso: 1.5, grinder: 2, sizzle: 2, blender: 2.5, oven: 1.5, open: 5, close: 5};
+    espresso: 1.5, grinder: 2, sizzle: 2, blender: 2.5, oven: 1.5, open: 5, close: 5,
+    bill: 1.1, drawer: .6, soundbox: .5, beep: .5, ff: .2, cuckoo: 1, purr: 2, squeak: .15, kettle: 2.5, radio: .3, clink: .08, jingle: 1};
+  let billEnd = 0;  // ctx time the bill in the printer finishes (the money sound waits for the cut)
 
   /** play a voice for a room: on screen → sfx bus, other rooms → through the wall, 'ui' → always on screen */
   function play(name, room = 'ui', ...args) {
@@ -165,14 +239,21 @@
     for (const [r, g] of Object.entries(tones)) g.gain.setTargetAtTime(r === room ? level[r] : 0, T0(), 1.2);  // crossfade on room change
     const rain = s.weather?.rain_mm_h ?? (/rain|drizzle/.test(s.weather?.state || '') ? 2 : 0);
     rainGain.gain.setTargetAtTime(Math.min(1, rain / 6) * .08, T0(), 2);
-    music.load = load; music.open = open; apply();
+    music.load = load; music.open = open; music.rate = s.world?.rate ?? 1; apply();
   }
 
   /* ---------------------------------------------------------------- music: a generative lo-fi bed */
   // Four soft electric-piano chords (ii–V–I–vi in F) over a warm sub, a brushed hat when the kitchen is busy, vinyl
   // crackle. Tempo and brightness follow kitchen load; at night only the chords remain, slower.
-  const music = {load: .3, open: true, next: 0, step: 0};
-  const CH = [[55, 60, 64, 67], [52, 55, 60, 64], [53, 57, 60, 64], [50, 53, 57, 62]].map((c) => c.map((m) => 440 * 2 ** ((m - 69) / 12)));
+  const music = {load: .3, open: true, next: 0, step: 0, station: 0, rate: 1};
+  const hz = (cs) => cs.map((c) => c.map((m) => 440 * 2 ** ((m - 69) / 12)));
+  const CH = hz([[55, 60, 64, 67], [52, 55, 60, 64], [53, 57, 60, 64], [50, 53, 57, 62]]);
+  // the lobby radio's stations (eggs.js tunes it): the house lo-fi, a slow minor monsoon, a bright swingy chai-time
+  const STATIONS = [
+    {name: '92.7 brew fm', ch: CH, bpm: (m) => (m.open ? 66 + m.load * 18 : 56), hat: (m) => m.open && m.load > .35, lp: 900},
+    {name: '98.3 monsoon fm', ch: hz([[57, 60, 64, 67], [53, 57, 60, 64], [50, 53, 57, 60], [52, 55, 59, 62]]), bpm: () => 52, hat: () => false, lp: 650},
+    {name: '104.8 chai-time fm', ch: hz([[60, 64, 67, 69], [57, 61, 64, 67], [62, 65, 69, 72], [55, 59, 62, 65]]), bpm: (m) => 84 + m.load * 10, hat: () => true, lp: 1500},
+  ];
   let lpMusic = null;
   function startMusic() {
     lpMusic = ctx.createBiquadFilter(); lpMusic.type = 'lowpass'; lpMusic.frequency.value = 1400; lpMusic.connect(musicBus);
@@ -183,13 +264,14 @@
   }
   function schedule() {
     if (!ctx || cfg.calm || cfg.muted) { if (ctx) music.next = Math.max(music.next, T0() + .1); return; }
-    const bpm = music.open ? 66 + music.load * 18 : 56, beat = 60 / bpm;
-    lpMusic.frequency.setTargetAtTime(900 + music.load * 1600, T0(), 2);
+    const S = STATIONS[music.station] || STATIONS[0];
+    const bpm = S.bpm(music) * (music.rate > 1 ? 1.12 : 1), beat = 60 / bpm;  // fast-forward: the tape runs a hair quick
+    lpMusic.frequency.setTargetAtTime(S.lp + music.load * 1600, T0(), 2);
     while (music.next < T0() + .6) {
-      const t = music.next - T0(), st = music.step, chord = CH[Math.floor(st / 8) % 4];
+      const t = music.next - T0(), st = music.step, chord = S.ch[Math.floor(st / 8) % 4];
       if (st % 8 === 0) chord.forEach((f, i) => tone({f, t: t + i * .012, a: .02, d: beat * 7, g: .022, type: 'triangle', dest: lpMusic}));
       if (st % 4 === 0) tone({f: chord[0] / 2, t, a: .02, d: beat * 3, g: .05, dest: lpMusic});
-      if (st % 2 === 1 && music.open && music.load > .35) noise({t, type: 'highpass', f: 7000, d: .05, g: .012 * music.load, dest: musicBus});
+      if (st % 2 === 1 && S.hat(music)) noise({t, type: 'highpass', f: 7000, d: .05, g: .012 * Math.max(.4, music.load), dest: musicBus});
       if (st % 8 === 6 && Math.random() < .5) tone({f: chord[3] * 2, t, a: .01, d: beat * 1.5, g: .012, type: 'triangle', dest: lpMusic});
       music.next += beat / 2; music.step++;
     }
@@ -205,10 +287,21 @@
     setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 500); }, 2600);
   }
 
+  /* the UPI soundbox's voice ("₹415 received"), off unless an egg turns it on (eggs.js: type "upi") */
+  let soundboxVoice = false, lastSpoke = 0;
+  function speak(amount, wait = 0) {
+    if (!window.speechSynthesis || cfg.muted || amount == null || document.body.dataset.room !== 'lobby' || performance.now() - lastSpoke < 4000) return;
+    lastSpoke = performance.now();
+    setTimeout(() => { const u = new SpeechSynthesisUtterance(`${Math.round(amount)} rupees received`);
+      const v = speechSynthesis.getVoices().find((x) => /en-IN/i.test(x.lang)); if (v) u.voice = v;
+      u.lang = 'en-IN'; u.rate = 1.08; u.pitch = 1.1; u.volume = Math.min(1, cfg.vol * .8); speechSynthesis.speak(u); }, (wait + .7) * 1000);
+  }
+
   /* ---------------------------------------------------------------- events → sounds */
   const L = () => window.BrewLive || {};
   const fresh = (ev) => { const st = L().status; if (st && !['live', 'replay', 'offline-demo', 'dev'].includes(st)) return false;
-    return !ev || ev.sim_s == null || Math.abs(R.now() - ev.sim_s) < 45; };
+    // "fresh" = within ~45 sim-s of the clock; fast-forward widens it (60× → a few wall seconds), catch-up still stays silent
+    return !ev || ev.sim_s == null || Math.abs(R.now() - ev.sim_s) < 45 * Math.max(1, (R.S()?.world?.rate ?? 1) / 10); };
   const bookOpen = () => !!window.BREW_MENUBOOK?.isOpen;
   const KX = {prep: 230, oven: 400, fryer: 545, press: 705, espresso: 930, bar: 1012, grinder: 1095, blender: 1175, cold: 1266, dishpit: 1405, pass: 640};
   const STATION_VOICE = {espresso: 'espresso', grinder: 'grinder', fryer: 'sizzle', press: 'sizzle', blender: 'blender', oven: 'oven'};
@@ -218,8 +311,11 @@
     'batch.formed': () => play('clip', 'lobby', 800),
     'order.ready': (d) => { play('bell', 'ui', 640); caption(`🔔 order ${d?.order_no != null ? '#' + d.order_no + ' ' : ''}up`); },
     'order.served': () => play('tear', 'lobby', 800),
-    'receipt.printed': (d) => play('printer', 'lobby', Math.min(9, (d?.lines?.length || 3) + 3)),
-    'payment.received': (d) => play((d?.amount ?? 0) > 600 ? 'register' : 'coin', 'lobby'),
+    // every customer's bill prints at the register when they pay; the money sound lands after the cutter
+    'receipt.printed': (d) => play('bill', 'lobby', Math.min(14, 6 + (d?.lines?.length || 2)), 150),
+    'payment.received': (d) => { const wait = ctx ? Math.max(0, billEnd - T0()) + .06 : 0, m = d?.method;
+      play(m === 'cash' ? 'drawer' : m === 'card' ? 'beep' : 'soundbox', 'lobby', wait);
+      if (m === 'upi' && soundboxVoice) speak(d?.amount, wait); },
     'rider.picked_up': () => { play('scooter', 'lobby', 1500); caption('🛵 rider away'); },
     'price.changed': () => { if (bookOpen()) play('pen'); },
     'replate.marked_down': () => { if (bookOpen()) play('stamp'); },
@@ -233,6 +329,7 @@
     'day.started': () => play('open', 'lobby'),
     'day.ended': () => play('close', 'lobby'),
     'ui.page': () => play('page'),
+    'ui.ff': (d) => play('ff', 'ui', (d?.rate ?? 2) > 1),
     'camera.zoom': () => play('whoosh'),
   };
   const bus = window.BREW_LIVE;
@@ -253,6 +350,11 @@
     init, play, cfg,
     set(k, v) { cfg[k] = v; save(); apply(); if (k === 'calm' || k === 'muted') updateAmbience(); render(); },
     get running() { return !!ctx && ctx.state === 'running'; },
+    /** seconds until the bill in the printer is cut (hud.js times the "+₹" with it) */
+    billLeft() { return ctx && ctx.state === 'running' && !cfg.muted ? Math.max(0, billEnd - T0()) : null; },
+    /** the lobby radio (eggs.js): next station, returns its name */
+    tune() { music.station = (music.station + 1) % STATIONS.length; music.step = 0; return STATIONS[music.station].name; },
+    set soundbox(on) { soundboxVoice = !!on; }, get soundbox() { return soundboxVoice; },
   };
 
   // the HUD "bgm" button becomes a sound control: click = mute/unmute, the little panel has volume, calm, captions
