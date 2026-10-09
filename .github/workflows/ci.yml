@@ -35,7 +35,7 @@ jobs:
           for p in $(grep -oP '^name = "\Knvidia-[a-z0-9-]+' uv.lock); do skip="$skip --no-install-package $p"; done
           uv sync --frozen $skip
           torch_version=$(grep -A1 '^name = "torch"' uv.lock | grep -oP 'version = "\K[0-9.]+' | head -1)
-          uv pip install --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple "torch==${torch_version}"
+          uv pip install --index-url https://download.pytorch.org/whl/cpu "torch==${torch_version}"
 
       - name: Lint (ruff)
         run: uv run ruff check .

@@ -13,6 +13,7 @@ simulation as it happens, and every claim below comes from paired, seed-controll
 ![onnx](https://img.shields.io/badge/serving-ONNX-3d4556?style=flat-square)
 ![uv](https://img.shields.io/badge/python-uv%20·%203.12-c9a27a?style=flat-square)
 ![fastapi](https://img.shields.io/badge/API-FastAPI%20+%20WebSocket-6f7a4c?style=flat-square)
+![docker](https://img.shields.io/badge/docker-compose%20up-3d4556?style=flat-square)
 
 <img src="docs/images/lobby_rush.gif" width="100%" alt="the lobby during the morning rush: tickets slide onto the rail, orders batch with a paperclip, customers queue and sit" />
 
@@ -123,6 +124,30 @@ should close that gap. Ratings are flat across all four. The full metrics are in
 
 ## Quickstart
 
+**Docker (one command).** The image is built with uv from the lockfile and starts the API, the WebSocket stream and
+the frontend together:
+
+```bash
+docker compose up --build                # → http://localhost:8000/  (the café as it is right now)
+```
+
+```bash
+BREW_LIVE_RATE=20 docker compose up      # 20× faster for a rehearsal; open http://localhost:8000/?clock=open
+```
+
+```bash
+BREW_HOURS=07:00-24:00 docker compose up # open 7 am to midnight: try the café late at night
+```
+
+```bash
+docker compose run --rm brew uv run brew-eval --help   # any brew CLI inside the image, through uv
+```
+
+The SQLite database and training runs live on the `brew-data` volume (`/var/lib/brew`). The image carries CPU torch,
+since the server runs policy D on ONNX and never needs a GPU.
+
+**Local (uv).**
+
 ```bash
 git clone <this repo> && cd Brew && uv sync
 brew install libomp                      # macOS: LightGBM needs it
@@ -135,6 +160,7 @@ uv run brew-api                          # → http://localhost:8000/
 - With no backend, the page plays a recorded morning, labelled as a replay, and switches to live when the server
   wakes.
 - For a fast café: `BREW_DB_ENABLED=0 BREW_LIVE_RATE=60 uv run brew-api`.
+- Other opening hours: `BREW_HOURS=07:00-24:00 uv run brew-api`. This applies to live worlds only (the crew and demand stretch to fit); the tests, training and arena keep the café's real 08:00–22:00, which is what policy D was trained on.
 
 ```bash
 uv run pytest -q                                   # backend + frontend (Playwright, headless Chromium)
@@ -145,6 +171,7 @@ uv run python scripts/capture_readme_media.py      # regenerate everything in do
 ## Repository layout
 
 ```
+Dockerfile       uv-built image (locked deps, CPU torch) · docker-compose.yml with the brew-data volume
 src/brew/        sim (digital twin) · policies A–E · forecast · opt (CP-SAT, LPs) · rl · api (FastAPI + WS)
 design/          the frontend: brew.html, lobby / kitchen / pantry / menu / hud, camera, audio, a11y
 design/live/     client layer: bus, pure store + reducers, WsSource / ReplaySource, REST polling, boot

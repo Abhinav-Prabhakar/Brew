@@ -236,8 +236,14 @@ class WorldManager:
             y, m, d = (int(x) for x in start_date.split("-"))
             start_date = (_date(y, m, d) + timedelta(days=int(spec["start_day"]))).isoformat()
         wid = self._new_id(int(spec.get("seed", 7)))
+        cfg = None
+        if s.hours:  # live worlds only: tests, training and the arena keep the committed hours
+            from brew.config.hours import with_hours
+            from brew.config.loader import load_cafe
+
+            cfg = with_hours(load_cafe(), s.hours)
         w = World(
-            scenario=scn, policy=policy, seed=int(spec.get("seed", 7)), days=10**6, continuous=True,
+            cfg=cfg, scenario=scn, policy=policy, seed=int(spec.get("seed", 7)), days=10**6, continuous=True,
             start_date=start_date, world_id=wid, cash_start=spec.get("cash_start"), replate=spec.get("replate"),
         )  # fmt: skip
         mw = ManagedWorld(w, spec.get("kind", "live"), s)

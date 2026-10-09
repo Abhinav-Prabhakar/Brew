@@ -23,12 +23,13 @@
 
 - **Live, not replay.** The café runs in real time (`BREW_LIVE_RATE` = 1.0). There are no playback speeds. A `clock: "wall"` world starts on today's date, synced to the real local time in Asia/Kolkata. Controls are play, pause and step.
 - **Three screens:** **lobby, kitchen, pantry**, on one sliding track, under one shared HUD. The lobby holds the **menu book**; the HUD holds the **profit component** that expands into the D vs A/B/C comparison.
-- **Backend is done and tested** (Python 3.12, uv, FastAPI + WebSocket, 281 tests, ruff and mypy clean). Policy D is trained and committed.
-- **Frontend is final in design but static or mocked.** Nothing on screen is wired to the backend yet. That is the main job left.
+- **Backend is done and tested** (Python 3.12, uv, FastAPI + WebSocket, ruff and mypy clean). Policy D is trained and committed.
+- **Frontend is live and polished.** Every number, ticket and customer on the three screens comes from the running simulation; sound, motion, camera, accessibility and self-healing reconnect are in. 469 tests (backend + Playwright frontend).
+- **Ships as one Docker image** (uv inside): `docker compose up` serves the API, the WebSocket and the frontend at `http://localhost:8000/`.
 - **Headline result** (10 seeds x 7 days, same customers for every policy): **A Rs 62.1k, B Rs 73.5k, C Rs 96.9k, D Rs 104.9k profit per day.** D beats C by 8% and A by 69%.
-- **What is left:** (1) a test suite, (2) frontend-backend integration, (3) polish, (4) demo packaging, (5) optional ML follow-ups. See §12.
+- **Done:** (1) the test suite, (2) frontend-backend integration, (3) polish, and the container half of (4). **Left:** the rest of (4) demo packaging (vendored fonts, recorded video, rehearsed script) and (5) optional ML follow-ups. See §12.
 
-**Stack:** Python 3.12 managed with **uv** · FastAPI + WebSocket · SQLite by default (Postgres optional) + Parquet/DuckDB · custom discrete-event simulator · LightGBM quantile forecasts · OR-Tools (CP-SAT, LP) · Gymnasium + Stable-Baselines3 / sb3-contrib (MaskablePPO) · ONNX runtime for D · vanilla HTML/CSS/JS with hand-drawn SVG, no framework.
+**Stack:** Python 3.12 managed with **uv** (locally and inside the **Docker** image) · FastAPI + WebSocket · SQLite by default (Postgres optional) + Parquet/DuckDB · custom discrete-event simulator · LightGBM quantile forecasts · OR-Tools (CP-SAT, LP) · Gymnasium + Stable-Baselines3 / sb3-contrib (MaskablePPO) · ONNX runtime for D · vanilla HTML/CSS/JS with hand-drawn SVG, no framework.
 
 ---
 
@@ -49,7 +50,7 @@
 
 All of these hold on a clean checkout, with no internet beyond the Google Fonts request (fonts are vendored in the packaging phase):
 
-1. `uv run brew-demo` (one command) starts the API, creates a wall-clock world, serves the frontend and opens the browser.
+1. One command starts everything: `docker compose up` (or `uv run brew-api` without Docker). The API serves the frontend at `/`, and the page finds or creates the wall-clock world, run by policy D. ✅
 2. The lobby shows real customers walking in, real tickets on the rail, batches clipped, receipts printing, bags picked up by riders. **No `Math.random` drives anything the user sees.**
 3. The menu book's prices change live with a handwritten reason; combos reprice from their components; the rescue shelf shows real Replate listings.
 4. The kitchen shows real station, staff-fatigue and equipment state. Pressing a chaos button breaks a station and the reaction comes from the backend.
@@ -376,7 +377,7 @@ D beats C by **8%**. The champion's calm-day profit is Rs 105.2k and chaos-day p
 
 ## 9. Demo script (3-5 minutes, live)
 
-Lobby, kitchen and pantry only. The café is **live**: nothing is skipped or fast-forwarded. The presenter prepares by starting `uv run brew-demo` a few minutes early so the room has real customers and a few decisions behind it.
+Lobby, kitchen and pantry only. The café is **live**: nothing is skipped or fast-forwarded. The presenter prepares by starting `docker compose up` a few minutes early so the room has real customers and a few decisions behind it.
 
 | Time | Scene | What happens | Line |
 |---|---|---|---|
@@ -400,34 +401,41 @@ brew/
 ├── plan.md  backend.md  technical.md  context.md          # docs (see header table)
 ├── frontend-backend-integration.md  polish.md             # phase handoffs
 ├── docs/implementation-spec.md  docs/training/            # low-level spec · full-run metrics
-├── design/                    # FINAL frontend (hand-inked 2D SVG)
-│   ├── brew.html  lobby.js  kitchen.js  pantry.js  menu.js
+├── Dockerfile  docker-compose.yml  .dockerignore           # the one-command container (uv inside, CPU torch)
+├── design/                    # the live frontend (hand-inked 2D SVG), served by FastAPI at /
+│   ├── brew.html  lobby.js  kitchen.js  pantry.js  menu.js  hud.js
+│   ├── camera.js  audio.js  a11y.js  render.js  doodles.js
+│   ├── live/                  # client layer: bus, store + reducers, WsSource/ReplaySource, REST polling, boot
 │   ├── data/menu.js           # exported from configs/cafe by scripts/export_menu.py
 │   └── lobby.png  kitchen.png  pantry.png
-├── lobby/                     # RETIRED: older pink 3D Three.js café (to be deleted)
-├── kitchen/                   # RETIRED: 3D night-kitchen experiment (to be deleted)
 ├── src/brew/                  # sim · policies · rl · forecast · opt · analysis · api · db · events · synth
 ├── configs/cafe/*.yaml        # menu, recipes, personas, stations, replate.yaml, combos.yaml, ...
 ├── configs/train/             # smoke.yaml, full.yaml
 ├── models/                    # registry.json + committed champions (incl. rl_policy/D/full-5033b06)
 ├── data/                      # prompts, synthetic data, runs (parquet, gitignored)
-├── scripts/                   # export_menu.py, desktop/overnight.sh
-├── docs/                      # backend-quickstart.md, training-runbook.md
-└── tests/                     # pytest suite (backend); frontend tests arrive in phase 1
+├── scripts/                   # export_menu.py, record_stream.py, build_contract.py, capture_readme_media.py, desktop/
+├── docs/                      # backend-quickstart.md, training-runbook.md, handoff/, images/ (README media)
+└── tests/                     # backend suites + tests/frontend (contract, store, render, e2e, visual, perf, a11y, resilience)
 ```
 
 **Commands:**
 
 ```bash
-uv sync
+docker compose up --build              # everything in one container → http://localhost:8000/
+BREW_LIVE_RATE=20 docker compose up    # 20× faster for rehearsals; open /?clock=open
+BREW_HOURS=07:00-24:00 docker compose up   # open 7 am to midnight (live worlds only; D was trained on 08:00-22:00)
+docker compose run --rm brew uv run brew-sim --help   # any CLI inside the image, via uv
+
+uv sync                                # local development (uv for all Python)
+uv run brew-api                        # API + frontend on :8000 (OpenAPI at /docs)
 uv run pytest -q                       # default: everything except slow
 uv run ruff check . && uv run mypy src
-uv run brew-api                        # API on :8000 (docs at /docs)
 uv run brew-train all --config configs/train/smoke.yaml
-python3 -m http.server 5181 --directory design     # serve the frontend today (launch.json "design")
 ```
 
-`uv run brew-demo` (one command: API + world + frontend + browser) is a phase 4 deliverable.
+The image installs the locked dependencies with `uv sync --frozen` (CPU torch instead of the CUDA build: the server
+runs D on ONNX) and starts with `uv run --no-sync brew-api`. SQLite and training runs live on the `/var/lib/brew`
+volume.
 
 ---
 
@@ -435,15 +443,12 @@ python3 -m http.server 5181 --directory design     # serve the frontend today (l
 
 | Part | State |
 |---|---|
-| `design/brew.html` | Shell, HUD, track and room tabs. Static values (for example "tue 08:42 am", Rs 18,420) |
-| `design/lobby.js`, `kitchen.js`, `pantry.js` | Hand-inked scenes with **mocked** animation and data |
-| `design/menu.js` | Menu book. Mocked `LiveFeed` with backend event shapes; menu data really is exported from `configs/cafe` |
-| HUD controls | Still shows 1x/10x/60x buttons (must become play/pause/step) and "insights"/"policies" tabs (must be removed) |
-| Wiring | **None.** No WebSocket client, no `/state` hydration, no actions |
-| Tests | **None for the frontend.** Backend tests cover the contract, the frontend does not |
-| `lobby/`, `kitchen/` | Retired. Uncommitted work in `kitchen/` is abandoned with it |
-
-This is why phase 1 is a test suite: wiring a mocked UI without tests means regressions nobody sees.
+| Rooms, HUD, menu book | **Live**: rendered from the store (WebSocket events + REST read models); no mock data (a test enforces it) |
+| Actions | Serve/bump tickets, set prices, chaos ×6, invest, approve the purchase order: all call the real API |
+| Polish | Baked static art (60 fps kitchen/pantry), motion tokens, focus-zoom camera, synthesised sound + captions, axe-clean, keyboard path, self-healing reconnect, labelled offline replay |
+| Tests | Contract, store, sources, rendering, no-mock, e2e, visual regression, perf, a11y, resilience (Playwright via uv) |
+| Packaging | One Docker image (`docker compose up`); README with regenerable media |
+| Retired prototypes | `lobby/` and `kitchen/` deleted; their synth lives on in `design/audio.js` |
 
 ---
 
@@ -451,7 +456,7 @@ This is why phase 1 is a test suite: wiring a mocked UI without tests means regr
 
 Phases run in order. 1 and 2 are the critical path. Phase 5 is optional and can run in parallel on the desktop at any time.
 
-### Phase 1: Test suite first
+### Phase 1: Test suite first ✅ done
 
 *Companion doc:* `frontend-backend-integration.md`.
 
@@ -465,7 +470,7 @@ Everything on the frontend is mocked, so comprehensive tests come before wiring.
 
 **Exit:** the tests run in one command and fail loudly if the event contract or the store changes.
 
-### Phase 2: Frontend-backend integration
+### Phase 2: Frontend-backend integration ✅ done
 
 *Companion doc:* `frontend-backend-integration.md`.
 
@@ -481,7 +486,7 @@ Everything on the frontend is mocked, so comprehensive tests come before wiring.
 
 **Exit:** the demo script (§9) runs against the live backend with no mocks.
 
-### Phase 3: Polish
+### Phase 3: Polish ✅ done
 
 *Companion doc:* `polish.md`.
 
@@ -495,10 +500,10 @@ Everything on the frontend is mocked, so comprehensive tests come before wiring.
 
 ### Phase 4: Demo packaging
 
-- **One-command launcher:** `uv run brew-demo` starts the API, creates a wall-clock world, serves `design/` and opens the browser.
+- **One-command launcher: done** as a Docker image. `docker compose up` starts the API, serves `design/` at `/`, and the page finds or creates the wall-clock world (uv inside the image; `BREW_LIVE_RATE` for rehearsals).
 - Fonts and libraries vendored so the demo runs offline.
 - A **recorded demo video** and a **rehearsed 3-5 minute script** (§9), with notes for the fallbacks.
-- CI: pytest, ruff, mypy, plus the frontend smoke tests.
+- CI: pytest, ruff, mypy and the frontend suites run in GitHub Actions (first run still to be checked); a `docker build` job is a cheap addition.
 
 ### Phase 5: Optional ML follow-ups
 

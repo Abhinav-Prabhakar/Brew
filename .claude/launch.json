@@ -1,6 +1,27 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "brew", "runtimeExecutable": "uv", "runtimeArgs": ["run", "brew-api"], "port": 8000 }
+    {
+      "name": "brew",
+      "runtimeExecutable": "uv",
+      "runtimeArgs": [
+        "run",
+        "brew-api"
+      ],
+      "port": 8000
+    },
+    {
+      "name": "brew-demo",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "BREW_LIVE_RATE=20",
+        "BREW_DB_ENABLED=0",
+        "BREW_HOURS=07:00-24:00",
+        "uv",
+        "run",
+        "brew-api"
+      ],
+      "port": 8000
+    }
   ]
 }

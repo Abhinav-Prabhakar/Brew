@@ -1,0 +1,34 @@
+# keep the build context to what the server needs
+.git
+.github
+.claude
+.venv
+**/__pycache__
+**/*.py[cod]
+.pytest_cache
+.ruff_cache
+.mypy_cache
+.coverage
+htmlcov
+.overnight
+.shots
+**/.DS_Store
+
+# runtime state lives on the /var/lib/brew volume, never in the image
+data/*.db
+data/*.sqlite
+data/runs
+data/cache
+data/models/tmp
+runs
+wandb
+*.log
+.env
+
+# tests and docs: only what the running app reads (the committed arena for the profit comparison card)
+tests
+docs
+!docs/training/full-20261005/metrics.json
+!docs/backend-quickstart.md
+plan.pdf
+design/dev

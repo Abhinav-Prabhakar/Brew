@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     max_worlds: int = 32
     git_sha: str = "unknown"
     serve_design: bool = True  # serve design/ (the hand-drawn frontend) at / from the same origin
+    hours: str = ""  # opening-hours override for live worlds, e.g. "07:00-24:00" (brew.config.hours); "" = configs/cafe
 
     def resolved_database_url(self) -> str:
         if self.database_url:

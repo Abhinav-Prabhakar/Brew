@@ -1,0 +1,22 @@
+# docker compose up --build         → the live café at http://localhost:8000/ (real time, Asia/Kolkata wall clock)
+# BREW_LIVE_RATE=20 docker compose up   → 20× faster (dev / demo rehearsal); open http://localhost:8000/?clock=open
+# BREW_HOURS=07:00-24:00 docker compose up  → open 7 am to midnight (try the café late at night)
+services:
+  brew:
+    build:
+      context: .
+      args:
+        GIT_SHA: ${GIT_SHA:-unknown}
+    image: brew:latest
+    ports:
+      - "${BREW_PORT:-8000}:8000"
+    environment:
+      BREW_LIVE_RATE: ${BREW_LIVE_RATE:-1.0}
+      BREW_DB_ENABLED: ${BREW_DB_ENABLED:-1}
+      BREW_HOURS: ${BREW_HOURS:-}            # e.g. 07:00-24:00 (live worlds only; empty = the café's 08:00-22:00)
+    volumes:
+      - brew-data:/var/lib/brew
+    restart: unless-stopped
+
+volumes:
+  brew-data:
