@@ -3,7 +3,8 @@
 commuter:
   name: Commuter
   icon: briefcase
-  arrivals_scale: 1.5
+  arrivals_scale: 2.02
+  weekend_scale: 1.0
   arrivals:
     weekday: {"08:00": 2.2, "08:30": 3.4, "09:00": 3.0, "09:30": 1.6, "17:30": 1.2, "18:00": 1.4, "18:30": 0.9}
     weekend: {"09:00": 0.4, "10:00": 0.3}
@@ -21,7 +22,8 @@ commuter:
 student:
   name: Student
   icon: books
-  arrivals_scale: 1.4
+  arrivals_scale: 1.79
+  weekend_scale: 1.8
   arrivals:
     weekday: {"11:00": 0.8, "12:30": 1.5, "15:00": 1.8, "17:00": 2.0, "18:30": 1.2, "20:00": 0.5}
     weekend: {"12:00": 0.8, "16:00": 1.2, "19:00": 0.8}
@@ -39,7 +41,8 @@ student:
 leisurely:
   name: Leisurely
   icon: cup
-  arrivals_scale: 1.2
+  arrivals_scale: 1.57
+  weekend_scale: 1.5
   arrivals:
     weekday: {"10:00": 0.6, "11:30": 1.0, "13:00": 0.8, "16:00": 1.0, "18:00": 0.9, "20:00": 0.5}
     weekend: {"09:30": 1.2, "11:00": 2.2, "13:00": 1.8, "16:00": 1.6, "18:30": 1.4, "20:30": 0.8}
@@ -57,7 +60,8 @@ leisurely:
 remote_worker:
   name: Remote worker
   icon: laptop
-  arrivals_scale: 1.0
+  arrivals_scale: 1.57
+  weekend_scale: 1.2
   arrivals:
     weekday: {"09:00": 0.5, "10:00": 0.5, "11:00": 0.3, "14:00": 0.4, "15:00": 0.3}
     weekend: {"10:00": 0.3, "14:00": 0.3}
@@ -75,7 +79,8 @@ remote_worker:
 family:
   name: Family
   icon: family
-  arrivals_scale: 1.0
+  arrivals_scale: 2.80
+  weekend_scale: 1.4
   arrivals:
     weekday: {"12:30": 0.35, "13:30": 0.35, "18:30": 0.5, "20:00": 0.4}
     weekend: {"12:00": 1.0, "13:30": 1.0, "19:00": 1.0, "20:30": 0.8}
@@ -93,7 +98,8 @@ family:
 office_bulk:
   name: Office bulk
   icon: building
-  arrivals_scale: 1.0
+  arrivals_scale: 2.24
+  weekend_scale: 1.0
   arrivals:
     weekday: {"11:30": 0.15, "12:30": 0.25, "13:30": 0.1, "16:00": 0.05}
     weekend: {"12:00": 0.03}
@@ -111,7 +117,8 @@ office_bulk:
 delivery_home:
   name: Delivery customer
   icon: scooter
-  arrivals_scale: 1.5
+  arrivals_scale: 2.80
+  weekend_scale: 1.4
   arrivals:
     weekday: {"12:00": 1.2, "13:00": 1.8, "14:00": 1.0, "19:00": 1.6, "20:00": 2.2, "21:00": 1.4}
     weekend: {"12:30": 1.8, "14:00": 1.4, "19:30": 2.4, "21:00": 1.8}
@@ -129,7 +136,8 @@ delivery_home:
 tourist:
   name: Tourist
   icon: camera
-  arrivals_scale: 1.0
+  arrivals_scale: 1.46
+  weekend_scale: 1.2
   arrivals:
     weekday: {"10:00": 0.4, "12:00": 0.5, "14:00": 0.5, "16:00": 0.4}
     weekend: {"10:00": 0.7, "12:00": 0.9, "14:00": 0.9, "16:00": 0.7}
@@ -147,7 +155,8 @@ tourist:
 regular:
   name: Regular
   icon: heart
-  arrivals_scale: 1.0
+  arrivals_scale: 1.68
+  weekend_scale: 1.2
   arrivals:
     weekday: {"08:00": 0.8, "08:45": 1.2, "09:30": 0.5, "15:30": 0.6, "16:30": 0.8, "17:30": 0.4}
     weekend: {"09:30": 0.6, "11:00": 0.8}

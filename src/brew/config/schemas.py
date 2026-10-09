@@ -304,6 +304,7 @@ class Persona(_M):
     name: str
     icon: str
     arrivals_scale: float = 1.0
+    weekend_scale: float = 1.0
     arrivals: dict[str, dict[str, float]]
     party_size: dict[int, float]
     channels: dict[str, float]
