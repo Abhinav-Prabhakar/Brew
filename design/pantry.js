@@ -538,8 +538,11 @@ function render(s){
   if (!s) return;
   const now = R.now();
   renderShelves(s, now); renderTip(s, now); renderFresh(s, now); renderCover(s); renderOrder(s);
-  if (document.body.dataset.room === 'pantry' && performance.now() - lastRefresh > 60000) { lastRefresh = performance.now(); window.BrewLive?.refresh?.('pantry', SLOTS.map((x) => x.id).filter((x) => x !== 'rescue')); }
+  if (document.body.dataset.room === 'pantry' && performance.now() - lastRefresh > 60000) refreshLots();
 }
+function refreshLots(){ lastRefresh = performance.now(); window.BrewLive?.refresh?.('pantry', SLOTS.map((x) => x.id).filter((x) => x !== 'rescue')); }
+// preload the lots once the socket is live, so the first hover in the pantry already has them (poll.js skips while booting)
+window.BREW_LIVE?.on?.('hydrate', () => setTimeout(() => { if (window.BrewLive?.status === 'live') refreshLots(); else lastRefresh = 0; }, 1500));
 R.onState(render);
 setInterval(() => { if (document.body.dataset.room === 'pantry') render(R.S()); }, 5000);
 window.BrewPantry = {render, show, SLOTS};

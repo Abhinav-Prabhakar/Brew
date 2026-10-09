@@ -37,7 +37,7 @@
   const staffRow = (r) => withState({
     id: r.id, name: r.name, role: r.role, present: r.present, on_break: r.on_break, absent: r.absent, late: false,
     station: r.station, task: r.task, fatigue: r.fatigue, shift: r.shift.slice(), break_due_s: null, break_end_s: null,
-    wage_per_h: r.wage_per_h, skills: r.skills,
+    wage_per_h: r.wage_per_h, skills: r.skills, break_rule: r.break_rule ?? null, break_min: r.break_min ?? null,
   });
 
   const setStation = (s, station, patch) => {
@@ -143,7 +143,7 @@
         for (const r of ev.data.items || []) {
           const prev = staff[r.id];
           staff = U.set(staff, r.id, prev
-            ? withState({ ...prev, name: r.name, role: r.role, fatigue: r.fatigue, shift: r.shift.slice(), wage_per_h: r.wage_per_h, skills: r.skills })
+            ? withState({ ...prev, name: r.name, role: r.role, fatigue: r.fatigue, shift: r.shift.slice(), wage_per_h: r.wage_per_h, skills: r.skills, break_rule: r.break_rule ?? prev.break_rule ?? null, break_min: r.break_min ?? prev.break_min ?? null })
             : staffRow(r));
         }
         return { staff };

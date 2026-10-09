@@ -556,7 +556,9 @@ function renderCrewCard(s, t){
   const by = tasksBy(s);
   const staff = Object.values(s.staff || {}).sort((a, b) => (b.present - a.present) || String(a.id).localeCompare(String(b.id)));
   const onShift = staff.filter((x) => x.present && !x.absent), onBreak = staff.filter((x) => x.on_break || x.state === 'break');
-  const rule = staff.find((x) => x.break_rule)?.break_rule;
+  // break_rule is per person ("30 min break from 11:00, …"): show the one whose break comes next
+  const nextBreak = staff.filter((x) => x.break_rule && x.present && !x.absent && x.break_due_s != null).sort((a, b) => a.break_due_s - b.break_due_s)[0];
+  const rule = nextBreak ? `${nextBreak.name.toLowerCase()}: ${nextBreak.break_rule}` : staff.find((x) => x.break_rule)?.break_rule;
   const rows = staff.slice(0, 5).map((sf) => {
     const tk = (by[sf.id] || [])[0], stn = tk?.station || sf.station, f = sf.fatigue || 0;
     const due = sf.break_due_s != null ? sf.break_due_s - t : null, left = breakLeft(sf, t);

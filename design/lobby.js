@@ -731,7 +731,9 @@ const RES_LABEL = {espresso: 'espresso machine', grinder: 'grinder', bar: 'bar',
 let bnSig = '';
 function renderBottleneck(s){
   const el = card('.bn'); if (!el) return;
-  const rows = (s.rest?.bottlenecks?.resources || []).slice(0, 3).map((r) => ({res: r.resource, rho: r.rho ?? r.utilization ?? 0}));
+  // ranking + primary come from the analyzer; a station's % is the streamed station.load util (the same number as the
+  // espresso tag and the kitchen pills: slot occupancy, 15 sim-min). Tables / shelf / dish pool only exist in the analyzer.
+  const rows = (s.rest?.bottlenecks?.resources || []).slice(0, 3).map((r) => ({res: r.resource, rho: s.stations?.[r.resource]?.util ?? r.rho ?? r.utilization ?? 0}));
   if (!rows.length && s.stations) for (const x of Object.values(s.stations).filter((x) => x.util != null).sort((a, b) => b.util - a.util).slice(0, 3)) rows.push({res: x.station, rho: x.util});
   if (!rows.length && s.bottleneck) rows.push({res: s.bottleneck.resource, rho: s.bottleneck.rho});
   const inv = Object.values(s.inventory || {}).filter((x) => x.days_of_cover != null && x.kind === 'ingredient').sort((a, b) => a.days_of_cover - b.days_of_cover)[0];

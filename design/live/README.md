@@ -24,8 +24,15 @@ WsSource (real) | ReplaySource (fixtures / offline demo)
 Every event: `{seq, sim_s, t, type, data}` exactly as the WebSocket sends it (backend.md §6.3). REST read models are
 fed through the same reducer as **pseudo-events** `{seq: null, sim_s, t, type: 'rest.<name>', data: <response>}`
 (e.g. `rest.inventory`, `rest.lots` (data = `{key, items}`), `rest.forecast`, `rest.bottlenecks`, `rest.advisor`,
-`rest.impact`, `rest.comparison`, `rest.staff`, `rest.decision_explain`, `rest.purchasing`), so every visible number
-goes through one tested path.
+`rest.impact`, `rest.comparison`, `rest.staff`, `rest.decision_explain`, `rest.purchasing`, `rest.usage`), so every
+visible number goes through one tested path. Where they land:
+
+| pseudo-event | source | store |
+|---|---|---|
+| `rest.inventory` | `GET /inventory` | `state.inventory[key]` (rows) + `state.rest.inventory_summary` (everything but `items`: freshness, value, co2e…) |
+| `rest.lots` | `GET /inventory/{key}/lots` | `state.lots[key]` |
+| `rest.usage` | `GET /inventory/{key}/forecast` (usage P50/P90 via the BOM; data carries `key`) | `state.rest.usage[key]` |
+| `rest.purchasing` | `GET /purchasing/proposal` (the policy's own PO plan; `place_po` accepts it as is) | `state.rest.purchasing` |
 
 ## Store
 - `BrewStore.hydrate(snapshot) → state` from `GET /worlds/{id}/state`.
