@@ -462,6 +462,8 @@ class DecisionMade(D):
     policy: str
     top_factors: list[dict[str, Any]] = []
     clipped: list[str] = []
+    headline: str = ""  # <= 60 chars, plain English
+    trigger: str | None = None  # disruption id when this is the immediate re-plan after a disruption
 
 
 class BottleneckChanged(D):
