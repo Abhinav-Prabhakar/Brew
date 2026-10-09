@@ -14,7 +14,7 @@
    "handlers": [
     "reduce/lobby.js:batches"
    ],
-   "visual": "paperclip snaps onto the batched tickets ('batched x3 . saves 2m40s')"
+   "visual": "paperclip snaps onto the batched tickets ('batched x3 . saves 2m40s' from saves_s, lobby.js)"
   },
   "batch.started": {
    "handlers": [
@@ -32,8 +32,7 @@
    "handlers": [
     "reduce/hud.js:disruptions"
    ],
-   "visual": "'cost of chaos' figure on the chaos card (pending backend)",
-   "pending_backend": true
+   "visual": "kitchen chaos card 'cost of chaos' (cost_inr vs the shadow-fork world without the disruption; phases active / resolved / final)"
   },
   "chaos.resolved": {
    "handlers": [
@@ -145,7 +144,7 @@
    "handlers": [
     "reduce/hud.js:decisions"
    ],
-   "visual": "policy D decision card (latest 3-4 decisions with reasons)"
+   "visual": "policy D decision card in the lobby (latest decisions, `headline`) + the kitchen chaos card's 'RL reaction' (the decision whose `trigger` is the disruption id: the immediate re-plan)"
   },
   "equipment.down": {
    "handlers": [
@@ -406,15 +405,13 @@
    "handlers": [
     "reduce/kitchen.js:staff"
    ],
-   "visual": "crew fatigue bars, break-due countdown (pending backend)",
-   "pending_backend": true
+   "visual": "crew rows + doodle meters: fatigue bar, 'break due . N min' bubble, on-break countdown (every 60 sim-s)"
   },
   "station.load": {
    "handlers": [
     "reduce/kitchen.js:stations"
    ],
-   "visual": "station board percentages + LED amber/green (pending backend)",
-   "pending_backend": true
+   "visual": "kitchen stations board: `% busy` pill + LED amber (>= 85 %) / green; lobby espresso util on the bottleneck card (every 60 sim-s)"
   },
   "stock.changed": {
    "handlers": [
@@ -480,7 +477,7 @@
    "handlers": [
     "reduce/hud.js:rest"
    ],
-   "visual": "profit component expands into D vs A/B/C (GET /policies/comparison, pending backend)"
+   "visual": "profit component expands into D vs A/B/C (GET /policies/comparison)"
   },
   "rest.decision_explain": {
    "handlers": [
@@ -516,13 +513,19 @@
    "handlers": [
     "reduce/pantry.js:rest"
    ],
-   "visual": "proposed purchase order + approve (GET /purchasing, pending backend)"
+   "visual": "pantry proposed purchase order + `[data-action=place_po]` approve button, next delivery (GET /purchasing/proposal)"
   },
   "rest.staff": {
    "handlers": [
     "reduce/kitchen.js:staff"
    ],
-   "visual": "crew shift times, wage (GET /staff)"
+   "visual": "crew shift times, wage (GET /staff; the recorded fixtures carry staff.status instead)"
+  },
+  "rest.usage": {
+   "handlers": [
+    "reduce/pantry.js:rest"
+   ],
+   "visual": "pantry lot hover card: today's usage forecast P50/P90, days of cover (GET /inventory/{key}/forecast, keyed by `key`)"
   }
  },
  "snapshot_fields": {
@@ -700,7 +703,7 @@
  },
  "known_gaps": {
   "patience-coarse": "customer.patience only fires at the 60/30/10 % thresholds: patience_frac is a step function, not the live fraction (use patience_deadline_s with BrewLive.now() for a smooth ring)",
-  "fatigue": "staff fatigue is not streamed until staff.status (pending backend); hydrate/GET /staff carry it",
+  "fatigue": "staff fatigue is streamed by staff.status every 60 sim-s only (checkpoints fall between ticks); hydrate/GET /staff carry the live value",
   "staff-task": "a person with several concurrent tasks: the sim reports the latest started group, the store the most recent task.started",
   "weather-temp": "temp_c / rain_mm_h drift hourly but weather.changed only fires when the weather state changes",
   "coldbrew": "cold-brew concentrate is not a finished good: its fridge row only updates when the low flag flips",

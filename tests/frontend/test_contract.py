@@ -9,7 +9,6 @@ from __future__ import annotations
 import importlib.util
 import json
 import re
-import warnings
 from collections import Counter
 from datetime import datetime
 from functools import cache
@@ -26,12 +25,21 @@ pytestmark = pytest.mark.frontend
 
 CONTRACT = ROOT / "design" / "contract.json"
 DEMO = ROOT / "design" / "data" / "demo-stream.jsonl"
-PENDING_BACKEND = {"station.load", "staff.status", "chaos.cost"}  # reducers exist, backend emits them from the next regeneration on
 
 
 @cache
 def load(name: str) -> list[dict[str, Any]]:
     return [json.loads(line) for line in (FIXTURES / f"{name}.jsonl").read_text().splitlines() if line]
+
+
+def stream_events(name: str) -> list[dict[str, Any]]:
+    """The backend events (WebSocket envelopes): seq is an integer."""
+    return [x for x in load(name) if x["kind"] == "event" and x["seq"] is not None]
+
+
+def rest_events(name: str) -> list[dict[str, Any]]:
+    """The REST pseudo-events (``rest.<name>``, seq null) recorded from the same endpoints BrewLive.refresh() uses."""
+    return [x for x in load(name) if x["kind"] == "event" and x["seq"] is None]
 
 
 def contract() -> dict[str, Any]:
@@ -53,7 +61,7 @@ def test_fixture_structure(name: str) -> None:
     assert lines[0]["kind"] == "meta" and lines[1]["kind"] == "snapshot"
     meta = lines[0]
     assert meta["name"] == name and meta["policy"] == "D" and meta["start_date"] == "2026-10-06"
-    events = [x for x in lines if x["kind"] == "event"]
+    events = stream_events(name)
     cps = [x for x in lines if x["kind"] == "checkpoint"]
     assert meta["n_events"] == len(events) > 100
     assert cps and cps[-1]["seq"] == events[-1]["seq"], "the last checkpoint is at the end of the stream"
@@ -70,7 +78,7 @@ def test_fixture_structure(name: str) -> None:
 
 @pytest.mark.parametrize("name", FIXTURE_NAMES)
 def test_every_event_validates_against_its_schema(name: str) -> None:
-    for e in (x for x in load(name) if x["kind"] == "event"):
+    for e in stream_events(name):
         validate_event(e["type"], e["data"])  # raises KeyError (unknown type) or ValidationError
 
 
@@ -90,13 +98,21 @@ def test_demo_stream_is_the_morning_rush_fixture() -> None:
 
 
 def test_scenarios_contain_what_they_promise() -> None:
-    kinds = {n: Counter(e["type"] for e in load(n) if e["kind"] == "event") for n in FIXTURE_NAMES}
+    kinds = {n: Counter(e["type"] for e in stream_events(n)) for n in FIXTURE_NAMES}
     assert kinds["morning_rush"]["equipment.down"] == 1 and kinds["morning_rush"]["equipment.up"] == 1
     assert kinds["morning_rush"]["price.changed"] and kinds["morning_rush"]["batch.formed"]
     assert kinds["morning_rush"]["action.applied"] == 2  # set_price + serve_order
     d = kinds["lunch_delivery"]
     assert d["bag.shelved"] and d["rider.assigned"] and d["rider.arrived"] and d["rider.picked_up"]
-    assert d["chaos.triggered"] == 2 and d["chaos.resolved"] == 2
+    assert d["chaos.triggered"] == 3 and d["chaos.resolved"] == 3
+    assert d["chaos.cost"] >= 6, "the shadow-fork cost of chaos is streamed (manual chaos goes through ManagedWorld.chaos)"
+    assert [c["kind"] for c in load("lunch_delivery")[0]["chaos"]] == ["rider_shortage", "rain_storm", "supplier_delay"]
+    assert d["station.load"] and d["staff.status"] and d["batch.formed"]
+    triggered = [e["data"] for e in stream_events("lunch_delivery") if e["type"] == "decision.made" and e["data"].get("trigger")]
+    assert len(triggered) == 3 and all(x["headline"] for x in triggered), "an immediate re-plan decision per manual chaos"
+    assert any(e["data"]["kind"] == "rain_storm" for e in stream_events("lunch_delivery") if e["type"] == "chaos.cost")
+    m = kinds["morning_rush"]
+    assert m["chaos.cost"] and m["station.load"] and m["staff.status"]
     c = kinds["closing"]
     assert c["day.ended"] == 1 and c["day.started"] == 1
     meta = load("morning_rush")[0]
@@ -110,26 +126,12 @@ def test_contract_covers_every_backend_event_type() -> None:
     missing = sorted(set(EVENT_MODELS) - set(c))
     assert not missing, f"backend event types neither handled nor ignored in design/contract.json: {missing}"
     for t, row in c.items():
-        if t not in EVENT_MODELS:
-            assert t in PENDING_BACKEND, f"contract lists {t!r} which is not in the backend schema (and is not pending)"
-            continue
+        assert t in EVENT_MODELS, f"contract lists {t!r} which is not in the backend schema"
         if "ignored" in row:
             assert row["ignored"].strip(), t
         else:
             assert row["handlers"] and all(re.fullmatch(r"reduce/\w+\.js:\w+", h) for h in row["handlers"]), t
             assert row["visual"] and row["visual"] != "TODO", f"{t}: say what it drives on screen"
-
-
-def test_pending_backend_events_are_reported() -> None:
-    c = contract()["events"]
-    pending = sorted(t for t, r in c.items() if r.get("pending_backend"))
-    assert set(pending) == PENDING_BACKEND
-    not_yet = [t for t in pending if t not in EVENT_MODELS]
-    arrived = [t for t in pending if t in EVENT_MODELS]
-    if not_yet:
-        warnings.warn(f"pending backend (reducers exist, schema does not): {not_yet}", stacklevel=1)
-    if arrived:
-        warnings.warn(f"backend now emits {arrived}: drop them from PENDING_BACKEND and regenerate fixtures", stacklevel=1)
 
 
 def _section_6_3_types() -> set[str]:
@@ -162,7 +164,7 @@ def test_every_event_in_backend_md_6_3_is_handled_or_ignored() -> None:
 
 
 def test_fixture_event_types_are_all_in_the_contract() -> None:
-    seen = {e["type"] for n in FIXTURE_NAMES for e in load(n) if e["kind"] == "event"}
+    seen = {e["type"] for n in FIXTURE_NAMES for e in stream_events(n)}
     assert seen <= set(contract()["events"])
     never = sorted(set(EVENT_MODELS) - seen)
     # not a failure: those types are covered by the synthetic-event tests in test_store.py
@@ -201,3 +203,37 @@ def test_contract_file_is_what_the_script_would_write() -> None:
     c = contract()
     assert set(c) >= {"events", "rest", "snapshot_fields", "known_gaps"}
     assert Path(ROOT / "scripts" / "build_contract.py").exists()
+
+
+# ------------------------------------------------------------------ REST pseudo-events in the fixtures
+REST_TYPES = {"inventory", "lots", "purchasing", "impact", "comparison", "forecast", "bottlenecks", "usage"}
+
+
+@pytest.mark.parametrize("name", FIXTURE_NAMES)
+def test_rest_snapshots_at_the_start_and_every_30_sim_minutes(name: str) -> None:
+    meta = load(name)[0]
+    rest = rest_events(name)
+    assert {e["type"] for e in rest} == {"rest." + t for t in REST_TYPES}
+    assert all(e["seq"] is None and set(e) == {"kind", "seq", "sim_s", "t", "type", "data"} for e in rest)
+    times = sorted({e["sim_s"] for e in rest})
+    assert times[0] == meta["from_s"], "a full set at the start"
+    assert all(b - a == 1800 for a, b in zip(times, times[1:])), "then every 30 sim-min"
+    per_time = Counter(e["sim_s"] for e in rest)
+    assert len(set(per_time.values())) == 1, "the same set of models each time"
+    lots = [e["data"] for e in rest if e["type"] == "rest.lots"]
+    assert all(set(x) == {"key", "items"} for x in lots)
+    assert all(e["data"]["key"] for e in rest if e["type"] == "rest.usage")
+    assert not any(e["type"] == "rest.advisor" for e in rest), "advisor runs counterfactual forks: not recorded"
+    ev = stream_events(name)
+    # stream order: rest lines sit between the events of their own sim time (the replay paces by sim_s)
+    sims = [x["sim_s"] for x in load(name) if x["kind"] == "event"]
+    assert sims == sorted(sims)
+    assert ev[0]["sim_s"] >= rest[0]["sim_s"]
+
+
+def test_every_rest_type_in_the_fixtures_has_a_reducer() -> None:
+    handled = set(contract()["rest"])
+    seen = {e["type"] for n in FIXTURE_NAMES for e in rest_events(n)}
+    assert seen and seen <= handled, f"rest pseudo-events without a reducer: {sorted(seen - handled)}"
+    for t in seen:
+        assert contract()["rest"][t]["visual"] not in ("", "TODO"), t

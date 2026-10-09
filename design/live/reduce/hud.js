@@ -88,7 +88,7 @@
           disruptions: U.upd(s.disruptions, d.disruption_id, { id: d.disruption_id, kind: d.kind, target: d.target, active: false, resolved_s: ev.sim_s }, true),
         };
       }],
-      // pending backend (backend.md 6.3): what the disruption cost vs the counterfactual world without it
+      // backend.md 6.3: what the disruption cost vs the counterfactual world without it
       'chaos.cost': ['disruptions', (s, ev) => {
         const d = ev.data;
         return {

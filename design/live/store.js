@@ -8,7 +8,7 @@
    - no Date.now(), no randomness, no DOM. Time is always the envelope's sim_s.
    - events with seq <= state.seq are ignored (replay / reconnect dedupe). REST pseudo-events ('rest.<name>',
      seq: null) are always applied and never move state.seq.
-   - event types without a handler only advance seq / sim_s / t (they are listed in IGNORED or are "pending backend").
+   - event types without a handler only advance seq / sim_s / t (they are listed in IGNORED).
    - handlers are registered per type as [slice, fn]; one type may have several handlers (e.g. order.served touches
      both the order and the waiting customer). BrewStore.describe() exports type -> ["reduce/lobby.js:orders", ...]
      which design/contract.json must match. */
@@ -61,7 +61,6 @@
   const IGNORED = {
     'action.applied': 'acknowledgement only: the resulting state arrives as its own events (price.changed, order.served, ...) and the REST call already resolved with ok/error',
   };
-  const PENDING_BACKEND = ['station.load', 'staff.status', 'chaos.cost']; // reducers exist; the backend emits them from the next fixture regeneration on
 
   function register(file, spec) {
     const path = 'reduce/' + file + '.js';
@@ -127,7 +126,7 @@
         if (patch) s = { ...s, ...patch };
       }
     }
-    if (!pseudo && handlers['*']) { // handlers that look at every stream event (the clock follows sim_s)
+    if (handlers['*'] && (!pseudo || ev.sim_s > s.sim_s)) { // handlers that look at every stream event (the clock follows sim_s; so does a replayed rest.* line that moves time on)
       for (const h of handlers['*']) {
         const patch = h.fn(s, ev);
         if (patch) s = { ...s, ...patch };
@@ -237,7 +236,6 @@
     register,
     U,
     IGNORED,
-    PENDING_BACKEND,
     /** every event type with a reducer (REST pseudo-events excluded) */
     get HANDLED() { return Object.keys(handlers).filter((t) => t !== '*' && !t.startsWith('rest.') && !t.startsWith('client.')).sort(); },
     get REST_HANDLED() { return Object.keys(handlers).filter((t) => t.startsWith('rest.')).sort(); },
@@ -251,7 +249,7 @@
         if (type === '*') all = list;
         else (type.startsWith('rest.') || type.startsWith('client.') ? rest : events)[type] = list;
       }
-      return { events, rest, all_events: all, ignored: { ...IGNORED }, pending_backend: PENDING_BACKEND.slice() };
+      return { events, rest, all_events: all, ignored: { ...IGNORED } };
     },
     DAY_S,
   };

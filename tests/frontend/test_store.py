@@ -440,7 +440,7 @@ SYNTHETIC = """
   s = run(ev('po.created', { po_id: 'po-1', supplier: 'dairy', lines: [{ ingredient: 'oat_milk', qty: 10, packs: 2 }], eta_s: base.sim_s + 3600 }), ev('po.received', { po_id: 'po-1', supplier: 'dairy', lines: [{ ingredient: 'oat_milk', qty: 8 }], short: true }, 3));
   out.po = s.pos['po-1'];
 
-  // pending backend: station.load / staff.status / chaos.cost / saves_s
+  // station.load / staff.status / chaos.cost / saves_s
   s = run(ev('station.load', { stations: [{ station: 'espresso', util: 0.8, queue: 3, in_use: 2, slots: 2, status: 'up', down_until_s: null }, { station: 'oven', util: 0.1, queue: 0, in_use: 0, slots: 2, status: 'down', down_until_s: base.sim_s + 60 }] }));
   out.load = BrewStore.select.stationLoad(s).filter((r) => r.util != null).map((r) => [r.station, r.util, r.queue, r.in_use, r.status]);
   s = run(ev('staff.status', { staff: [{ staff_id: staffId, fatigue: 0.42, station: 'bar', task: 'pour', state: 'working', break_due_s: base.sim_s + 900, break_end_s: null }] }));
@@ -504,10 +504,33 @@ def test_contract_json_matches_the_javascript(harness):
     assert handled == d["events"], "design/contract.json is stale: uv run python scripts/build_contract.py"
     assert ignored == d["ignored"]
     assert {t: r["handlers"] for t, r in c["rest"].items()} == d["rest"]
-    assert sorted(t for t, r in c["events"].items() if r.get("pending_backend")) == sorted(d["pending_backend"])
     assert harness.evaluate("() => BrewStore.HANDLED") == sorted(handled)
     from brew.events.schema import EVENT_MODELS
 
     unaccounted = sorted(set(EVENT_MODELS) - set(handled) - set(ignored))
     assert not unaccounted, f"backend event types neither in BrewStore.HANDLED nor IGNORED: {unaccounted}"
     assert not set(d["ignored"]) & set(handled)
+
+
+# ------------------------------------------------------------------ the backend now streams load / status / cost / saves, plus REST snapshots
+def test_lunch_fixture_fills_load_fatigue_cost_saves_and_rest_models(harness):
+    out = harness.evaluate(
+        """async () => {
+          const fx = await T.load('lunch_delivery');
+          const s = BrewStore.reduceAll(BrewStore.hydrate(fx.snapshot), fx.all);
+          const dis = Object.values(s.disruptions);
+          return {
+            kinds: dis.map((d) => d.kind), costs: dis.map((d) => typeof d.cost_inr), loads: Object.values(s.stations).filter((x) => x.util != null).length,
+            fatigue: Object.values(s.staff).filter((x) => x.fatigue != null && x.present).length,
+            saves: fx.events.filter((e) => e.type === 'batch.formed' && e.data.saves_s > 0).length,
+            trig: s.decisions.filter((d) => d.trigger).map((d) => d.trigger.slice(0, 4)),
+            rest: Object.fromEntries(['purchasing', 'impact', 'comparison', 'forecast', 'bottlenecks'].map((k) => [k, !!s.rest[k]])),
+            lots: Object.keys(s.lots).length, usage: Object.keys(s.rest.usage || {}).length, inv: Object.keys(s.inventory).length, seq: s.seq, last: fx.events[fx.events.length - 1].seq,
+          };
+        }"""
+    )
+    assert out["kinds"] == ["rider_shortage", "rain_storm", "supplier_delay"] and out["costs"][:2] == ["number"] * 2  # (the 3rd is not tracked: MAX_SHADOWS = 2 are busy)
+    assert out["loads"] >= 5 and out["fatigue"] >= 2 and out["saves"] >= 1
+    assert out["rest"] == dict.fromkeys(out["rest"], True)
+    assert out["lots"] >= 25 and out["usage"] >= 25 and out["inv"] > 20
+    assert out["seq"] == out["last"], "rest.* pseudo-events never move state.seq"

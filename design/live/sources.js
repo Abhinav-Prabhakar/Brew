@@ -180,7 +180,8 @@
 
   class ReplaySource {
     /**
-     * @param {object} o  url | text | lines, speed (sim seconds per real second; Infinity = as fast as possible),
+     * @param {object} o  url | text | lines, speed (sim seconds per real second; Infinity = as fast as possible; 0 = paused,
+     *   advanced by stepTo(sim_s)),
      *   loop, batch, onSnapshot, onEvents, onStatus, onDone
      */
     constructor(o) {
@@ -226,13 +227,14 @@
         return;
       }
       this.simStart = snapshot.clock.sim_s;
+      if (this.speed === 0) { this.stepped = true; return; } // paused: stepTo(sim_s) drives the stream (rendering / visual tests)
       this.wallStart = performance.now();
       this.timer = setInterval(() => this._tick(), this.o.tickMs);
     }
 
     _emit(batch) {
       if (!batch.length) return;
-      this.lastSeq = batch[batch.length - 1].seq;
+      for (let i = batch.length - 1; i >= 0; i--) if (batch[i].seq != null) { this.lastSeq = batch[i].seq; break; } // rest.* pseudo-events have seq null
       if (this.o.onEvents) this.o.onEvents(batch);
     }
 
@@ -243,6 +245,17 @@
       while (this.pos < events.length && events[this.pos].sim_s <= simNow) this.pos += 1;
       if (this.pos > from) this._emit(events.slice(from, this.pos));
       if (this.pos >= events.length) { clearInterval(this.timer); this._finish(); }
+    }
+
+    /** speed 0 only: deliver (one batch) every not yet delivered event with sim_s <= simT; returns how many. A
+        rest.* pseudo-event that shares the sim time of a stream event is delivered with it. */
+    stepTo(simT) {
+      const events = this.stream.events;
+      const from = this.pos;
+      while (this.pos < events.length && events[this.pos].sim_s <= simT) this.pos += 1;
+      if (this.pos > from) this._emit(events.slice(from, this.pos));
+      if (this.pos >= events.length && !this.finished) { this.finished = true; this._finish(); }
+      return this.pos - from;
     }
 
     _finish() {

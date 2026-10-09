@@ -101,7 +101,7 @@
 
       'equipment.down': ['equipment', (s, ev) => equipPatch(s, ev, false)],
       'equipment.up': ['equipment', (s, ev) => equipPatch(s, ev, true)],
-      // pending backend: every 60 sim-s, one row per station
+      // every 60 sim-s, one row per station
       'station.load': ['stations', (s, ev) => {
         let stations = s.stations;
         for (const r of ev.data.stations) stations = U.upd(stations, r.station, { station: r.station, util: r.util, queue: r.queue, in_use: r.in_use, slots: r.slots, status: r.status, down_until_s: r.down_until_s }, true);
@@ -120,7 +120,7 @@
         if ((d.kind !== 'staff_absent' && d.kind !== 'staff_late') || !d.target || !s.staff[d.target]) return null;
         return { staff: U.upd(s.staff, d.target, (st) => withState({ ...st, absent: false, late: false })) };
       }],
-      // pending backend: every 60 sim-s, fatigue + the break schedule
+      // every 60 sim-s, fatigue + the break schedule
       'staff.status': ['staff', (s, ev) => {
         let staff = s.staff;
         for (const r of ev.data.staff) {

@@ -228,3 +228,164 @@ def test_store_matches_the_servers_snapshot_once_the_world_is_paused(page, world
     assert mine["equipment"] == {e["key"]: e["status"] for e in snap["equipment"]}
     assert mine["hhmm"] == snap["clock"]["hhmm"]
     assert mine["disruptions"] == sorted(d["id"] for d in snap["disruptions"])
+
+
+# =========================================================================================== the real page, served by FastAPI
+# `brew-api` serves design/ at `/`: open the real brew.html (all rooms, the HUD, the menu book) against a paused policy-A
+# world that the test steps by hand through /control (deterministic: no race with the runners' auto-serve).
+RECORD_JS = """window.__seen = []; window.__types = {}; window.__status = [];
+  (function wait() { if (!window.BREW_LIVE) return setTimeout(wait, 0);
+    BREW_LIVE.on('*', (type, data, ev) => { window.__types[type] = (window.__types[type] || 0) + 1; if (ev && ev.seq != null) window.__seen.push(ev.seq); });
+    BREW_LIVE.on('status', (s) => window.__status.push(s.status)); })();"""
+
+
+@pytest.fixture(scope="module")
+def app_world(api: str) -> dict[str, Any]:
+    w = call(api, "POST", "/worlds", {"policy": "A", "seed": 11, "clock": "open", "kind": "demo"})
+    call(api, "POST", f"/worlds/{w['id']}/control", {"action": "step", "step_s": 4500})  # 08:15
+    return w  # type: ignore[no-any-return]
+
+
+def step(api: str, wid: str, seconds: float) -> None:
+    call(api, "POST", f"/worlds/{wid}/control", {"action": "step", "step_s": seconds})
+
+
+@pytest.fixture(scope="module")
+def app(browser, api: str, app_world: dict[str, Any]):  # type: ignore[no-untyped-def]
+    ctx = browser.new_context(viewport={"width": 1632, "height": 1040})
+    pg = ctx.new_page()
+    errors: list[str] = []
+    pg.on("pageerror", lambda e: errors.append(str(e)))
+    pg.on("console", lambda m: errors.append(m.text) if m.type == "error" and "Failed to load resource" not in m.text else None)
+    pg.route("**/fonts.g*/**", lambda r: r.abort())
+    pg.add_init_script(RECORD_JS)
+    pg.errors = errors  # type: ignore[attr-defined]
+    # the page is served by brew-api itself (same origin, no ?api=)
+    pg.goto(f"{api}/?source=ws&world={app_world['id']}&clock=open&play=0&still")
+    pg.wait_for_function("window.BrewLive && BrewLive.state && BrewLive.status === 'live'", timeout=20000)
+    yield pg
+    ctx.close()
+
+
+def room(pg, name: str) -> None:  # type: ignore[no-untyped-def]
+    pg.click(f".tab[data-go={name}]")
+    pg.wait_for_timeout(500)
+
+
+def test_app_is_served_by_the_api_and_boots_live(app, app_world, api):
+    assert app.url.startswith(api)
+    info = app.evaluate("() => ({ id: BrewLive.state.world.id, mode: BrewLive.mode, status: BrewLive.status, dot: document.querySelector('#hud [data-live]').dataset.status, hhmm: BrewLive.state.clock.hhmm })")
+    assert info["id"] == app_world["id"] and info["mode"] == "ws" and info["status"] == "live" and info["dot"] == "live"
+    assert info["hhmm"] == "08:15"
+    wait(app, "document.querySelector('#hud .money .amt').textContent.startsWith('₹')")
+    assert not app.errors
+
+
+def test_a_chaos_button_downs_the_oven_and_the_card_shows_the_replan(app, app_world, api):
+    wid = app_world["id"]
+    room(app, "kitchen")
+    assert app.evaluate("() => document.querySelector('#kitchen .board .cell[data-station=oven] .led').className") == "led g"
+    app.click('#kitchen [data-chaos="equipment_down"][data-target="oven"]')
+    wait(app, "document.querySelector('#kitchen .board .cell[data-station=oven] .led').classList.contains('r')", 8000)
+    d = app.evaluate(
+        """() => { const x = BrewStore.select.activeChaos(BrewLive.state)[0];
+                   return { id: x.id, kind: x.kind, target: x.target,
+                            dec: BrewLive.state.decisions.filter((q) => q.trigger === x.id).map((q) => ({ headline: q.headline, trigger: q.trigger })) }; }"""
+    )
+    assert d["kind"] == "equipment_down" and d["target"] == "oven"
+    assert len(d["dec"]) == 1 and d["dec"][0]["headline"], "the immediate re-plan decision (with its trigger) arrived"
+    app.wait_for_timeout(400)
+    card = app.evaluate("() => document.querySelector('#kitchen .chaos').textContent")
+    assert "oven" in card and "down" in card and "RL:" in card
+    assert d["dec"][0]["headline"][:25] in card, "the card shows the re-plan's headline"
+    step(api, wid, 400)  # chaos.cost arrives with the 5-sim-min ticks
+    wait(app, f"BrewLive.state.disruptions['{d['id']}'].cost_inr != null", 8000)
+    assert not app.errors
+
+
+def test_serving_a_ready_order_tears_its_ticket_off_the_rail(app, app_world, api):
+    wid = app_world["id"]
+    room(app, "lobby")
+    served = None
+    for _ in range(400):  # the runners serve a ready order 20 sim-s after it is ready: look every 4 sim-s
+        step(api, wid, 4)
+        ready = [o for o in call(api, "GET", f"/worlds/{wid}/orders?status=ready")["items"] if o["channel"] in ("dine_in", "takeaway")]
+        if ready:
+            served = ready[0]["order_no"]
+            break
+    assert served is not None
+    app.wait_for_selector(f'#lobby [data-ticket="{served}"][data-status="ready"]', timeout=8000)
+    app.evaluate("(no) => BrewApi.act('serve_order', { order_no: no })", served)
+    app.wait_for_selector(f'#lobby [data-ticket="{served}"]', state="detached", timeout=8000)
+    assert app.evaluate("(no) => BrewLive.state.orders[no].status", served) == "served"
+    assert not app.errors
+
+
+def test_set_price_rewrites_the_menu_book(app, app_world):
+    sku, old, new = app.evaluate(
+        """() => { const m = Object.values(BrewLive.state.menu).find((x) => !x.staple && x.price - 5 >= x.min_price && x.cat === 'coffee');
+                   return [m.sku, m.price, m.price - 5]; }"""
+    )
+    app.evaluate("() => BREW_MENUBOOK.open()")
+    app.wait_for_selector(f'#mb [data-sku="{sku}"] .now', timeout=5000)
+    app.wait_for_timeout(300)
+    assert app.inner_text(f'#mb [data-sku="{sku}"] .now') == f"₹{round(old):,}"
+    app.evaluate("([sku, price]) => BrewApi.act('set_price', { sku, price })", [sku, new])
+    app.wait_for_function(f"document.querySelector('#mb [data-sku=\"{sku}\"] .now').textContent === '₹{round(new):,}'", timeout=8000)
+    assert app.evaluate("(s) => BrewLive.state.menu[s].price", sku) == new
+    app.evaluate("() => BREW_MENUBOOK.close()")
+    app.wait_for_timeout(500)
+    assert not app.errors
+
+
+def test_approve_order_places_the_proposed_po(app, app_world, api):
+    wid = app_world["id"]
+    room(app, "pantry")
+    btn = '#pantry [data-action="place_po"]'
+    for _ in range(16):  # the proposal needs lines: look every 15 sim-min
+        try:
+            app.wait_for_function(f"(() => {{ const b = document.querySelector('{btn}'); return b && !b.disabled; }})()", timeout=4000)
+            break
+        except Exception:
+            step(api, wid, 900)
+    else:
+        pytest.fail("no purchase proposal with lines all day")
+    before = app.evaluate("() => window.__types['po.created'] || 0")
+    app.click(btn)
+    app.wait_for_function(f"(window.__types['po.created'] || 0) > {before}", timeout=10000)
+    assert app.evaluate("() => Object.values(BrewLive.state.pos).some((p) => p.status === 'open')")
+    assert not app.errors
+
+
+def test_profit_card_opens_the_comparison_with_four_policies(app):
+    room(app, "lobby")
+    app.click("#hud .money")
+    app.wait_for_selector("#cmp:not([hidden])", timeout=5000)
+    app.wait_for_function("document.querySelectorAll('#cmp svg text').length > 6", timeout=8000)
+    rows = app.evaluate("() => [...document.querySelectorAll('#cmp svg text')].map((t) => t.textContent).filter((t) => /^[ABCD] ·/.test(t))")
+    assert [r[0] for r in rows] == ["A", "B", "C", "D"]
+    app.click("#hud .money")
+    app.wait_for_selector("#cmp", state="hidden")
+    assert not app.errors
+
+
+def test_reconnect_keeps_the_stream_gapless_on_the_real_page(app, app_world, api):
+    wid = app_world["id"]
+    before = app.evaluate("() => ({ last: BrewLive.source.lastSeq, n: BrewLive.source.urls.length })")
+    app.evaluate("() => BrewLive.source.ws.close()")
+    app.wait_for_function("window.__status.includes('reconnecting')", timeout=5000)
+    app.wait_for_function(f"BrewLive.source.urls.length === {before['n'] + 1} && BrewLive.status === 'live'", timeout=15000)
+    assert app.evaluate("() => document.querySelector('#hud [data-live]').dataset.status") == "live"
+    for _ in range(4):
+        step(api, wid, 20)  # events after the reconnect
+    server_last = call(api, "GET", f"/worlds/{wid}/state")["last_seq"]
+    wait(app, f"BrewLive.state.seq === {server_last}", 10000)
+    res = app.evaluate("() => ({ urls: BrewLive.source.urls, seen: window.__seen, seq: BrewLive.state.seq, status: window.__status })")
+    assert "reconnecting" in res["status"] and res["status"][-1] == "live"
+    since = int(res["urls"][-1].split("since_seq=")[1])
+    assert since >= before["last"]
+    seen = res["seen"]
+    assert seen == sorted(set(seen)), "no duplicate / out-of-order events"
+    assert seen == list(range(seen[0], seen[-1] + 1)), "gap-free across the reconnect"
+    assert seen[-1] == server_last == res["seq"]
+    assert not app.errors

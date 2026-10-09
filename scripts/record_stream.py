@@ -10,6 +10,10 @@ Runs the real sim headless in-process (policy D, continuous, fixed seed/date) an
     {"kind":"snapshot", "data": <GET /state>}  at the start time
     {"kind":"event", seq, sim_s, t, type, data}   one per event (the WebSocket envelope)
     {"kind":"checkpoint", "seq", "data": <GET /state>}  every 30 sim-min (only if something happened) + the end
+    {"kind":"event", "seq":null, "sim_s", "t", "type":"rest.<name>", "data": <REST response>}  pseudo-events: what
+        BrewLive.refresh() would fetch (same endpoints, served by the real FastAPI app in-process), at the start and
+        every 30 sim-min: inventory, lots (one per key), purchasing, impact, comparison, forecast, bottlenecks, usage
+        (pantry slot keys). ``advisor`` is skipped: it runs counterfactual forks (minutes) and the UI polls a job.
 
 Recording is deterministic: same args -> byte-identical file (``--recorded-with`` pins the recorded_with field).
 """
@@ -19,6 +23,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -26,14 +31,17 @@ from pathlib import Path
 from typing import Any
 
 import orjson
+from fastapi.testclient import TestClient
 
+from brew.api.app import create_app
+from brew.api.world_manager import ManagedWorld
 from brew.config.loader import load_scenario, repo_root
 from brew.domain.timeutil import DAY_S
 from brew.events.bus import EventRecord, envelope
 from brew.events.schema import event_json_schema
 from brew.policies.registry import make_policy
+from brew.settings import Settings
 from brew.sim import readmodels as rm
-from brew.sim.actions import apply_action
 from brew.sim.world import World
 
 START_DATE = "2026-10-06"  # a Tuesday
@@ -62,6 +70,7 @@ SCENARIOS: dict[str, dict[str, Any]] = {
         "seed": 11, "from": "12:00", "to": "14:00",
         "chaos": [
             {"at": "12:30", "kind": "rider_shortage", "target": None, "duration_min": 45},
+            {"at": "12:50", "kind": "rain_storm", "target": None, "duration_min": 40},
             {"at": "13:00", "kind": "supplier_delay", "target": None, "duration_min": 60},
         ],
         "actions": [{"at": "12:10", "kind": "invest", "key": "marketing_push"}],
@@ -128,6 +137,63 @@ def pick_price_change(w: World) -> tuple[str, float]:
     raise RuntimeError("no legal price change found")
 
 
+def pantry_keys() -> list[str]:
+    """The inventory keys of the pantry shelf slots (``window.BrewPantry.SLOTS`` in design/pantry.js), minus 'rescue'."""
+    src = (repo_root() / "design" / "pantry.js").read_text()
+    block = src[src.index("const SLOTS = [") : src.index("const BY = ")]
+    return [k for k in re.findall(r"\{id:'([a-z0-9_]+)'", block) if k != "rescue"]
+
+
+class Rest:
+    """The REST read models BrewLive.refresh() fetches, served by the real FastAPI app (in-process TestClient) over the
+    recorded world, as ``rest.<name>`` pseudo-event lines (seq null: always applied by the store)."""
+
+    def __init__(self, mw: ManagedWorld) -> None:
+        self.mw = mw
+        self.app = create_app(Settings(db_enabled=False))
+        self.keys = pantry_keys()
+        self.client: TestClient | None = None
+
+    def __enter__(self) -> Rest:
+        self.client = TestClient(self.app).__enter__()
+        self.app.state.manager.worlds[self.mw.world.world_id] = self.mw
+        return self
+
+    def __exit__(self, *a: object) -> None:
+        assert self.client is not None
+        self.app.state.manager.worlds.clear()  # the recorder owns the world: don't let the manager stop it
+        self.client.__exit__(*a)
+
+    def lines(self) -> list[bytes]:
+        assert self.client is not None
+        w = self.mw.world
+        wid = w.world_id
+        tf = rm.t_fields(w)
+        reqs: list[tuple[str, str, str | None]] = [  # (name, path, key)
+            ("inventory", f"/worlds/{wid}/inventory", None),
+            *(("lots", f"/worlds/{wid}/inventory/{k}/lots", k) for k in self.keys if k in w.inv.onhand),
+            ("purchasing", f"/worlds/{wid}/purchasing/proposal", None),
+            ("impact", f"/worlds/{wid}/impact", None),
+            ("comparison", "/policies/comparison", None),
+            ("forecast", f"/worlds/{wid}/forecast?horizon_min=120", None),
+            ("bottlenecks", f"/worlds/{wid}/bottlenecks", None),
+            *(("usage", f"/worlds/{wid}/inventory/{k}/forecast", k) for k in self.keys if k in w.inv.onhand),
+        ]  # fmt: skip
+        out: list[bytes] = []
+        for name, path, key in reqs:
+            r = self.client.get("/api/v1" + path)
+            if r.status_code != 200:
+                raise RuntimeError(f"{path}: {r.status_code} {r.text[:200]}")
+            data = r.content
+            if name == "lots":  # BrewLive.refresh: data = {key, items}
+                data = dumps({"key": key, "items": r.json()["items"]})
+            elif name == "usage":  # BrewLive.refresh: {...data, key}
+                data = dumps({**r.json(), "key": key})
+            head = {"kind": "event", "seq": None, "sim_s": tf["sim_s"], "t": tf["t"], "type": "rest." + name}
+            out.append(dumps(head)[:-1] + b',"data":' + data + b"}")
+        return out
+
+
 def record(name: str, git: str) -> list[bytes]:
     spec = SCENARIOS[name]
     seed = spec["seed"]
@@ -137,6 +203,8 @@ def record(name: str, git: str) -> list[bytes]:
         policy=make_policy("D", models_dir=repo_root() / "models"),
         seed=seed, days=10**6, continuous=True, start_date=START_DATE, world_id=f"rec-{name}", sink=sink,
     )  # fmt: skip
+    mw = ManagedWorld(w, "demo", Settings(db_enabled=False))  # the chaos / action path the API uses (shadow fork)
+    mw.fan.add(sink)
     w.advance_to(w.day_start_t(0))
     t0, t1 = hm(spec["from"]), hm(spec["to"])
     w.advance_to(t0)
@@ -145,6 +213,8 @@ def record(name: str, git: str) -> list[bytes]:
     sink.min_seq = seq0
     sink.lines.clear()  # everything before the start time is the hydration, not the stream
     sink.n_events = 0
+    rest = Rest(mw).__enter__()
+    sink.lines.extend(rest.lines())  # the REST read models at the start (lines before the first event)
 
     # timeline: (sim_s, priority, kind, payload); actions/chaos before the checkpoint at the same time
     timeline: list[tuple[float, int, str, dict[str, Any]]] = []
@@ -166,16 +236,15 @@ def record(name: str, git: str) -> list[bytes]:
     for t, _, kind, p in timeline:
         w.advance_to(t)
         if kind == "chaos":
-            d = w.trigger_chaos(p["kind"], p["target"], 1.0, p["duration_min"])
-            w.advance_to(w.now)
-            out_chaos.append({"at": p["at"], "kind": p["kind"], "target": d.target, "severity": 1.0,
-                              "duration_min": p["duration_min"], "disruption_id": d.id, "after_seq": w.seq})  # fmt: skip
+            d = mw.chaos(p["kind"], p["target"], 1.0, p["duration_min"])  # == POST /chaos (shadow fork -> chaos.cost)
+            out_chaos.append({"at": p["at"], "kind": p["kind"], "target": d["target"], "severity": 1.0,
+                              "duration_min": p["duration_min"], "disruption_id": d["id"], "after_seq": w.seq})  # fmt: skip
         elif kind == "action":
             rec: dict[str, Any] = {"at": p["at"], "kind": p["kind"]}
             if p["kind"] == "set_price":
                 sku, price = pick_price_change(w)
                 rec["payload"] = {"sku": sku, "price": price}
-                rec["result"] = apply_action(w, "set_price", rec["payload"])
+                rec["result"] = mw.act("set_price", rec["payload"])
             elif p["kind"] == "serve_order":
                 # the first ready order at (or soon after) the scripted time
                 scan_to = t + 15 * 60
@@ -186,7 +255,7 @@ def record(name: str, git: str) -> list[bytes]:
                     raise RuntimeError("no ready order to serve")
                 rec["payload"] = {"order_no": ready[0]}
                 rec["served_at_s"] = round(w.now, 1)
-                rec["result"] = apply_action(w, "serve_order", rec["payload"])
+                rec["result"] = mw.act("serve_order", rec["payload"])
             elif p["kind"] == "invest":
                 rec["payload"] = {"catalog_key": p["key"]}
                 rec["result"] = w.invest.buy(p["key"], by="owner")  # == POST /worlds/{id}/invest
@@ -197,8 +266,12 @@ def record(name: str, git: str) -> list[bytes]:
             out_actions.append(rec)
         elif kind in ("checkpoint", "end"):
             if kind == "end" or w.seq != last_cp_seq:
+                mw.refresh_costs()  # what GET /state does
                 sink.lines.append(b'{"kind":"checkpoint","seq":%d,"data":' % w.seq + full_state(w) + b"}")
                 last_cp_seq = w.seq
+            if kind == "checkpoint":
+                sink.lines.extend(rest.lines())
+    rest.__exit__(None, None, None)
     meta = {
         "kind": "meta", "name": name, "seed": seed, "policy": "D", "start_date": START_DATE,
         "from_hhmm": spec["from"], "to_hhmm": spec["to"], "from_s": t0, "to_s": t1,

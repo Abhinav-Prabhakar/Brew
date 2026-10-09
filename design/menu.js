@@ -16,7 +16,7 @@
   const $ = (s, r = document) => r.querySelector(s);
   const rs = (n) => '₹' + Math.round(n).toLocaleString('en-IN');
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches || /[?&]still\b/.test(location.search);
 
   /* ------------------------------------------------------------------ live state (from BrewLive.state) */
   const ITEMS = Object.fromEntries(DATA.menu.map((m) => [m.sku, { ...m, base: m.price, dir: null, note: '', hidden: false }]));
@@ -86,6 +86,7 @@
   const leaf = (k) => `<svg class="leaf" viewBox="0 0 14 14" aria-label="${k}"><path d="M2 12C2 5 6 2 12 2C12 8 9 12 2 12Z" fill="#cfe0bf" stroke="#1d1a1c" stroke-width="1.4"/></svg>`;
 
   function itemRow(m) {
+    m = ITEMS[m.sku] || m; // live price / sold-out state (DATA.menu is only the static catalogue)
     return `<li class="row${m.hidden ? ' hidden86' : ''}" data-sku="${m.sku}"><span class="ribbon">sold out</span>
       ${ico(m.sku)}
       <div class="nm"><b>${esc(m.name.toLowerCase())}${m.vegan ? leaf('vegan') : ''}${m.staple ? '<span class="staple" title="staple: never priced up">staple</span>' : ''}</b>

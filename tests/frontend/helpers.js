@@ -17,7 +17,12 @@
   async function load(name) {
     if (!cache[name]) {
       const text = await (await fetch('/tests/fixtures/streams/' + name + '.jsonl')).text();
-      cache[name] = BrewSources.parseStream(text);
+      const fx = BrewSources.parseStream(text);
+      // fx.events: the backend events (integer seq); fx.rest: the rest.<name> pseudo-events (seq null); fx.all: stream order
+      fx.all = fx.events;
+      fx.events = fx.all.filter((e) => e.seq != null);
+      fx.rest = fx.all.filter((e) => e.seq == null);
+      cache[name] = fx;
     }
     return cache[name];
   }
@@ -154,7 +159,7 @@
       if ((e.station != null) !== (h.station != null)) d('staff ' + id + ' working', e.station, h.station);
       else if (e.station !== h.station || e.task !== h.task) gap('staff-task', 'staff ' + id + ' station/task (several concurrent tasks: the sim reports the latest started)', [e.station, e.task], [h.station, h.task]);
       if (e.state !== h.state) d('staff ' + id + '.state', e.state, h.state);
-      gap('fatigue', 'staff fatigue is not streamed (pending staff.status)', e.fatigue, h.fatigue);
+      gap('fatigue', 'staff fatigue is only streamed every 60 sim-s (staff.status)', e.fatigue, h.fatigue);
     }
     const actE = Object.values(E.disruptions).filter((x) => x.active).map((x) => x.id).sort();
     const actH = Object.values(H.disruptions).filter((x) => x.active).map((x) => x.id).sort();
@@ -197,7 +202,18 @@
     return BrewStore.reduceAll(BrewStore.hydrate(fx.snapshot), fx.events.filter((e) => e.seq <= upTo));
   }
 
+  /** like stateAt, plus the rest.* pseudo-events that sit before the first event after `upTo` (what a replay shows) */
+  async function stateAtWithRest(name, upTo) {
+    const fx = await load(name);
+    let s = BrewStore.hydrate(fx.snapshot);
+    for (const e of fx.all) {
+      if (e.seq != null && e.seq > upTo) break;
+      s = BrewStore.reduce(s, e);
+    }
+    return s;
+  }
+
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-  window.T = { load, slice, stateAt, sleep, deepFreeze, compare, verifyCheckpoints, eq, near, FINAL, GONE };
+  window.T = { load, slice, stateAt, stateAtWithRest, sleep, deepFreeze, compare, verifyCheckpoints, eq, near, FINAL, GONE };
 })();

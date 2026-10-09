@@ -76,7 +76,7 @@ function cartonUnit(x, b, w, h, col, open, lvl, back){
   if (open) s += `<path d="M${x+3} ${top-3}L${x-7} ${top-10}L${x+1} ${top-16}L${x+10} ${top-8}Z" fill="#fff" ${st(2)}/><path d="M${x-7} ${top-10}L${x+10} ${top-8}" ${st(1.4)}/>`;
   else s += `<circle cx="${x + w/2}" cy="${top - 3}" r="3.2" fill="${C.sage}" ${st(1.2)}/>`;
   if (!back) { const wy = top + 6, wh = h - 12, fy = wy + wh * (1 - lvl);
-    s += `<rect x="${x + 4}" y="${wy}" width="7" height="${wh}" rx="3.5" fill="#f4f6f8" ${st(1.5)}/><rect x="${x + 5}" y="${fy}" width="5" height="${wy + wh - fy - 1}" rx="2.5" fill="${col}"/>`; }
+    s += `<rect x="${x + 4}" y="${wy}" width="7" height="${wh}" rx="3.5" fill="#f4f6f8" ${st(1.5)}/><rect x="${x + 5}" y="${fy}" width="5" height="${Math.max(0, wy + wh - fy - 1)}" rx="2.5" fill="${col}"/>`; }
   return s;
 }
 const fruit = (k, x, y) => k === 'chilli'
@@ -191,7 +191,7 @@ const DRAW = {
       s += `<path d="M${x} ${top}h${w}l-4 ${hh}h${-(w-8)}z" fill="#fff" ${st(2.3)}/>`;
       for (let y = top + 14; y < b - 3; y += 6) s += `<path d="M${x+2} ${y}h${w-4}" ${st(1)} opacity=".3"/>`;
       s += `<rect x="${x+1}" y="${top}" width="${w-2}" height="10" fill="${C.pink}" ${st(1.4)}/>`;
-      if (i) s += `<rect x="${x-2}" y="${top + 16}" width="${w+4}" height="${hh - 16}" rx="3" fill="#e6f1f4" fill-opacity=".45" ${st(1.4)}/>`; });
+      if (i && hh > 16) s += `<rect x="${x-2}" y="${top + 16}" width="${w+4}" height="${hh - 16}" rx="3" fill="#e6f1f4" fill-opacity=".45" ${st(1.4)}/>`; });
     return s; },
   lids(cx, b, o){ let s = '';
     o.hs.forEach((cnt, i) => { const x = cx - 36 + i * 38;

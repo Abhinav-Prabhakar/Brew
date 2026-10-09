@@ -35,9 +35,13 @@ class _Quiet(http.server.SimpleHTTPRequestHandler):
         super().end_headers()
 
 
-def serve(directory: Path) -> tuple[http.server.ThreadingHTTPServer, str]:
+class _Server(http.server.ThreadingHTTPServer):
+    request_queue_size = 128  # Chromium opens a burst of connections for the ~20 scripts of brew.html: the default backlog (5) resets some
+
+
+def serve(directory: Path) -> tuple[_Server, str]:
     handler = functools.partial(_Quiet, directory=str(directory))
-    srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    srv = _Server(("127.0.0.1", 0), handler)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     return srv, f"http://127.0.0.1:{srv.server_address[1]}"
 
@@ -99,3 +103,6 @@ def fresh_page(browser, harness_url: str) -> Iterator[object]:  # type: ignore[n
     page.open = open_  # type: ignore[attr-defined]
     yield page
     ctx.close()
+
+
+from .appkit import open_app  # noqa: E402, F401  (fixture: the real page replaying a fixture)
