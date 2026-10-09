@@ -386,7 +386,7 @@ function renderBroken(s, t){
   }
   for (const el of document.querySelectorAll('#k-broken [data-broken] .eta')) {
     const x = s.stations?.[el.closest('[data-broken]').dataset.broken];
-    if (x?.down_until_s) el.textContent = `back ~${R.hm(x.down_until_s)} · ${R.mmss(Math.max(0, x.down_until_s - t))}`;
+    if (x?.down_until_s) el.textContent = `back ~${R.hm(x.down_until_s)} · ${R.dur(Math.max(0, x.down_until_s - t))}`;
   }
   renderTech(s, t, downs);
 }
@@ -485,7 +485,7 @@ function cardInner(key, s, now){
   h += gt(10, 24, LABEL[key], key === 'press' || key === 'dishpit' ? 16 : 17);
   if (down) { const d = Object.values(s.disruptions || {}).find((q) => q.active && keys.includes(stationOf(q.target)));
     const until = keys.map((k) => s.stations?.[k]?.down_until_s).find(Boolean);
-    return h + pill(w - 8, 9, 'DOWN', C.terra) + use('k-bolt', 8, 30, 22) + t(34, 46, `since ${R.hm(d?.started_s ?? now)} · fix ~${R.mmss(Math.max(0, (until || now) - now))}`, 12.5)
+    return h + pill(w - 8, 9, 'DOWN', C.terra) + use('k-bolt', 8, 30, 22) + t(34, 46, `since ${R.hm(d?.started_s ?? now)} · fix ~${R.dur(Math.max(0, (until || now) - now))}`, 12.5)
       + use('k-wrench', 8, 54, 22) + t(34, 70, until ? `back ~${R.hm(until)}` : 'tech called', 12.5)
       + t(10, 92, tasks.length ? `${tasks.length} stuck · rerouting` : 'orders rerouted', 12, `fill="${C.terra}"`); }
   if (up) h += pill(w - 8, 9, up[0], up[1]);
