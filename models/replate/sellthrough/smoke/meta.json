@@ -1,7 +1,7 @@
 {
   "champion": true,
-  "created_at": "2026-10-03T17:27:29.771481+00:00",
-  "git_sha": "658fc80",
+  "created_at": "2026-10-04T09:22:28.003285+00:00",
+  "git_sha": "58733fe",
   "kind": "replate",
   "lineage": {
     "config": "smoke",
@@ -12,11 +12,11 @@
     ]
   },
   "metrics": {
-    "baseline_deviance": 0.34186686222663804,
-    "deviance_improvement_pct": 8.10830094980326,
-    "mean_rate": 0.06753705010585745,
-    "poisson_deviance": 0.31414726818965294,
-    "rows": 17713,
+    "baseline_deviance": 0.24811501993118978,
+    "deviance_improvement_pct": 15.914680726113218,
+    "mean_rate": 0.043453900267695945,
+    "poisson_deviance": 0.20862830667560875,
+    "rows": 20079,
     "trained": true
   },
   "name": "sellthrough",

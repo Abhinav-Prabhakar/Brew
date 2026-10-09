@@ -43,7 +43,7 @@ class SellThroughModel:
         mu = np.maximum(probe.predict(space.matrix(te), num_threads=1), 1e-6)
         yt = te[TARGET].to_numpy().astype(float)
         base = max(float(y.mean()), 1e-6)
-        dev = lambda yy, m: float(2 * np.mean(np.where(yy > 0, yy * np.log(yy / m), 0.0) - (yy - m)))  # noqa: E731
+        dev = lambda yy, m: float(2 * np.mean(yy * np.log(np.maximum(yy, 1e-12) / m) * (yy > 0) - (yy - m)))  # noqa: E731
         metrics = {
             "rows": len(df), "trained": True, "poisson_deviance": dev(yt, mu), "baseline_deviance": dev(yt, np.full_like(yt, base)),
             "mean_rate": float(y.mean()),

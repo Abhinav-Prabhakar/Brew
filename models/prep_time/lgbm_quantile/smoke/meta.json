@@ -1,7 +1,7 @@
 {
   "champion": true,
-  "created_at": "2026-10-03T17:27:12.647148+00:00",
-  "git_sha": "658fc80",
+  "created_at": "2026-10-04T09:22:25.987710+00:00",
+  "git_sha": "58733fe",
   "kind": "prep_time",
   "lineage": {
     "config": "smoke",
@@ -12,11 +12,11 @@
     ]
   },
   "metrics": {
-    "coverage_p10_p90": 0.832091652594285,
-    "naive_mae_s": 8.341051620807258,
-    "p50_mae_pct": 0.15220833570135953,
-    "p50_mae_s": 6.479924486760827,
-    "rows_test": 30201
+    "coverage_p10_p90": 0.8341313924535529,
+    "naive_mae_s": 9.953518483049224,
+    "p50_mae_pct": 0.14394216644547672,
+    "p50_mae_s": 7.047896691759333,
+    "rows_test": 36547
   },
   "name": "lgbm_quantile",
   "params": {

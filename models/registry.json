@@ -1,179 +1,6 @@
 [
   {
     "champion": true,
-    "created_at": "2026-10-03T17:27:12.647148+00:00",
-    "git_sha": "658fc80",
-    "kind": "prep_time",
-    "lineage": {
-      "config": "smoke",
-      "history": [
-        "00_B_101",
-        "01_B_102",
-        "02_A_103"
-      ]
-    },
-    "metrics": {
-      "coverage_p10_p90": 0.832091652594285,
-      "naive_mae_s": 8.341051620807258,
-      "p50_mae_pct": 0.15220833570135953,
-      "p50_mae_s": 6.479924486760827,
-      "rows_test": 30201
-    },
-    "name": "lgbm_quantile",
-    "params": {
-      "min_rows": 200,
-      "n_estimators": 80
-    },
-    "path": "prep_time/lgbm_quantile/smoke",
-    "version": "smoke"
-  },
-  {
-    "champion": true,
-    "created_at": "2026-10-03T17:27:18.301480+00:00",
-    "git_sha": "658fc80",
-    "kind": "rider_eta",
-    "lineage": {
-      "config": "smoke",
-      "history": [
-        "00_B_101",
-        "01_B_102",
-        "02_A_103"
-      ]
-    },
-    "metrics": {
-      "coverage_p10_p90": 0.773109243697479,
-      "p50_mae_s": 180.47707959134584,
-      "p90_coverage": 0.8865546218487395,
-      "platform_pred_mae_s": 180.9329085783658,
-      "rows_test": 714
-    },
-    "name": "lgbm_quantile",
-    "params": {
-      "min_rows": 200,
-      "n_estimators": 80
-    },
-    "path": "rider_eta/lgbm_quantile/smoke",
-    "version": "smoke"
-  },
-  {
-    "champion": true,
-    "created_at": "2026-10-03T17:27:22.819272+00:00",
-    "git_sha": "658fc80",
-    "kind": "text",
-    "lineage": {
-      "config": "smoke",
-      "history": [
-        "00_B_101",
-        "01_B_102",
-        "02_A_103"
-      ]
-    },
-    "metrics": {
-      "macro_f1": 0.7150631927398637,
-      "n": 750,
-      "per_label_f1": {
-        "accuracy": 0.7592592592592593,
-        "ambience": 0.8840579710144928,
-        "cold_food": 0.7106227106227107,
-        "packaging": 0.8278145695364238,
-        "price": 0.2978723404255319,
-        "quality": 0.7522697795071336,
-        "staff": 0.6938775510204082,
-        "value": 0.7204968944099379,
-        "wait": 0.7892976588628763
-      },
-      "rows": 3000
-    },
-    "name": "review_tagger",
-    "params": {
-      "source": "clean"
-    },
-    "path": "text/review_tagger/smoke",
-    "version": "smoke"
-  },
-  {
-    "champion": true,
-    "created_at": "2026-10-03T17:27:23.749497+00:00",
-    "git_sha": "658fc80",
-    "kind": "text",
-    "lineage": {
-      "config": "smoke",
-      "history": [
-        "00_B_101",
-        "01_B_102",
-        "02_A_103"
-      ]
-    },
-    "metrics": {
-      "allergy_flag_accuracy": 0.975,
-      "macro_f1": 0.9489943481666214,
-      "macro_f1_intents": 0.9376193816360487,
-      "macro_f1_modifiers": 0.9603693146971941,
-      "n": 400,
-      "per_intent_f1": {
-        "allergy": 0.9767441860465116,
-        "cutlery": 1.0,
-        "gift_message": 0.9508196721311475,
-        "modifier": 0.9426751592356688,
-        "other": 0.7719298245614035,
-        "packaging": 0.9387755102040817,
-        "rush": 0.9438202247191011,
-        "spice_level": 0.9761904761904762
-      },
-      "per_modifier_f1": {
-        "almond": 1.0,
-        "cheese": 0.9473684210526315,
-        "decaf": 1.0,
-        "hot": 0.7741935483870968,
-        "iced": 0.896551724137931,
-        "jalapeno": 1.0,
-        "large": 1.0,
-        "lesssugar": 0.9629629629629629,
-        "nonuts": 0.9803921568627451,
-        "noonion": 1.0,
-        "oat": 1.0,
-        "shot": 0.9629629629629629
-      },
-      "rows": 1600
-    },
-    "name": "note_parser",
-    "params": {
-      "source": "clean"
-    },
-    "path": "text/note_parser/smoke",
-    "version": "smoke"
-  },
-  {
-    "champion": true,
-    "created_at": "2026-10-03T17:27:29.771481+00:00",
-    "git_sha": "658fc80",
-    "kind": "replate",
-    "lineage": {
-      "config": "smoke",
-      "history": [
-        "00_B_101",
-        "01_B_102",
-        "02_A_103"
-      ]
-    },
-    "metrics": {
-      "baseline_deviance": 0.34186686222663804,
-      "deviance_improvement_pct": 8.10830094980326,
-      "mean_rate": 0.06753705010585745,
-      "poisson_deviance": 0.31414726818965294,
-      "rows": 17713,
-      "trained": true
-    },
-    "name": "sellthrough",
-    "params": {
-      "min_rows": 200,
-      "n_estimators": 60
-    },
-    "path": "replate/sellthrough/smoke",
-    "version": "smoke"
-  },
-  {
-    "champion": true,
     "created_at": "2026-10-04T09:22:08.548686+00:00",
     "git_sha": "9f6d1b2",
     "kind": "forecast",
@@ -251,6 +78,179 @@
       "shrink_k": 200.0
     },
     "path": "elasticity/poisson_glm/smoke",
+    "version": "smoke"
+  },
+  {
+    "champion": true,
+    "created_at": "2026-10-04T09:22:25.987710+00:00",
+    "git_sha": "58733fe",
+    "kind": "prep_time",
+    "lineage": {
+      "config": "smoke",
+      "history": [
+        "00_B_101",
+        "01_B_102",
+        "02_A_103"
+      ]
+    },
+    "metrics": {
+      "coverage_p10_p90": 0.8341313924535529,
+      "naive_mae_s": 9.953518483049224,
+      "p50_mae_pct": 0.14394216644547672,
+      "p50_mae_s": 7.047896691759333,
+      "rows_test": 36547
+    },
+    "name": "lgbm_quantile",
+    "params": {
+      "min_rows": 200,
+      "n_estimators": 80
+    },
+    "path": "prep_time/lgbm_quantile/smoke",
+    "version": "smoke"
+  },
+  {
+    "champion": true,
+    "created_at": "2026-10-04T09:22:26.695762+00:00",
+    "git_sha": "58733fe",
+    "kind": "rider_eta",
+    "lineage": {
+      "config": "smoke",
+      "history": [
+        "00_B_101",
+        "01_B_102",
+        "02_A_103"
+      ]
+    },
+    "metrics": {
+      "coverage_p10_p90": 0.782559456398641,
+      "p50_mae_s": 170.60892858481432,
+      "p90_coverage": 0.9003397508493771,
+      "platform_pred_mae_s": 169.88129327480257,
+      "rows_test": 883
+    },
+    "name": "lgbm_quantile",
+    "params": {
+      "min_rows": 200,
+      "n_estimators": 80
+    },
+    "path": "rider_eta/lgbm_quantile/smoke",
+    "version": "smoke"
+  },
+  {
+    "champion": true,
+    "created_at": "2026-10-04T09:22:27.187364+00:00",
+    "git_sha": "58733fe",
+    "kind": "text",
+    "lineage": {
+      "config": "smoke",
+      "history": [
+        "00_B_101",
+        "01_B_102",
+        "02_A_103"
+      ]
+    },
+    "metrics": {
+      "macro_f1": 0.7150631927398637,
+      "n": 750,
+      "per_label_f1": {
+        "accuracy": 0.7592592592592593,
+        "ambience": 0.8840579710144928,
+        "cold_food": 0.7106227106227107,
+        "packaging": 0.8278145695364238,
+        "price": 0.2978723404255319,
+        "quality": 0.7522697795071336,
+        "staff": 0.6938775510204082,
+        "value": 0.7204968944099379,
+        "wait": 0.7892976588628763
+      },
+      "rows": 3000
+    },
+    "name": "review_tagger",
+    "params": {
+      "source": "clean"
+    },
+    "path": "text/review_tagger/smoke",
+    "version": "smoke"
+  },
+  {
+    "champion": true,
+    "created_at": "2026-10-04T09:22:27.817718+00:00",
+    "git_sha": "58733fe",
+    "kind": "text",
+    "lineage": {
+      "config": "smoke",
+      "history": [
+        "00_B_101",
+        "01_B_102",
+        "02_A_103"
+      ]
+    },
+    "metrics": {
+      "allergy_flag_accuracy": 0.975,
+      "macro_f1": 0.9489943481666214,
+      "macro_f1_intents": 0.9376193816360487,
+      "macro_f1_modifiers": 0.9603693146971941,
+      "n": 400,
+      "per_intent_f1": {
+        "allergy": 0.9767441860465116,
+        "cutlery": 1.0,
+        "gift_message": 0.9508196721311475,
+        "modifier": 0.9426751592356688,
+        "other": 0.7719298245614035,
+        "packaging": 0.9387755102040817,
+        "rush": 0.9438202247191011,
+        "spice_level": 0.9761904761904762
+      },
+      "per_modifier_f1": {
+        "almond": 1.0,
+        "cheese": 0.9473684210526315,
+        "decaf": 1.0,
+        "hot": 0.7741935483870968,
+        "iced": 0.896551724137931,
+        "jalapeno": 1.0,
+        "large": 1.0,
+        "lesssugar": 0.9629629629629629,
+        "nonuts": 0.9803921568627451,
+        "noonion": 1.0,
+        "oat": 1.0,
+        "shot": 0.9629629629629629
+      },
+      "rows": 1600
+    },
+    "name": "note_parser",
+    "params": {
+      "source": "clean"
+    },
+    "path": "text/note_parser/smoke",
+    "version": "smoke"
+  },
+  {
+    "champion": true,
+    "created_at": "2026-10-04T09:22:28.003285+00:00",
+    "git_sha": "58733fe",
+    "kind": "replate",
+    "lineage": {
+      "config": "smoke",
+      "history": [
+        "00_B_101",
+        "01_B_102",
+        "02_A_103"
+      ]
+    },
+    "metrics": {
+      "baseline_deviance": 0.24811501993118978,
+      "deviance_improvement_pct": 15.914680726113218,
+      "mean_rate": 0.043453900267695945,
+      "poisson_deviance": 0.20862830667560875,
+      "rows": 20079,
+      "trained": true
+    },
+    "name": "sellthrough",
+    "params": {
+      "min_rows": 200,
+      "n_estimators": 60
+    },
+    "path": "replate/sellthrough/smoke",
     "version": "smoke"
   }
 ]
