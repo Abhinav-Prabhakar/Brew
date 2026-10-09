@@ -83,11 +83,13 @@ def test_backend_killed_mid_rush_degrades_then_recovers_without_duplicates(brows
     server.start()
     ctx, pg, errors = open_page(browser, f"{server.base}/?clock=open")
     try:
-        wait(pg, "BrewLive.status === 'live' && window.__seen.filter((x) => x !== 'H').length > 20")  # 07:00, events flowing
+        wait(
+            pg, "BrewLive.status === 'live' && window.__seen.filter((x) => x !== 'H').length > 20"
+        )  # 07:00, events flowing
         assert pg.evaluate("document.body.dataset.actions") == "on"
         server.kill()
         wait(pg, "BrewLive.status === 'reconnecting'", 15000)
-        assert pg.evaluate("document.querySelector('.live').dataset.status") == "reconnecting"
+        assert pg.evaluate("document.querySelector('#hud [data-live]').dataset.status") == "reconnecting"
         wait(pg, "!document.getElementById('brb').hidden", 15000)
         assert "right back" in pg.inner_text("#brb")
         assert pg.evaluate("document.body.dataset.actions") == "off"
@@ -98,16 +100,22 @@ def test_backend_killed_mid_rush_degrades_then_recovers_without_duplicates(brows
         pg.click("[data-chaos]")
         pg.wait_for_timeout(300)
         assert not sent, "an action left the page while the café was unreachable"
-        assert pg.evaluate("[...document.querySelectorAll('.toast')].some((t) => /paused/.test(t.textContent))")
+        assert pg.evaluate(
+            "[...document.querySelectorAll('.toast')].some((t) => /paused/.test(t.textContent))"
+        )
 
         server.start()  # a fresh server: the old world id is gone (WS 4404) → rejoin
         wait(pg, "BrewLive.status === 'live' && document.getElementById('brb').hidden", 45000)
         wait(pg, "window.__seen.lastIndexOf('H') < window.__seen.length - 5", 20000)
         after = pg.evaluate("window.__seen.slice(window.__seen.lastIndexOf('H') + 1)")
-        assert all(b == a + 1 for a, b in zip(after, after[1:], strict=False)), f"stream after the re-hydrate has gaps or repeats: {after[:20]}"
+        assert all(b == a + 1 for a, b in zip(after, after[1:], strict=False)), (
+            f"stream after the re-hydrate has gaps or repeats: {after[:20]}"
+        )
         pg.evaluate("document.querySelector('.tab[data-go=lobby]').click()")
         pg.wait_for_timeout(500)
-        keys = pg.evaluate("[...document.querySelectorAll('#l-rail [data-ticket]')].map((e) => e.dataset.ticket)")
+        keys = pg.evaluate(
+            "[...document.querySelectorAll('#l-rail [data-ticket]')].map((e) => e.dataset.ticket)"
+        )
         assert len(keys) == len(set(keys)), f"a ticket is drawn twice: {keys}"
         assert pg.evaluate("document.body.dataset.actions") == "on"
         assert not errors, errors[:3]
@@ -120,10 +128,13 @@ def test_no_backend_at_boot_plays_a_labelled_replay_then_goes_live(browser, serv
     static = subprocess.Popen([sys.executable, "-m", "http.server", str(sport := free_port()), "--bind", "127.0.0.1"], cwd=ROOT,
                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)  # fmt: skip
     time.sleep(0.6)
-    ctx, pg, errors = open_page(browser, f"http://127.0.0.1:{sport}/design/brew.html?api={server.base}&clock=open")
+    ctx, pg, errors = open_page(
+        browser, f"http://127.0.0.1:{sport}/design/brew.html?api={server.base}&clock=open"
+    )
     try:
         wait(pg, "BrewLive.status === 'offline-demo'", 30000)
-        assert "replay" in pg.inner_text(".live").lower() or "demo" in pg.inner_text(".live").lower()
+        conn = pg.evaluate("document.querySelector('#hud [data-live]').dataset.conn").lower()
+        assert "replay" in conn or "demo" in conn
         wait(pg, "!document.getElementById('brb').hidden", 5000)
         assert "replay" in pg.inner_text("#brb").lower()
         assert pg.evaluate("document.body.dataset.actions") == "off"

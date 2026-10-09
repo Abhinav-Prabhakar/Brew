@@ -19,7 +19,10 @@ TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "best-practice"]
 
 def violations(page: Any, axe: Axe) -> list[str]:
     res = axe.run(page, options={"runOnly": {"type": "tag", "values": TAGS}})
-    return [f"{v['id']} ({v['impact']}): {v['help']} @ {[n['target'] for n in v['nodes'][:3]]}" for v in res.response["violations"]]
+    return [
+        f"{v['id']} ({v['impact']}): {v['help']} @ {[n['target'] for n in v['nodes'][:3]]}"
+        for v in res.response["violations"]
+    ]
 
 
 def test_axe_clean_on_every_screen(open_app):
@@ -41,6 +44,36 @@ def test_axe_clean_on_every_screen(open_app):
     app.ev("() => BREW_MENUBOOK.open()")
     page.wait_for_timeout(1200)
     found["menu book"] = violations(page, axe)
+    page.hover("#mb .row[data-sku]")  # the hover card visible
+    page.wait_for_timeout(300)
+    assert page.evaluate("document.getElementById('mb-tip').classList.contains('on')")
+    found["menu book + hover card"] = violations(page, axe)
+    app.ev("() => BREW_MENUBOOK.close()")
+    page.wait_for_timeout(600)
+    page.keyboard.press("Shift+?")
+    page.wait_for_timeout(200)
+    assert page.evaluate("!document.getElementById('keys').hidden")
+    found["keys card"] = violations(page, axe)
+    page.keyboard.press("Escape")
+    summary = {
+        "day": 0,
+        "date": "2026-10-06",
+        "revenue": 174862.54,
+        "net_profit": 89037.33,
+        "orders": 303,
+        "items_sold": 826,
+        "orders_by_channel": {"takeaway": 74, "dine_in": 163},
+        "food_cost_pct": 30.45,
+        "sla_breach_rate": 0.0578,
+        "walkouts": 58,
+        "rating": 4.44,
+        "waste_kg": 6.6,
+        "price_changes": 37,
+        "ledger": {"labour": 7557.5, "rent": 6000.0},
+    }
+    app.ev("(s) => BrewHUD.zreport(s)", summary)
+    page.wait_for_timeout(300)
+    found["z-report"] = violations(page, axe)
     app.check()
     assert not any(found.values()), {k: v for k, v in found.items() if v}
 
@@ -58,25 +91,35 @@ def test_keyboard_path(open_app):
         return False
 
     # room tabs are reachable and Enter switches rooms
-    assert focus_until("document.activeElement?.dataset?.go === 'kitchen'"), "the kitchen tab is not reachable with Tab"
+    assert focus_until("document.activeElement?.dataset?.go === 'kitchen'"), (
+        "the kitchen tab is not reachable with Tab"
+    )
     page.keyboard.press("Enter")
     page.wait_for_timeout(300)
     assert page.evaluate("document.body.dataset.room") == "kitchen"
     # a zoom hot-spot: Enter zooms, Esc returns
-    assert focus_until("document.activeElement?.classList?.contains('zoomhit')"), "no zoom hot-spot reachable in the kitchen"
+    assert focus_until("document.activeElement?.classList?.contains('zoomhit')"), (
+        "no zoom hot-spot reachable in the kitchen"
+    )
     page.keyboard.press("Enter")
     assert page.evaluate("!!BrewCamera.zoomed")
     page.keyboard.press("Escape")
     assert page.evaluate("BrewCamera.zoomed === null")
     # the profit card expands with Enter and says so
-    assert focus_until("document.activeElement?.classList?.contains('money')"), "the profit card is not reachable"
+    assert focus_until("document.activeElement?.classList?.contains('money')"), (
+        "the profit card is not reachable"
+    )
     page.keyboard.press("Enter")
     page.wait_for_timeout(200)
-    assert page.evaluate("!document.getElementById('cmp').hidden && document.querySelector('#hud .money').getAttribute('aria-expanded') === 'true'")
+    assert page.evaluate(
+        "!document.getElementById('cmp').hidden && document.querySelector('#hud .money').getAttribute('aria-expanded') === 'true'"
+    )
     assert "running now" in page.evaluate("document.querySelector('#cmp svg').getAttribute('aria-label')")
     page.keyboard.press("Enter")
     # the sound control opens its panel and Esc closes it
-    assert focus_until("document.activeElement?.classList?.contains('bgm')"), "the sound control is not reachable"
+    assert focus_until("document.activeElement?.classList?.contains('bgm')"), (
+        "the sound control is not reachable"
+    )
     page.keyboard.press("Enter")
     assert page.evaluate("!document.getElementById('soundpanel').hidden")
     page.keyboard.press("Escape")
@@ -87,5 +130,7 @@ def test_keyboard_path(open_app):
     page.wait_for_timeout(1200)
     for _ in range(25):
         page.keyboard.press("Tab")
-        assert page.evaluate("document.getElementById('mb').contains(document.activeElement)"), "focus escaped the open menu book"
+        assert page.evaluate("document.getElementById('mb').contains(document.activeElement)"), (
+            "focus escaped the open menu book"
+        )
     app.check()
