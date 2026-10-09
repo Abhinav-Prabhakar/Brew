@@ -223,3 +223,24 @@ def test_wilcoxon_and_cvar():
     assert wilcoxon_p([1, 2, 3, 4, 5, 6, 7, 8]) < 0.01
     assert cvar([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 0.2) == 1.5
     assert cvar([], 0.1) == 0.0
+
+
+# ----------------------------------------------------------- supplier catalogue
+def test_supplier_catalog_calibration_changes_prices_not_the_default(cafe_cfg):
+    from brew.sim.world import World
+    from brew.synth.catalog import calibrate_suppliers, load_supplier_rows
+
+    rows = load_supplier_rows()
+    if not rows:
+        pytest.skip("clean supplier catalogue not present")
+    cal = calibrate_suppliers(cafe_cfg, rows)
+    old = {it.ingredient: it for s in cafe_cfg.suppliers for it in s.items}
+    new = {it.ingredient: it for s in cal.suppliers for it in s.items}
+    assert set(old) == set(new)
+    r = rows[0]
+    assert new[r["ingredient"]].price == r["price_inr"] or old[r["ingredient"]].pack_uom != r["pack_uom"]
+    assert any(new[k].price != old[k].price for k in old)
+    assert calibrate_suppliers(cafe_cfg, []) is cafe_cfg
+    w = World(cfg=cal, policy="B", seed=2, days=1)
+    w.run(1)
+    assert w.daily_kpis[0]["orders"] > 200
