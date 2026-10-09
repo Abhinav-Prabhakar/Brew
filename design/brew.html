@@ -88,6 +88,8 @@
   /* money in: "+₹415" rises out of the profit card as the printer cuts the bill; the amount gives a little hop */
   .money .plus{position:absolute;left:22px;top:calc(100% + 2px);font-family:var(--hand);font-size:22px;color:#4f7a45;text-shadow:1.5px 1.5px 0 #fffdf9;pointer-events:none;white-space:nowrap;animation:plusUp 1.6s var(--ease-out) forwards}
   @keyframes plusUp{0%{opacity:0;transform:translateY(14px) rotate(var(--r,0deg)) scale(.7)}18%{opacity:1;transform:translateY(0) rotate(var(--r,0deg)) scale(1.08)}70%{opacity:1}100%{opacity:0;transform:translateY(-16px) rotate(var(--r,0deg))}}
+  .money .lbl .cash{opacity:.9;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .money .plus.minus{color:var(--terra-ink)}
   .money .amt.tick{animation:tick .4s var(--ease-spring)}
   @keyframes tick{40%{transform:translateY(-3px) scale(1.04)}}
   .confetti{position:absolute;z-index:70;width:9px;height:13px;border:1.5px solid var(--ink);border-radius:2px;pointer-events:none;animation:confetti 1.5s cubic-bezier(.2,.6,.4,1) forwards}
@@ -645,7 +647,7 @@
     </div>
     <div class="hudr">
     <div class="card money" role="button" tabindex="0" aria-expanded="false" aria-controls="cmp" title="compare policies">
-      <div><div class="lbl">today's profit</div><div class="amt">—</div></div>
+      <div><div class="lbl">today's profit <span class="cash" title="cash in the till and the bank: purchases and investments come out of it"></span></div><div class="amt">—</div></div>
       <div><span class="chip up" data-vs hidden></span><div class="stars"></div></div>
     </div>
     <div class="card snd">      <button class="bgm" type="button" aria-label="sound settings" title="sound settings"><svg width="40" height="40" viewBox="0 0 40 40"><g stroke="#1d1a1c" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" fill="none"><path d="M6 15h7l9-7v24l-9-7H6z" fill="#fdeee4"/><path d="M27 14q4 6 0 12M31 10q8 10 0 20" opacity=".5"/></g></svg><span>sound</span></button>

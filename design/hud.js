@@ -72,6 +72,7 @@ function render(s){
   liveDot(); paintRate(s);
   const date = s.clock?.date ? new Date(s.clock.date + 'T00:00:00') : null;
   const fcN = perHour(s.rest?.forecast, t);
+  cashLine(s.kpis?.cash);
   const sig = [s.weather?.state, night, s.clock?.date, open, fcN, daypart(tod, open), s.kpis?.profit_today, s.kpis?.rating, s.kpis?.rating_n, s.policy?.policy, !!s.rest?.comparison].join('|');
   if (sig === hudSig) return; hudSig = sig;
   $('.clock .wx').innerHTML = weatherIcon(s.weather?.state, night);
@@ -145,9 +146,18 @@ window.BREW_LIVE?.on?.('payment.received', (d, ev) => {
   const wait = window.BrewAudio?.billLeft?.() ?? 1.4;
   floatT = setTimeout(() => { floatT = null; const n = floatSum; floatSum = 0; floatMoney(n); }, Math.min(2.2, wait + .1) * 1000);
 });
+/* cash: shown small next to the label; money going out (a delivery paid for, an investment, a refund) floats as "−₹" */
+let cashWas = null;
+function cashLine(c){
+  if (c == null) return;
+  const el = $('.money .cash'), txt = `· cash ${R.rsk(c)}`; if (el.textContent !== txt) el.textContent = txt;
+  if (cashWas != null && c < cashWas - 50 && !floatT) floatMoney(c - cashWas);  // payments only ever add; a drop is spending
+  cashWas = c;
+}
+window.BREW_LIVE?.on?.('hydrate', () => { cashWas = null; });
 function floatMoney(n){
   if (R.reduced) return;
-  const el = document.createElement('span'); el.className = 'plus'; el.textContent = '+' + money(n);
+  const el = document.createElement('span'); el.className = 'plus' + (n < 0 ? ' minus' : ''); el.textContent = (n < 0 ? '' : '+') + money(n);
   el.style.setProperty('--r', ((Math.random() * 10) - 5).toFixed(1) + 'deg');
   card.appendChild(el); setTimeout(() => el.remove(), 1700);
   R.bump($('.money .amt'), 'tick');

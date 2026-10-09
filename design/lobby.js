@@ -737,6 +737,7 @@ const RES_LABEL = {espresso: 'espresso machine', grinder: 'grinder', bar: 'bar',
   press: 'panini press', fryer: 'fryer', stove: 'stove', griddle: 'waffle iron', display: 'pastry fridge', pass: 'the pass', dishpit: 'dish pit',
   register: 'register', seats: 'seats', tables: 'seats', staff: 'baristas', baristas: 'baristas', prep: 'prep board', riders: 'riders', shelf: 'delivery shelf'};
 let bnSig = '';
+const ordered = new Set();  // bought this session: delivery (investment.delivered) can be hours away, so don't offer it twice
 function renderBottleneck(s){
   const el = card('.bn'); if (!el) return;
   // ranking + primary come from the analyzer; a station's % is the streamed station.load util (the same number as the
@@ -755,7 +756,7 @@ function renderBottleneck(s){
   h += rows.map((r) => `<div class="r" data-resource="${esc(r.res)}"><span>${esc(RES_LABEL[r.res] || (/^ingredient:/.test(r.res) ? R.human(r.res.slice(11)) + ' stock' : R.human(r.res)))}</span><span class="bar2"><i style="width:${Math.round(Math.min(1, r.rho) * 100)}%;background:${col(r.rho)}"></i></span><span class="${r.res === primary && r.rho >= .6 ? 'hot' : ''}">${Math.round(r.rho * 100)}%${r.res === primary && r.rho >= .6 ? ' ← bottleneck' : ' busy'}</span></div>`).join('')
     || `<div class="r"><span>${s.clock?.is_open ? 'measuring…' : 'closed · nothing queued'}</span><span></span><span></span></div>`;
   if (inv) { const day = inv.days_of_cover, lowc = day < 1; h += `<div class="r" data-resource="stock:${esc(inv.key)}"><span>${esc(String(inv.name || R.human(inv.key)).replace(/\s*\([^)]*\)/g, '').toLowerCase().slice(0, 22))}</span><span class="bar2"><i style="width:${Math.round(Math.min(1, day / 3) * 100)}%;background:${lowc ? 'var(--terra)' : day < 2 ? 'var(--mustard)' : 'var(--sage)'}"></i></span><span class="${lowc ? 'hot' : ''}">${day < 1 ? `~${Math.max(1, Math.round(day * 24))} h left` : day.toFixed(1) + ' days'}</span></div>`; }
-  const bought = new Set((s.investments || []).map((x) => x.catalog_key));
+  const bought = new Set([...(s.investments || []).map((x) => x.catalog_key), ...ordered]);
   if (adv) {
     const cost = adv.capex ?? adv.cost ?? 0, gain = adv.delta_profit_per_day ?? adv.profit_delta_per_day ?? 0, pay = adv.payback_days ?? (gain > 0 ? cost / gain : null);
     const can = cash >= cost && !bought.has(adv.catalog_key);
@@ -767,7 +768,7 @@ function renderBottleneck(s){
 document.querySelector('#lobby .bn')?.addEventListener('click', async (e) => {
   const b = e.target.closest('[data-action="invest"]'); if (!b || b.disabled || !window.BrewApi) return;
   const el = b.closest('.bn'); el.dataset.busy = '1'; render(R.S(), false);
-  try { await BrewApi.invest(b.dataset.catalog); toast(`ordered: ${R.human(b.dataset.catalog)} ♡`); }
+  try { await BrewApi.invest(b.dataset.catalog); ordered.add(b.dataset.catalog); toast(`ordered: ${R.human(b.dataset.catalog)} ♡`); }
   catch (err) { toast(err.message || 'could not invest', true); }
   finally { delete el.dataset.busy; bnSig = ''; render(R.S(), false); }
 });

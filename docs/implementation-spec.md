@@ -397,7 +397,7 @@ All policies are pure w.r.t. RNG except via `world.rng.policy`.
 - `schema.py`: one Pydantic model per event type (`model_config = ConfigDict(frozen=True, extra="forbid")`) and a discriminated union `Event = Annotated[Union[...], Field(discriminator="type")]`. Field names are **snake_case**, money floats, times `sim_s` floats (+ ISO `t` added by the envelope).
 - Envelope: `{"seq": int, "sim_s": float, "t": str, "type": str, "data": {...}}`. `seq` strictly increasing per world from 1.
 - `bus.py`: `EventSink` protocol with `emit(ev)`; implementations: `ListSink` (tests), `RingBufferSink(maxlen=10_000)`, `ParquetSink` (buffered, flush on day end), `FanoutSink`.
-- **Emission throttles** (keep the stream lean): `order.progress` only at state change or every 5 % progress; `customer.patience` at 60/30/10 %; `clock.tick` per sim minute; `kpi.tick` every 5 sim minutes; `rail.reordered` only when the order/batches actually change (compare tuple).
+- **Emission throttles** (keep the stream lean): `order.progress` only at state change or every 5 % progress; `customer.patience` at 60/30/10 %; `clock.tick` per sim minute; `kpi.tick` every 5 sim minutes plus once after each money movement (payment, refund, PO receipt, investment, restock); `rail.reordered` only when the order/batches actually change (compare tuple).
 - Serialisation: `orjson.dumps(envelope)`; WS frames aggregate events produced during a wall-clock 75 ms window.
 - `GET /api/v1/events/schema` returns JSON Schema of the union (frontend codegen later).
 

@@ -286,14 +286,14 @@ Server → client: **batched frames** every 50–100 ms wall time: `{"frame": n,
 | `replate.listed` / `replate.marked_down` | `listing_id, sku, lot_id, units, made_at_s, use_by_s, discount_pct, price` | Replate section in menu book, fridge tag |
 | `replate.sold` | `listing_id, order_no, units, price` | rescue counter |
 | `replate.retired` | `listing_id, units, outcome: donated|wasted|sold_out` | tag removed |
-| `stock.changed` (finished goods & key ingredients) | `key, qty, low: bool` | fridge items + tags |
+| `stock.changed` (finished goods & key ingredients; raw ingredients at most once per key per sim minute) | `key, qty, low: bool` | fridge items + tags |
 | `lot.opened` / `lot.expired` / `po.created` / `po.received` | … | pantry (later) |
 | `task.started` / `task.finished` | `task_id, station, staff_id, order_no?, est_s` | espresso steam, kitchen (later) |
 | `prep.started` / `prep.ready` / `prep.expired` | `prep_key, qty` | kitchen/pantry |
 | `staff.*`, `equipment.down/up` | … | kitchen / chaos |
 | `station.load` (every 60 sim-s while open, and once at open) | `stations[{station, util (busy share, mean of the last 15 sim-min, 0..1), queue (tasks waiting), in_use (slots in use, or staff working there when slots = 0), slots, status: up\|down, down_until_s}]` for every station | kitchen station cards, LEDs and % |
 | `staff.status` (every 60 sim-s while any staff is present) | `staff[{staff_id, fatigue, station, task, state: working\|idle\|break\|off\|absent, break_due_s, break_end_s}]` | crew list: fatigue bar, "break due in N min", break countdown |
-| `kpi.tick` (every 5 sim min) | `cash, revenue_today, profit_today, rating, rating_n, load_pct, open_orders, walkouts_today` | HUD numbers |
+| `kpi.tick` (every 5 sim min, and right after money moves: payment, refund, PO receipt, investment, fridge restock) | `cash, revenue_today, profit_today, rating, rating_n, load_pct, open_orders, walkouts_today` | HUD numbers (profit, cash, and the "−₹" when money goes out) |
 | `decision.made` | `decision_id, type, summary, policy, top_factors, clipped, headline, trigger` | office sticky notes. `headline` is <= 60 chars of plain English built from the decision's structured content (e.g. "prep 4 L cold brew concentrate", "espresso down → prep 2 L cold brew"). `trigger` is the disruption id when the decision is the immediate re-plan after a **manual** disruption, else null: `POST /chaos` schedules the active policy's tick at the same sim time (after the disruption's effects; the regular 15-min cadence continues, a regular tick within 60 sim-s of the re-plan is skipped). It always emits one `decision.made` (the policy's own decision carrying `trigger`, or `type: replan` with headline "espresso down: no change needed"). Scenario / MTBF-failure / random-chaos disruptions do not re-plan (keeps arena and training trajectories unchanged). |
 | `bottleneck.changed` | `resource, rho, shadow_price` | office gauge |
 | `chaos.triggered` / `chaos.resolved` | `disruption_id, kind, target, severity, until_s, source` | chaos console |
