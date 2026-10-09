@@ -21,6 +21,7 @@ STREAM_NAMES = (
     "adversary",
     "policy",
     "replate",
+    "combos",
 )
 
 
@@ -55,6 +56,7 @@ class RngStreams:
         self.adversary = self.g["adversary"]
         self.policy = self.g["policy"]
         self.replate = self.g["replate"]
+        self.combos = self.g["combos"]
 
     def reseed(self, seed: int) -> None:
         """Re-create all streams from a new seed (used by ``fork(reseed=...)``)."""

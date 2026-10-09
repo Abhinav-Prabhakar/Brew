@@ -27,6 +27,7 @@ from .actions import UnknownTarget as NotFound
 from .arrivals import SLOTS, DayPlan, build_day_plan
 from .calendar import Calendar
 from .choice import ChoiceModel, weather_fit
+from .combos import Combos
 from .customers import Customers
 from .delivery import Delivery
 from .demandlog import DemandLog
@@ -155,6 +156,7 @@ class World:
         self.reviews = Reviews(self)
         self.fin = Finance(self, keep_ledger_entries)
         self.replate = Replate(self)
+        self.combos = Combos(self)
         self.dlog = DemandLog([m.sku for m in self.cfg.menu])
         self.invest = Investments(self)
         self.fridge_factor = 1.0
@@ -326,6 +328,7 @@ class World:
             self.init_stock()
         self.kpi.reset()
         self.replate.reset_day()
+        self.combos.reset_day()
         self.customers.walkouts_today = self.customers.balks_today = self.customers.reneges_today = 0
         self.customers.arrived_today = self.customers.table_turns_today = 0
         self.reviews.neg_today = 0
@@ -746,6 +749,7 @@ class World:
         self.emit(
             "price.changed", sku=sku, old=old, new=m.price, base=m.base, dir=d, reason_text=reason, by=by
         )
+        self.combos.refresh(reason=f"{self.ix.menu[sku].name} repriced", by=by)
         return True, chk.reason
 
     def set_featured(self, sku: str, on: bool, by: str, reason: str = "") -> bool:

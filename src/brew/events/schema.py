@@ -19,6 +19,7 @@ class OrderLine(D):
     mods: list[str] = []
     unit_price: float
     replate: bool = False
+    combo: str | None = None
 
 
 # ---- time / world ---------------------------------------------------------------

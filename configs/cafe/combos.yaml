@@ -1,0 +1,27 @@
+# Meal combos (backend.md 3.12): two-item bundles priced to lift the average ticket.
+# Combo price = round_to(sum of the components' LIVE prices x (1 - discount_pct/100)), so it moves whenever a
+# component is repriced. A customer whose basket holds one half of a combo may add the other half at the combo
+# price (the up-sell); a basket that already holds both halves simply gets the combo price.
+enabled: true
+round_to: 5
+upsell_base: 0.08        # P(add the missing half) at 0 % saving ...
+upsell_per_pct: 0.012    # ... + this per % saving ...
+upsell_max: 0.32         # ... capped here, then x persona factor
+persona_factor:
+  student: 1.4
+  commuter: 1.1
+  office_bulk: 1.2
+  family: 1.2
+  remote_worker: 1.1
+  regular: 1.0
+  tourist: 1.0
+  leisurely: 0.9
+  delivery_home: 0.8
+combos:
+  - {id: morning_fuel, name: Morning Fuel, skus: [cappuccino, croissant], discount_pct: 12, tagline: "the 8 am classic"}
+  - {id: brunch_date, name: Brunch Date, skus: [avotoast, latte], discount_pct: 10, tagline: "toast + a latte, slow morning"}
+  - {id: chai_bun, name: Chai & Bun, skus: [chai, cinnamon], discount_pct: 12, tagline: "cutting chai, warm roll"}
+  - {id: sweet_tooth, name: Sweet Tooth, skus: [matcha, cheesecake], discount_pct: 12, tagline: "green tea + a fat slice"}
+  - {id: study_fuel, name: Study Fuel, skus: [coldbrew, muffin], discount_pct: 15, tagline: "one more chapter"}
+  - {id: snack_attack, name: Snack Attack, skus: [fries, strawberryshake], discount_pct: 12, tagline: "fries dipped in shake, trust us"}
+  - {id: power_lunch, name: Power Lunch, skus: [sandwich, icedlatte], discount_pct: 10, tagline: "paneer tikka + iced latte"}

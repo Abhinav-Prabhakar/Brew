@@ -153,6 +153,8 @@ class Customers:
             items.append((sku, self._rp_mark(rp, sku, mods, j >= J, claimed)))
         if not items and nd + nf > 0:
             return None
+        if items and not bulk and w.combos.enabled:
+            items = w.combos.mark_basket(items, persona, float(plan.combo_u[i]), agg)
         if items and not bulk and w.cfg.replate.addon_enabled and ch.rp_mask is not None:
             ja = ch.addon_choice(persona, plan.gumbel_rp[off], float(plan.gumbel_addon[off]), allowed)
             if ja >= 0:
@@ -582,7 +584,7 @@ class Customers:
             (u for u in first.units if w.ix.menu[u.sku].cat in ("coffee", "notcoffee")), first.units[0]
         )
         o = w.orders.make_order(
-            p.channel, p.persona, p.name, p.id, [(drink.sku, tuple(m for m in drink.mods if m != RP))], None, [],
+            p.channel, p.persona, p.name, p.id, [(drink.sku, tuple(m for m in drink.mods if m[:1] != "~"))], None, [],
             refill=True,
         )  # fmt: skip
         if w.orders.commit(o):

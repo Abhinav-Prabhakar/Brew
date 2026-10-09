@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING, Any
 from brew.domain.timeutil import DAY_S, parse_hhmm
 
 from .engine import P_DECIDE, P_DONE
-from .replate import RP
 from .rng import Buffered, lognormal_params
 from .state import (
     T_CANCEL,
@@ -237,7 +236,7 @@ class Kitchen:
         """Create the task DAG for one unit from its recipe."""
         w = self.w
         r = w.cfg.recipes.recipes[unit.sku]
-        extra = sum(w.ix.mod[m].extra_prep_s for m in unit.mods if m != RP)
+        extra = sum(w.ix.mod[m].extra_prep_s for m in unit.mods if m[:1] != "~")
         if unit.premade:
             self._build_premade_unit(order, unit)
             return

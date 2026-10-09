@@ -70,6 +70,7 @@ class DayPlan:
     laptop_u: np.ndarray
     gumbel_rp: np.ndarray
     gumbel_addon: np.ndarray
+    combo_u: np.ndarray
     day_noise: float
     static_mult: dict[str, np.ndarray]
 
@@ -170,6 +171,7 @@ def build_day_plan(
     mod_u = rng.modifiers.random((total, 4))
     gumbel_rp = rng.replate.gumbel(size=(total, n_sku))
     gumbel_addon = rng.replate.gumbel(size=total)
+    combo_u = rng.combos.random(n)  # meal-combo up-sell draws (own stream: CRN-safe)
     return DayPlan(
         day=day,
         personas=P,
@@ -197,6 +199,7 @@ def build_day_plan(
         laptop_u=cu[:, 2],
         gumbel_rp=gumbel_rp,
         gumbel_addon=gumbel_addon,
+        combo_u=combo_u,
         day_noise=day_noise,
         static_mult=static_mult,
     )

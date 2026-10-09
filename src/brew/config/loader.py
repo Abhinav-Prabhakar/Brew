@@ -16,6 +16,7 @@ from .schemas import (
     CatalogItem,
     Channel,
     CharterConfig,
+    CombosConfig,
     EquipmentType,
     Ingredient,
     MenuItem,
@@ -83,6 +84,7 @@ def load_cafe(path: str | Path | None = None) -> CafeConfig:
         catalog=tuple(CatalogItem(**c) for c in _y(d / "catalog.yaml")),
         calendar_fallback=tuple(CalendarEvent(**c) for c in _y(d / "calendar_fallback.yaml")),
         replate=ReplateConfig(**_y(d / "replate.yaml")) if (d / "replate.yaml").exists() else ReplateConfig(),
+        combos=CombosConfig(**_y(d / "combos.yaml")) if (d / "combos.yaml").exists() else CombosConfig(),
     )
     validate_cafe(cfg)
     return cfg
@@ -181,6 +183,16 @@ def validate_cafe(cfg: CafeConfig) -> None:
                 errs.append(f"menu item {m.sku}: replate stock_key {rp.stock_key} unknown")
             if rp.stock_key is None and rp.premake_hold_s <= 0:
                 errs.append(f"menu item {m.sku}: replate premake_hold_s must be > 0")
+    seen_combo: set[str] = set()
+    for cb in cfg.combos.combos:
+        if cb.id in seen_combo:
+            errs.append(f"combo {cb.id}: duplicate id")
+        seen_combo.add(cb.id)
+        if len(cb.skus) != 2 or len(set(cb.skus)) != 2:
+            errs.append(f"combo {cb.id}: needs exactly two different skus")
+        for sk in cb.skus:
+            if sk not in skus:
+                errs.append(f"combo {cb.id}: unknown sku {sk}")
     for name, lad in cfg.replate.ladders.items():
         pcts = [p for _f, p in lad.rungs] + [lad.last_pct]
         if pcts != sorted(pcts):

@@ -154,5 +154,6 @@ class Kpis:
             "rider_wait_s": round(self.rider_wait_s, 1),
             "cash": round2(w.fin.cash),
             **w.replate.kpis(),
+            **w.combos.kpis(),
             "ledger": {k: round2(v) for k, v in led.items()},
         }

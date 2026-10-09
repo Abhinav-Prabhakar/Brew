@@ -105,6 +105,14 @@ Food that was **pre-prepped / pre-made ahead of demand** and is nearing the end 
 - **KPIs / impact:** replate units sold, revenue recovered, waste kg & CO₂e avoided, **cannibalisation** (CRN counterfactual: same seed with replate off), net effect on profit.
 - **Frontend (later):** a "Replate" section in the menu book, green "replate" tags on fridge items, a rescue counter on the HUD.
 
+### 3.12 Meal combos (up-spend bundles)
+Two-item combos (`configs/cafe/combos.yaml`, e.g. *Morning Fuel* = cappuccino + croissant, 12 % off) are a menu category of their own.
+- **Live price:** `round_to_5(sum of the components' live prices × (1 − discount))`, so a combo reprices whenever a component does (`price.changed` with `sku: "combo:<id>"`). Never below the floor of a sensible saving, never above the à-la-carte sum.
+- **Up-sell (the point of combos):** a customer whose basket holds one half may add the other half at the combo price with `p = min(0.32, 0.08 + 0.012 × saving%) × persona factor` (students 1.4 … delivery 0.8). One draw per customer from the `combos` RNG stream (CRN-safe). A basket that already holds both halves simply gets the combo price.
+- **Order lines** carry `combo: <id>`; the combo price is split pro rata over its component lines. Replate-priced units are never part of a combo; a hidden/sold-out component makes the combo unavailable.
+- **KPIs:** `combo_orders`, `combo_revenue`, `combo_upsells`, `combo_paired`. Measured effect (Policy C, 2 days): revenue +5 %, profit +₹3.9k/day, average ticket ₹500 → ₹521.
+- **API:** `GET /worlds/{id}/combos`; `combos` in the `/state` snapshot.
+
 ---
 
 ## 4. Policies

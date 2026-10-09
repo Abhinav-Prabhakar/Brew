@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 from brew.domain.money import round2
 from brew.domain.timeutil import tod_s
 
+from .combos import combo_of
 from .engine import P_DONE
 from .replate import RP
 from .state import Order, Unit
@@ -54,7 +55,7 @@ class Orders:
         w = self.w
         best = 0.0
         for sku, mods in items:
-            extra = sum(w.ix.mod[m].extra_prep_s for m in mods if m != RP)
+            extra = sum(w.ix.mod[m].extra_prep_s for m in mods if m[:1] != "~")
             best = max(best, self.critical_path(sku) + extra)
         return best + (w.cfg.cafe.bag_s if carry else 0.0)
 
@@ -110,10 +111,16 @@ class Orders:
         w = self.w
         ms = w.menu[sku]
         rp = RP in mods
-        real = tuple(m for m in mods if m != RP)
+        cb = combo_of(mods)
+        real = tuple(m for m in mods if m[:1] != "~")
         delta = w.mod_delta(real)
         price = w.replate.price(sku) if rp else ms.price
-        line = {"sku": sku, "qty": qty, "mods": list(real), "unit_price": round2(price + delta), "replate": rp}
+        if cb is not None and not rp and cb in w.combos.items:
+            price = price * w.combos.factor(cb)  # combo price split pro rata over its components
+        line = {
+            "sku": sku, "qty": qty, "mods": list(real), "unit_price": round2(price + delta), "replate": rp,
+            "combo": cb,
+        }  # fmt: skip
         return line, (ms.ref_price + delta) * qty
 
     def estimate_promise(self, o: Order, extra: float = 0.0) -> float:
@@ -129,7 +136,7 @@ class Orders:
         w = self.w
         carry = o.channel != "dine_in"
         rp = w.replate
-        real = tuple(m for m in u.mods if m != RP)
+        real = tuple(m for m in u.mods if m[:1] != "~")
         premade = False
         backed = None
         if RP in u.mods and not remake:
@@ -191,6 +198,7 @@ class Orders:
             w.menu[ln["sku"]].sold_today += ln["qty"]
             w.dlog.add(self.sku_idx[ln["sku"]], o.channel, slot, ln["qty"], ln["replate"])
         w.kpi.on_order_placed(o)
+        w.combos.record_order(o)
         if w.tele is not None:
             w.tele.order_placed(w, o)
         w.recheck_availability(w.inv.stock_dirty)
@@ -238,7 +246,7 @@ class Orders:
             items=[
                 {
                     "sku": ln["sku"], "qty": ln["qty"], "mods": ln["mods"], "unit_price": ln["unit_price"],
-                    "replate": ln["replate"],
+                    "replate": ln["replate"], "combo": ln.get("combo"),
                 }
                 for ln in o.lines
             ],

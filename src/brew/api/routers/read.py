@@ -85,6 +85,13 @@ def replate(mw: MW) -> dict[str, Any]:
         return _wrap(mw, rm.replate(mw.world))
 
 
+@router.get("/worlds/{wid}/combos")
+def combos(mw: MW) -> dict[str, Any]:
+    """Meal combos with live prices (derived from the components' current prices)."""
+    with mw.lock:
+        return _wrap(mw, {"combos": mw.world.combos.menu_json()})
+
+
 @router.get("/worlds/{wid}/shelf")
 def shelf(mw: MW) -> dict[str, Any]:
     with mw.lock:

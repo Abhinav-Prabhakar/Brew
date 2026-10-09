@@ -33,7 +33,7 @@ EPS = 1e-6
 
 def strip_rp(mods: tuple[str, ...]) -> tuple[str, ...]:
     """Modifiers without the replate marker."""
-    return tuple(m for m in mods if m != RP)
+    return tuple(m for m in mods if m[:1] != "~")
 
 
 class ReplateError(Exception):

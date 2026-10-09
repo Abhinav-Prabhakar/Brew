@@ -81,7 +81,7 @@ def order_json(w: World, o: Order, batches: dict[int, int] | None = None) -> dic
     return {
         "order_no": o.order_no, "order_id": o.id, "channel": o.channel, "persona": o.persona, "name": o.name,
         "party_id": o.party_id, "status": o.state, "progress_state": state, "progress": round(prog, 2),
-        "items": [{"sku": ln["sku"], "qty": ln["qty"], "mods": ln["mods"], "unit_price": ln["unit_price"], "replate": ln["replate"]} for ln in o.lines],
+        "items": [{"sku": ln["sku"], "qty": ln["qty"], "mods": ln["mods"], "unit_price": ln["unit_price"], "replate": ln["replate"], "combo": ln.get("combo")} for ln in o.lines],
         "note": o.note, "note_flags": o.note_flags, "placed_s": round(o.placed_s, 1),
         "promised_s": round(o.promised_s, 1), "ready_s": round(o.ready_s, 1) if o.ready_s else None,
         "served_s": round(o.served_s, 1) if o.served_s else None, "bumped": o.bumped,
@@ -383,6 +383,7 @@ def state(w: World) -> dict[str, Any]:
         "tables": tables(w),
         "fridge": fridge(w),
         "replate": replate(w),
+        "combos": w.combos.menu_json(),
         "shelf": shelf(w),
         "staff": staff(w),
         "equipment": equipment(w),

@@ -382,6 +382,28 @@ class ReplateConfig(_M):
     addon_kappa: float = 2.75  # utility of "no add-on" (higher = fewer add-ons)
 
 
+class Combo(_M):
+    """A two-item meal combo priced off its components' live prices (backend.md 3.12)."""
+
+    id: str
+    name: str
+    skus: tuple[str, ...]
+    discount_pct: float = Field(gt=0, lt=50)
+    tagline: str = ""
+
+
+class CombosConfig(_M):
+    """Meal combos, ``configs/cafe/combos.yaml``."""
+
+    enabled: bool = True
+    round_to: float = 5.0
+    upsell_base: float = 0.08  # P(add the missing half) at 0 % saving
+    upsell_per_pct: float = 0.012  # + per % saving
+    upsell_max: float = 0.32  # cap before the persona factor
+    persona_factor: dict[str, float] = {}
+    combos: tuple[Combo, ...] = ()
+
+
 class CafeConfig(_M):
     cafe: CafeProfile
     menu: tuple[MenuItem, ...]
@@ -400,6 +422,7 @@ class CafeConfig(_M):
     catalog: tuple[CatalogItem, ...]
     calendar_fallback: tuple[CalendarEvent, ...]
     replate: ReplateConfig = ReplateConfig()
+    combos: CombosConfig = CombosConfig()
 
     # --- convenience lookups (computed lazily, cached outside the frozen model) ---
     def index(self) -> ConfigIndex:
