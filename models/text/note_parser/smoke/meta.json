@@ -1,0 +1,52 @@
+{
+  "champion": true,
+  "created_at": "2026-10-03T17:27:23.749497+00:00",
+  "git_sha": "658fc80",
+  "kind": "text",
+  "lineage": {
+    "config": "smoke",
+    "history": [
+      "00_B_101",
+      "01_B_102",
+      "02_A_103"
+    ]
+  },
+  "metrics": {
+    "allergy_flag_accuracy": 0.975,
+    "macro_f1": 0.9489943481666214,
+    "macro_f1_intents": 0.9376193816360487,
+    "macro_f1_modifiers": 0.9603693146971941,
+    "n": 400,
+    "per_intent_f1": {
+      "allergy": 0.9767441860465116,
+      "cutlery": 1.0,
+      "gift_message": 0.9508196721311475,
+      "modifier": 0.9426751592356688,
+      "other": 0.7719298245614035,
+      "packaging": 0.9387755102040817,
+      "rush": 0.9438202247191011,
+      "spice_level": 0.9761904761904762
+    },
+    "per_modifier_f1": {
+      "almond": 1.0,
+      "cheese": 0.9473684210526315,
+      "decaf": 1.0,
+      "hot": 0.7741935483870968,
+      "iced": 0.896551724137931,
+      "jalapeno": 1.0,
+      "large": 1.0,
+      "lesssugar": 0.9629629629629629,
+      "nonuts": 0.9803921568627451,
+      "noonion": 1.0,
+      "oat": 1.0,
+      "shot": 0.9629629629629629
+    },
+    "rows": 1600
+  },
+  "name": "note_parser",
+  "params": {
+    "source": "clean"
+  },
+  "path": "text/note_parser/smoke",
+  "version": "smoke"
+}

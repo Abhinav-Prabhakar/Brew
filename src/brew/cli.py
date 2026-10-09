@@ -229,12 +229,6 @@ def train_stage(
 
 def train_main() -> None:
     """Entry point: ``brew-train <stage> --config configs/train/smoke.yaml``."""
-    import sys
-
-    stages = {"history", "forecast", "elasticity", "prep_time", "rider_eta", "text", "replate", "eval", "all", *M3_STAGES}
-    args = sys.argv[1:]
-    if args and args[0] in stages:
-        sys.argv = [sys.argv[0], "stage", *args]
     train_app()
 
 
