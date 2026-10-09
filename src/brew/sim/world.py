@@ -22,6 +22,8 @@ from brew.policies.charter import Charter, CharterViolation
 from brew.synth.loaders import Corpora, load_corpora
 
 from . import weather as wx
+from .actions import InvalidAction
+from .actions import UnknownTarget as NotFound
 from .arrivals import SLOTS, DayPlan, build_day_plan
 from .calendar import Calendar
 from .choice import ChoiceModel, weather_fit
@@ -50,14 +52,6 @@ RAIN_CH = {
     "rain": {"dine_in": 0.75, "takeaway": 0.9, "zomato": 1.5, "swiggy": 1.5},
     "drizzle": {"dine_in": 0.9, "takeaway": 0.95, "zomato": 1.25, "swiggy": 1.25},
 }
-
-
-class InvalidAction(Exception):
-    """Action not valid in the current state (HTTP 409)."""
-
-
-class NotFound(Exception):
-    """Entity does not exist (HTTP 404)."""
 
 
 class World:

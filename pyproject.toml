@@ -52,7 +52,7 @@ markers = ["slow: training / long-running tests", "property: Hypothesis invarian
 addopts = "-q -m 'not slow' --timeout=180"
 asyncio_mode = "auto"
 testpaths = ["tests"]
-filterwarnings = ["ignore::DeprecationWarning"]
+filterwarnings = ["ignore::DeprecationWarning", "ignore:Using .httpx. with"]
 
 [tool.ruff]
 line-length = 110
