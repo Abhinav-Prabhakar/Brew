@@ -1,6 +1,6 @@
-/* generated from configs/cafe (menu.yaml, combos.yaml) by scripts/export_menu.py — do not edit by hand */
+/* generated from configs/cafe (menu.yaml, combos.yaml, modifiers.yaml) by scripts/export_menu.py — do not edit by hand */
 window.BREW_MENU = {
- "_note": "snapshot of configs/cafe; the live app reads GET /api/v1/worlds/{id}/state",
+ "_note": "static catalogue from configs/cafe; live prices/state come from GET /api/v1/worlds/{id}/state",
  "menu": [
   {
    "sku": "cappuccino",
@@ -519,5 +519,67 @@ window.BREW_MENU = {
    "tagline": "paneer tikka + iced latte"
   }
  ],
- "combo_round_to": 5.0
+ "combo_round_to": 5.0,
+ "modifiers": {
+  "oat": {
+   "label": "oat",
+   "long": "oat milk",
+   "allergy": false
+  },
+  "almond": {
+   "label": "almond",
+   "long": "almond milk",
+   "allergy": false
+  },
+  "shot": {
+   "label": "+1 shot",
+   "long": "extra shot",
+   "allergy": false
+  },
+  "decaf": {
+   "label": "decaf",
+   "long": "decaf",
+   "allergy": false
+  },
+  "lesssugar": {
+   "label": "1/2 sugar",
+   "long": "less sugar",
+   "allergy": false
+  },
+  "iced": {
+   "label": "iced",
+   "long": "make it iced",
+   "allergy": false
+  },
+  "hot": {
+   "label": "xtra hot",
+   "long": "extra hot",
+   "allergy": false
+  },
+  "large": {
+   "label": "large",
+   "long": "large size",
+   "allergy": false
+  },
+  "noonion": {
+   "label": "onion",
+   "long": "no onion",
+   "allergy": false
+  },
+  "nonuts": {
+   "label": "nuts",
+   "long": "nut allergy",
+   "allergy": true
+  },
+  "cheese": {
+   "label": "+cheese",
+   "long": "extra cheese",
+   "allergy": false
+  },
+  "jalapeno": {
+   "label": "jalapeno",
+   "long": "add jalapenos",
+   "allergy": false
+  }
+ }
 };

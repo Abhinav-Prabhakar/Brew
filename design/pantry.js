@@ -1,83 +1,71 @@
-/* brew — pantry room: walk-in fridge + dry store. Draws into #pantry-scene, fills the pantry panels, drives the hover card.
-   Every visual is generated from ITEMS below. Reuses lobby.js helpers (I, st, C, th, use) and kitchen.js symbols (k-*). */
+/* brew — pantry room: walk-in fridge + dry store. The shelves are drawn once; what sits on them, how full it is,
+   the lot tags (first expiry, first out), the hover card (lots, today's usage forecast P50/P90, cover, reorder,
+   CO₂e, supplier) and the three panels (freshness by value, days of cover, next delivery + approve) all come from
+   the live inventory read models (GET /inventory, /inventory/{key}/lots, /inventory/{key}/forecast,
+   /purchasing/proposal, /impact). Reuses doodles.js + render.js and kitchen.js symbols (k-*). */
 (() => {
 const K = {steel:'#e4e7eb', steelD:'#c7cdd4', steelL:'#f2f4f6', wood:'#c99a6e', woodD:'#a87a52', glass:'#e6f1f4', brew:'#6b3f26', chrome:'#d9dee3'};
 const FR = {fresh:'#bfe6cf', mid:'#f6c76a', bad:'#ef7d6d', none:'#ece4d8'};
 const S = [318, 498, 678];                      // shelf deck heights, top to bottom
-const t = (x, y, s, sz = 14, opt = '') => `<text x="${x}" y="${y}" ${opt} font-family="Patrick Hand" font-size="${sz}" fill="${I}">${s}</text>`;
-const gt = (x, y, s, sz = 18, opt = '') => `<text x="${x}" y="${y}" ${opt} font-family="Gochi Hand" font-size="${sz}" fill="${I}">${s}</text>`;
-const fresh = l => l.dl == null ? 'none' : l.life <= 1 ? (l.dl / l.life > .6 ? 'fresh' : l.dl / l.life > .3 ? 'mid' : 'bad') : l.dl <= .5 ? 'bad' : l.dl <= 1.5 ? 'mid' : 'fresh';
-const fmtDl = d => d == null ? '—' : d < 1 ? Math.max(1, Math.round(d * 24)) + 'h' : d < 45 ? Math.round(d) + 'd' : Math.round(d / 30) + 'mo';
-const covCol = c => c < 1 ? FR.bad : c < 2 ? FR.mid : FR.fresh;
-const L = (q, rec, exp, dl, life, op) => ({q, rec, exp, dl, life, op});
+const t = tx, gt = gtx;
+const covCol = c => c == null ? FR.none : c < 1 ? FR.bad : c < 2 ? FR.mid : FR.fresh;
 
-/* ---------- stock ---------- */
-const ITEMS = [
+/* ---------- shelf slots → real inventory keys (the art per slot stays hand-drawn) ---------- */
+const SLOTS = [
   // walk-in · top shelf
-  {id:'oat', name:'oat milk', kind:'carton', s:0, x:218, w:112, h:84, n:4, lvl:.45, col:'#e3c27a', open:true, on:'9.4 L', par:.59, u:'L', onN:9.4, p50:7.2, p90:9.8, cover:1.1, re:'+12 L', by:'14:00', co2:.9, sup:'GreenLeaf Oats',
-    lots:[L('1.4 L','4 Oct','7 Oct',1.1,10,'06:50'), L('4 L','5 Oct','12 Oct',6,10), L('4 L','6 Oct','15 Oct',9,10)]},
-  {id:'milk', name:'whole milk', kind:'carton', s:0, x:338, w:104, h:84, n:3, lvl:.18, col:'#8fb9de', open:true, on:'5.2 L', par:.35, u:'L', onN:5.2, p50:5.8, p90:7.4, cover:.8, re:'+8 L', by:'12:00', co2:3.2, sup:'Nandi Dairy Co-op',
-    lots:[L('0.4 L','3 Oct','6 Oct',.3,5,'07:15'), L('2 L','5 Oct','9 Oct',3,5), L('3 L','6 Oct','10 Oct',4,5)]},
-  {id:'cream', name:'cream', kind:'carton', s:0, x:450, w:84, h:66, n:3, lvl:.7, col:'#f2d78f', cw:24, ch:40, on:'1.5 L', par:.75, u:'L', onN:1.5, p50:.6, p90:.9, cover:2.5, co2:7.6, sup:'Nandi Dairy Co-op',
-    lots:[L('0.5 L','4 Oct','10 Oct',4,8), L('1 L','6 Oct','14 Oct',8,8)]},
-  {id:'butter', name:'butter', kind:'blocks', s:0, x:545, w:80, h:52, n:3, col:'#f7e3a0', lab:'#fff', bw:30, bh:15, on:'1.5 kg', par:.6, u:'kg', onN:1.5, p50:.4, p90:.6, cover:3.4, co2:9, sup:'Nandi Dairy Co-op',
-    lots:[L('3 × 500 g','1 Oct','29 Oct',23,28)]},
-  {id:'paneer', name:'paneer', kind:'blocks', s:0, x:655, w:96, h:70, n:5, col:'#f8f4e8', lab:C.pink, open:true, on:'2 kg', par:.5, u:'kg', onN:2, p50:.9, p90:1.4, cover:2.8, re:'+2 kg', by:'tmrw', co2:8, sup:'Nandi Dairy Co-op',
-    lots:[L('2 × 400 g','4 Oct','8 Oct',2,5,'08:05'), L('3 × 400 g','6 Oct','11 Oct',5,5)]},
-  {id:'berry', name:'berries', kind:'punnets', s:0, x:785, w:134, h:64, n:5, berries:['#e0554a','#5b6fa8','#e0554a','#5b6fa8','#e0554a'], bad:[0], on:'5 punnets', par:.42, u:'', onN:5, p50:3, p90:5, cover:1.2, re:'+6', by:'tmrw', co2:1.5, sup:'Hosur Berry Farm',
-    lots:[L('1 punnet','3 Oct','6 Oct',.25,4), L('4 punnets','5 Oct','9 Oct',3,4)]},
-  {id:'avo', name:'avocados', kind:'crate', s:0, x:930, w:124, h:58, n:9, fruit:'avo', on:'9', par:.45, u:'', onN:9, p50:6, p90:9, cover:1, re:'+12', by:'tmrw', co2:2.5, sup:'GreenLeaf Farms',
-    lots:[L('4 ripe','4 Oct','7 Oct',1.2,4), L('5 firm','6 Oct','11 Oct',5,6)]},
+  {id:'oat_milk', kind:'carton', s:0, x:218, w:112, h:84, col:'#e3c27a', unitsMax:4},
+  {id:'milk', kind:'carton', s:0, x:338, w:104, h:84, col:'#8fb9de', unitsMax:3},
+  {id:'almond_milk', kind:'carton', s:0, x:450, w:84, h:66, col:'#f2d78f', cw:24, ch:40, unitsMax:3},
+  {id:'butter', kind:'blocks', s:0, x:545, w:80, h:52, col:'#f7e3a0', lab:'#fff', bw:30, bh:15, unitsMax:3},
+  {id:'paneer', kind:'blocks', s:0, x:655, w:96, h:70, col:'#f8f4e8', lab:C.pink, unitsMax:5},
+  {id:'strawberry_puree', kind:'jugs', s:0, x:785, w:134, h:64, jcol:'#e0554a'},
+  {id:'avocado', kind:'crate', s:0, x:930, w:124, h:58, fruit:'avo', unitsMax:9},
   // walk-in · middle shelf
-  {id:'dough', name:'croissant dough', kind:'trays', s:1, x:232, w:140, h:96, n:4, on:'40 pcs', par:.66, u:'', onN:40, p50:28, p90:40, cover:1.6, re:'bake 2 trays', by:'09:00', co2:2.8, sup:'Bengaluru Bakehouse',
-    lots:[L('1 tray','5 Oct','7 Oct',1,3,'07:30'), L('3 trays','6 Oct','9 Oct',2.8,3)]},
-  {id:'cheese', name:'cheddar', kind:'blocks', s:1, x:380, w:90, h:52, n:3, col:'#f3c94e', lab:'#fff', bw:36, bh:18, open:true, on:'1.8 kg', par:.6, u:'kg', onN:1.8, p50:.3, p90:.5, cover:6, co2:13.5, sup:'Kodai Cheese Co',
-    lots:[L('0.6 kg','28 Sep','12 Oct',6,21,'5 Oct'), L('1.2 kg','4 Oct','2 Nov',27,29)]},
-  {id:'eggs', name:'eggs', kind:'eggs', s:1, x:494, w:96, h:52, n:3, on:'72', par:.6, u:'', onN:72, p50:18, p90:26, cover:4, co2:4.5, sup:'Happy Hens',
-    lots:[L('30','2 Oct','16 Oct',10,14), L('42','5 Oct','19 Oct',13,14)]},
-  {id:'tom', name:'tomatoes', kind:'crate', s:1, x:660, w:116, h:58, n:8, fruit:'tom', on:'2.4 kg', par:.5, u:'kg', onN:2.4, p50:1.1, p90:1.6, cover:2.1, co2:1.4, sup:'GreenLeaf Farms',
-    lots:[L('1 kg','3 Oct','7 Oct',1.4,4), L('1.4 kg','5 Oct','10 Oct',4,5)]},
-  {id:'greens', name:'greens', kind:'greens', s:1, x:778, w:96, h:48, on:'2 boxes', par:.5, u:'', onN:2, p50:1, p90:1.5, cover:1.5, re:'+3', by:'tmrw', co2:1.1, sup:'Hosur Greens',
-    lots:[L('1 box','4 Oct','7 Oct',.8,3,'07:40'), L('1 box','6 Oct','9 Oct',2.8,3)]},
-  {id:'mise', name:'prepped mise', kind:'deli', s:1, x:898, w:120, h:66, cups:['#d7e69a','#f08a7e','#d7e69a','#f6e3a0','#f4a7b9'], on:'5 tubs', par:.7, u:'', onN:5, p50:4, p90:6, cover:.8, re:'prep 3', by:'10:30', co2:1.2, sup:'made in-house',
-    lots:[L('2 tubs','06:30','14:30',.1,.33,'06:30'), L('3 tubs','08:10','16:10',.25,.33,'08:10')]},
-  {id:'yog', name:'yogurt', kind:'tubs', s:1, x:1002, w:62, h:76, on:'2 tubs', par:.5, u:'kg', onN:2, p50:.8, p90:1.2, cover:2.4, co2:3, sup:'Nandi Dairy Co-op',
-    lots:[L('1 kg','3 Oct','9 Oct',3,6,'5 Oct'), L('1 kg','6 Oct','13 Oct',7,7)]},
+  {id:'croissant_dough', kind:'trays', s:1, x:232, w:140, h:96, unitsMax:4},
+  {id:'cheddar', kind:'blocks', s:1, x:380, w:90, h:52, col:'#f3c94e', lab:'#fff', bw:36, bh:18, unitsMax:3},
+  {id:'parmesan', kind:'blocks', s:1, x:494, w:96, h:52, col:'#f6ecc8', lab:C.sage, bw:30, bh:14, unitsMax:3},
+  {id:'green_chilli', kind:'crate', s:1, x:660, w:116, h:58, fruit:'chilli', unitsMax:8},
+  {id:'microgreens', kind:'greens', s:1, x:778, w:96, h:48},
+  {id:'mint_chutney', kind:'deli', s:1, x:898, w:120, h:66, cupCol:'#9cbf7a'},
+  {id:'tikka_masala', kind:'tubs', s:1, x:1002, w:62, h:76},
   // walk-in · bottom shelf
-  {id:'cbc', name:'cold brew concentrate', kind:'jugs', s:2, x:240, w:112, h:80, lv:[.35, .9], on:'5 L', par:.62, u:'L', onN:5, p50:2.2, p90:3.4, cover:2.3, re:'brew 4 L', by:'tonight', co2:4, sup:'made in-house',
-    lots:[L('1.4 L','3 Oct','10 Oct',4,7,'4 Oct'), L('3.6 L','5 Oct','12 Oct',6,7)]},
-  {id:'oatcase', name:'oat milk · backstock', kind:'cases', s:2, x:425, w:150, h:78, n:3, ccol:'#e3c27a', on:'36 L', par:.5, u:'L', onN:36, p50:7.2, p90:9.8, cover:4.9, co2:.9, sup:'GreenLeaf Oats',
-    lots:[L('2 cases','5 Oct','2 Nov',27,28), L('1 case','6 Oct','4 Nov',29,28)]},
-  {id:'rescue', name:'use-today bin', kind:'rescue', s:2, x:700, w:150, h:66, on:'4 items', par:1, cover:.3, re:'→ rescue menu', co2:2.1, sup:'FEFO pick · 08:00',
-    lots:[L('milk 0.4 L','3 Oct','6 Oct',.3,5,'07:15'), L('berries ×1','3 Oct','6 Oct',.25,4), L('mise ×2','06:30','14:30',.1,.33,'06:30')]},
-  {id:'milkcase', name:'milk · backstock', kind:'cases', s:2, x:880, w:150, h:78, n:3, ccol:'#8fb9de', on:'24 L', par:.4, u:'L', onN:24, p50:5.8, p90:7.4, cover:3.2, co2:3.2, sup:'Nandi Dairy Co-op',
-    lots:[L('1 case','4 Oct','10 Oct',4,6), L('2 cases','6 Oct','12 Oct',6,6)]},
+  {id:'coldbrew_concentrate', kind:'jugs', s:2, x:240, w:112, h:80, jcol:K.brew, nj:2},
+  {id:'chai_base', kind:'jugs', s:2, x:425, w:150, h:78, jcol:'#c58b5e', nj:3},
+  {id:'rescue', kind:'rescue', s:2, x:700, w:150, h:66},
+  {id:'arrabbiata_sauce', kind:'cases', s:2, x:880, w:150, h:78, ccol:'#e0554a', unitsMax:3},
   // dry store
-  {id:'beans', name:'house blend beans', kind:'sacks', s:0, x:1190, w:172, h:88, f:[.45, .9, .85], open:0, on:'8.6 kg', par:.72, u:'kg', onN:8.6, p50:1.9, p90:2.6, cover:3.4, re:'+6 kg', by:'Thu', co2:17, sup:'Chikmagalur Estates',
-    lots:[L('1.6 kg','28 Sep','28 Oct',22,30,'5 Oct'), L('2 × 3 kg','3 Oct','2 Nov',27,30)]},
-  {id:'decaf', name:'decaf beans', kind:'pouch', s:0, x:1330, w:70, h:68, n:2, on:'1.5 kg', par:.5, u:'kg', onN:1.5, p50:.2, p90:.3, cover:6, co2:17, sup:'Chikmagalur Estates',
-    lots:[L('2 × 750 g','25 Sep','25 Nov',50,60)]},
-  {id:'matcha', name:'matcha', kind:'tins', s:0, x:1425, w:86, h:56, n:3, tcol:'#8fbf6a', open:true, on:'300 g', par:.6, u:'g', onN:300, p50:40, p90:70, cover:5.2, co2:9, sup:'Kyoto Leaf Co',
-    lots:[L('1 tin','2 Sep','2 Dec',57,90,'1 Oct'), L('2 tins','30 Sep','30 Jan',116,120)]},
-  {id:'cocoa', name:'cocoa', kind:'tins', s:0, x:1526, w:86, h:56, n:2, tcol:'#8a5a3c', on:'500 g', par:.5, u:'g', onN:500, p50:30, p90:55, cover:9, co2:19, sup:'Kerala Cocoa',
-    lots:[L('2 tins','20 Sep','20 Mar',165,180)]},
-  {id:'flour', name:'flour', kind:'bin', s:1, x:1162, w:104, h:98, lvl:.62, bcol:'#fbf7ee', lid:C.pink, on:'14 kg', par:.62, u:'kg', onN:14, p50:2.1, p90:3, cover:6.7, co2:.8, sup:'Mysore Mills',
-    lots:[L('14 kg','30 Sep','30 Dec',85,91,'2 Oct')]},
-  {id:'sugar', name:'sugar', kind:'bin', s:1, x:1292, w:100, h:98, lvl:.28, bcol:'#fffdf7', lid:'#b9cdb0', sparkle:true, on:'5 kg', par:.28, u:'kg', onN:5, p50:1.4, p90:2.1, cover:2.4, re:'+10 kg', by:'Thu', co2:1.8, sup:'Mandya Sugars',
-    lots:[L('5 kg','26 Sep','26 Sep +1y',355,365,'1 Oct')]},
-  {id:'syrup', name:'syrups', kind:'bottles', s:1, x:1460, w:170, h:92, c:['#f3e2b0','#d08a3c','#8a5a3c','#b9a3dc'], lv:[.8, .35, .6, .9], on:'4 bottles', par:.66, u:'L', onN:2.6, p50:.3, p90:.5, cover:8, co2:2, sup:'Sweet Drop Syrups',
-    lots:[L('caramel','12 Sep','12 Nov',37,60,'20 Sep'), L('3 bottles','1 Oct','1 Dec',56,60)]},
-  {id:'cups', name:'paper cups', kind:'cups', s:2, x:1160, w:120, h:110, hs:[100, 78, 56], on:'640', par:.64, u:'', onN:640, p50:150, p90:210, cover:4.2, co2:.9, sup:'PaperLeaf Packaging',
-    lots:[L('640','1 Oct','—',null)]},
-  {id:'lids', name:'lids', kind:'lids', s:2, x:1285, w:90, h:44, hs:[6, 3], on:'120', par:.12, u:'', onN:120, p50:150, p90:210, cover:.4, re:'+1,000', by:'today', co2:3.5, sup:'PaperLeaf Packaging',
-    lots:[L('120','29 Sep','—',null)]},
-  {id:'bags', name:'kraft bags', kind:'bagstack', s:2, x:1400, w:110, h:74, n:9, on:'260', par:.52, u:'', onN:260, p50:40, p90:60, cover:4.5, co2:1.1, sup:'PaperLeaf Packaging',
-    lots:[L('260','2 Oct','—',null)]},
-  {id:'straws', name:'straws + napkins', kind:'straws', s:2, x:1520, w:100, h:82, on:'2 boxes', par:.7, u:'', onN:2, cover:9, co2:1, sup:'PaperLeaf Packaging',
-    lots:[L('2 boxes','25 Sep','—',null)]},
+  {id:'coffee_beans', kind:'sacks', s:0, x:1190, w:172, h:88},
+  {id:'decaf_beans', kind:'pouch', s:0, x:1330, w:70, h:68, unitsMax:2},
+  {id:'matcha_powder', kind:'tins', s:0, x:1425, w:86, h:56, tcol:'#8fbf6a', unitsMax:3},
+  {id:'dark_choc', kind:'tins', s:0, x:1526, w:86, h:56, tcol:'#8a5a3c', unitsMax:2},
+  {id:'waffle_mix', kind:'bin', s:1, x:1162, w:104, h:98, bcol:'#fbf7ee', lid:C.pink},
+  {id:'sugar', kind:'bin', s:1, x:1292, w:100, h:98, bcol:'#fffdf7', lid:'#b9cdb0', sparkle:true},
+  {id:'rose_syrup', kind:'bottles', s:1, x:1460, w:170, h:92, c:['#f3b0c0', '#d08a3c', '#f3b0c0', '#8a5a3c']},
+  {id:'cup_paper_m', kind:'cups', s:2, x:1160, w:120, h:110},
+  {id:'lid', kind:'lids', s:2, x:1285, w:90, h:44},
+  {id:'kraft_bag', kind:'bagstack', s:2, x:1400, w:110, h:74, unitsMax:9},
+  {id:'straw', kind:'straws', s:2, x:1520, w:100, h:82},
 ];
-const BY = Object.fromEntries(ITEMS.map(it => [it.id, it]));
-
+const BY = Object.fromEntries(SLOTS.map((it) => [it.id, it]));
+/* fill the drawing parameters from a fill fraction (on hand / par) */
+function shaped(slot, frac){
+  const f = Math.max(0, Math.min(1.15, frac ?? .5)), n = (m) => Math.max(f > .01 ? 1 : 0, Math.min(m, Math.round(m * Math.min(1, f) + .2)));
+  const o = {...slot};
+  switch (slot.kind) {
+    case 'carton': o.n = Math.max(1, n(slot.unitsMax)); o.lvl = Math.min(1, f * slot.unitsMax - (o.n - 1)) || .15; o.open = f < .98; break;
+    case 'blocks': case 'trays': case 'cases': case 'tins': case 'pouch': case 'bagstack': o.n = n(slot.unitsMax); o.open = f < .98; break;
+    case 'crate': o.n = n(slot.unitsMax); break;
+    case 'jugs': { const k = slot.nj || 2; o.lv = Array.from({length: k}, (_, i) => Math.max(0, Math.min(1, f * k - i))); o.col = slot.jcol; break; }
+    case 'bin': o.lvl = Math.min(1, f); break;
+    case 'sacks': o.f = [0, 1, 2].map((i) => Math.max(0, Math.min(1, f * 3 - i))).reverse(); o.open = 0; break;
+    case 'bottles': o.lv = [0, 1, 2, 3].map((i) => Math.max(.08, Math.min(1, f * 4 - i))); break;
+    case 'cups': o.hs = [100, 78, 56].map((h, i) => Math.max(0, Math.min(h, h * (f * 3 - i)))).filter((h) => h > 6); break;
+    case 'lids': o.hs = [Math.round(6 * Math.min(1, f * 2)), Math.round(6 * Math.max(0, f * 2 - 1))].filter(Boolean); break;
+    case 'deli': o.cups = Array.from({length: Math.max(1, n(5))}, (_, i) => i % 2 ? '#cfe0a8' : slot.cupCol); break;
+    default: break;
+  }
+  return o;
+}
 /* ---------- item drawings (local: cx = centre, b = base line) ---------- */
 function cartonUnit(x, b, w, h, col, open, lvl, back){
   const top = b - h, g = Math.round(w * .45);
@@ -91,7 +79,9 @@ function cartonUnit(x, b, w, h, col, open, lvl, back){
     s += `<rect x="${x + 4}" y="${wy}" width="7" height="${wh}" rx="3.5" fill="#f4f6f8" ${st(1.5)}/><rect x="${x + 5}" y="${fy}" width="5" height="${wy + wh - fy - 1}" rx="2.5" fill="${col}"/>`; }
   return s;
 }
-const fruit = (k, x, y) => k === 'avo'
+const fruit = (k, x, y) => k === 'chilli'
+  ? `<path d="M${x-10} ${y-4}q8 14 22 4q-12 2-18-8z" fill="#6f9a5a" ${st(1.8)} transform="rotate(${(x * 11) % 40 - 20} ${x} ${y})"/><path d="M${x-10} ${y-4}l-4-3" ${st(1.6)}/>`
+  : k === 'avo'
   ? `<ellipse cx="${x}" cy="${y}" rx="9" ry="11.5" fill="#5f7d3a" ${st(2)} transform="rotate(${(x * 7) % 30 - 15} ${x} ${y})"/><path d="M${x-3} ${y-5}q2-3 5-3" stroke="#a5c27a" stroke-width="2" fill="none" stroke-linecap="round"/>`
   : `<circle cx="${x}" cy="${y}" r="10" fill="#e0554a" ${st(2)}/><path d="M${x-5} ${y-9}l5 3l5-3l-2 4h-6z" fill="#6f9a5a" ${st(1.3)}/><path d="M${x-6} ${y-1}q1-4 4-5" stroke="#fff" stroke-width="2" fill="none" opacity=".7" stroke-linecap="round"/>`;
 
@@ -107,7 +97,7 @@ const DRAW = {
       <rect x="${x + bw/2 - 7}" y="${y + bh/2 - 4}" width="14" height="8" rx="2" fill="${o.lab}" ${st(1.2)}/>`;
       if (o.open && i === 0) s += `<path d="M${x+bw} ${y}h-11l11 9z" fill="#fff" ${st(1.6)}/>`; }
     return s; },
-  punnets(cx, b, o){ const pw = 40, ph = 24; let s = '';
+  _punnets(cx, b, o){ const pw = 40, ph = 24; let s = '';
     for (let i = 0; i < o.n; i++){ const row = i < 3 ? 0 : 1, c = row ? i - 3 : i;
       const x = cx - 1.5 * pw - 3 + c * (pw + 3) + (row ? pw / 2 + 2 : 0), y = b - (row + 1) * (ph + 3), bc = o.berries[i];
       for (let k = 0; k < 4; k++) s += `<circle cx="${x + 7 + k * 9}" cy="${y + 3 - (k % 2) * 2}" r="5.5" fill="${bc}" ${st(1.6)}/>`;
@@ -119,7 +109,7 @@ const DRAW = {
   crate(cx, b, o){ const cw = o.w - 14, ch = 32, x = cx - cw / 2, back = Math.ceil(o.n / 2), front = o.n - back;
     const row = (cnt, yy, off) => { let r = ''; for (let i = 0; i < cnt; i++) r += fruit(o.fruit, x + 14 + off + i * ((cw - 28 - off) / Math.max(1, cnt - 1)), yy); return r; };
     return row(back, b - ch - 8, 0) + row(front, b - ch + 1, 9)
-      + `<rect x="${x}" y="${b-ch}" width="${cw}" height="${ch}" rx="3" fill="${o.fruit === 'avo' ? K.wood : '#8fb3c9'}" ${st(2.5)}/><path d="M${x} ${b-ch+11}h${cw}M${x} ${b-ch+22}h${cw}" ${st(1.5)}/><rect x="${cx-11}" y="${b-ch+3}" width="22" height="6" rx="3" fill="${I}" opacity=".65"/>`; },
+      + `<rect x="${x}" y="${b-ch}" width="${cw}" height="${ch}" rx="3" fill="${o.fruit === 'avo' ? K.wood : o.fruit === 'chilli' ? '#d9b48a' : '#8fb3c9'}" ${st(2.5)}/><path d="M${x} ${b-ch+11}h${cw}M${x} ${b-ch+22}h${cw}" ${st(1.5)}/><rect x="${cx-11}" y="${b-ch+3}" width="22" height="6" rx="3" fill="${I}" opacity=".65"/>`; },
   trays(cx, b, o){ const tw = 130, x = cx - tw / 2; let s = `<path d="M${x+4} ${b}V${b - o.n * 22 - 6}M${x+tw-4} ${b}V${b - o.n * 22 - 6}" ${st(3)}/>`;
     for (let i = 0; i < o.n; i++){ const y = b - 6 - i * 22;
       s += `<rect x="${x}" y="${y}" width="${tw}" height="5" rx="2" fill="${K.steel}" ${st(2)}/>`;
@@ -144,10 +134,10 @@ const DRAW = {
     <path d="M${x} ${b-72}h${w}l-3 34h${-(w-6)}z" fill="#fff" ${st(2.3)}/><rect x="${x+4}" y="${b-62}" width="${w-8}" height="10" fill="${C.pinkL}" ${st(1.2)}/>
     <rect x="${x+4}" y="${b-82}" width="${w+4}" height="6" rx="2" fill="${C.pink}" ${st(2)} transform="rotate(-14 ${x+4} ${b-76})"/>
     <path d="M${x+28} ${b-70}l10-22" ${st(3)}/><ellipse cx="${x+39}" cy="${b-94}" rx="4" ry="6" fill="${K.steelL}" ${st(1.6)} transform="rotate(24 ${x+39} ${b-94})"/>`; },
-  jugs(cx, b, o){ let s = '';
-    o.lv.forEach((lv, i) => { const x = cx - 50 + i * 54, w = 44, h = 66, top = b - h, ly = b - 4 - (h - 30) * lv;
+  jugs(cx, b, o){ let s = ''; const sp = o.lv.length > 2 ? 46 : 54;
+    o.lv.forEach((lv, i) => { const x = cx - (o.lv.length - 1) * sp / 2 - 22 + i * sp, w = 44, h = 66, top = b - h, ly = b - 4 - (h - 30) * lv;
       const body = `M${x+12} ${top}h20v8q12 4 12 16v${h-28}q0 4-4 4h-36q-4 0-4-4v${-(h-28)}q0-12 12-16z`;
-      s += `<path d="${body}" fill="${K.glass}" ${st(2.5)}/><rect x="${x+3}" y="${ly}" width="${w-6}" height="${b - 3 - ly}" rx="3" fill="${K.brew}"/><path d="${body}" fill="none" ${st(2.5)}/>
+      s += `<path d="${body}" fill="${K.glass}" ${st(2.5)}/><rect x="${x+3}" y="${ly}" width="${w-6}" height="${b - 3 - ly}" rx="3" fill="${o.col || K.brew}"/><path d="${body}" fill="none" ${st(2.5)}/>
       <path d="M${x+6} ${top+26}v16" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".7"/>
       <rect x="${x+11}" y="${top-7}" width="22" height="8" rx="2" fill="${C.navy}" ${st(2)}/><rect x="${x+9}" y="${b-30}" width="26" height="13" rx="2" fill="#fff" ${st(1.6)}/>`; });
     return s; },
@@ -221,8 +211,8 @@ const DRAW = {
     return s; },
 };
 const draw = (it, cx, b) => DRAW[it.kind](cx, b, it);
+const NONE = {crate: 1, trays: 1, blocks: 1, cases: 1, tins: 1, pouch: 1, bagstack: 1};
 const art = (it, size) => `<svg class="art" viewBox="0 -14 ${it.w} ${it.h + 20}" width="${size}" height="${size}" aria-hidden="true">${draw(it, it.w / 2, it.h + 2)}</svg>`;
-
 /* ---------- defs ---------- */
 const DEFS = `<defs>
 <linearGradient id="p-cold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f1f8fb"/><stop offset="1" stop-color="#dcebf1"/></linearGradient>
@@ -255,8 +245,7 @@ M += `<path d="M146 150h70q-14 10-30 6q-10 12-24 6q-6 16-16 12z" fill="#fff" ${s
 M += `<rect x="112" y="96" width="966" height="54" rx="6" fill="${K.steelL}" ${st(3)}/>
 <rect x="128" y="106" width="118" height="34" rx="8" fill="#fff" ${st(2.4)}/>
 <rect x="404" y="104" width="300" height="40" rx="7" fill="#24302b" ${st(2.6)}/>
-<rect x="514" y="112" width="180" height="24" rx="3" fill="#2f3d36"/>
-<rect x="514" y="117" width="180" height="11" fill="#3e5a4a" opacity=".7"/>`;
+`;
 // evaporator + LED strip
 M += `<rect x="470" y="152" width="260" height="44" rx="6" fill="${K.steelL}" ${st(2.6)}/>
 <circle cx="560" cy="174" r="17" fill="#fff" ${st(2.2)}/><circle cx="640" cy="174" r="17" fill="#fff" ${st(2.2)}/>
@@ -286,7 +275,6 @@ for (const b of S) CHAN += `<rect x="150" y="${b+2}" width="890" height="20" fil
 
 // stock on shelves
 let STOCK = '';
-for (const it of ITEMS) STOCK += draw(it, it.x, S[it.s] - 6);
 
 // PVC strip curtain bunched at the right edge of the opening
 let STRIPS = '';
@@ -319,125 +307,237 @@ BENCH += `<path d="M1312 762l26-60" ${st(3)}/><circle cx="1342" cy="694" r="14" 
 BENCH += DRAW.cups(1200, 724, {hs: [52, 52, 46]}) + `<path d="M1136 724h132l-6 40h-120z" fill="#d9b48a" ${st(2.6)}/><path d="M1136 724l-14-18h40l10 18M1268 724l14-18h-40l-10 18" fill="#e3c39c" ${st(2.2)}/><rect x="1186" y="738" width="34" height="14" rx="2" fill="#fff" ${st(1.4)}/>`;
 BENCH += `<path d="M1412 764v-56q0-10 10-10h120q10 0 10 10v56z" fill="#7fa9c6" ${st(2.8)}/><path d="M1440 698q42-26 84 0" fill="none" ${st(3)}/><path d="M1412 730h142" ${st(1.6)}/><path d="M1452 744h60" stroke="#fff" stroke-width="3" stroke-linecap="round"/>`;
 
-/* ---------- labels, lot tags, FEFO arrows (crisp, unfiltered) ---------- */
-let TAGS = '';
-for (const it of ITEMS) {
-  const b = S[it.s], x0 = it.x - it.w / 2 + 4, w = it.w - 8;
-  // channel label: par gauge + on-hand
-  const bw = Math.min(42, w - 50);
-  TAGS += `<rect x="${x0 + 2}" y="${b + 8}" width="${bw}" height="8" rx="4" fill="#f1ece5" ${st(1.3)}/><rect x="${x0 + 2.5}" y="${b + 8.5}" width="${((bw - 1) * Math.min(1, it.par)).toFixed(1)}" height="7" rx="3.5" fill="${covCol(it.cover)}"/>`
-    + t(x0 + bw + 7, b + 17, it.on, 12);
-  // lot tags in use order (soonest expiry first) with a FEFO arrow
-  const lots = [...it.lots].sort((a, c) => (a.dl ?? 1e9) - (c.dl ?? 1e9));
-  const tx = it.x - (lots.length * 30 + 14) / 2;
-  TAGS += `<g class="p-fefo"><path d="M${tx} ${b + 33}h9" stroke="${C.terra}" stroke-width="3" stroke-linecap="round"/><path d="M${tx + 6} ${b + 28}l6 5l-6 5" fill="none" stroke="${C.terra}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></g>`;
-  lots.forEach((l, i) => { const f = fresh(l), x = tx + 16 + i * 30, y = b + 25;
-    TAGS += `<g class="${f === 'bad' ? 'p-pulse' : ''}"><path d="M${it.x} ${b + 22}L${x + 13} ${y}" ${st(1)} opacity=".35"/>
-    <rect x="${x}" y="${y}" width="27" height="17" rx="4" fill="${FR[f]}" stroke="${I}" stroke-width="${i === 0 ? 2.6 : 1.6}"/>
-    ${l.op ? `<path d="M${x + 19} ${y}h8v8z" fill="#fff" ${st(1.2)}/>` : ''}
-    <text x="${x + 12}" y="${y + 13}" text-anchor="middle" font-family="Patrick Hand" font-size="11.5" fill="${I}">${fmtDl(l.dl)}</text></g>`; });
-}
-// header readouts
-TAGS += gt(187, 131, 'walk-in', 21, 'text-anchor="middle"') + `<use href="#p-snow" class="p-spin" x="216" y="114" width="20" height="20"/>`
-  + `<text id="p-temp" x="460" y="133" text-anchor="middle" font-family="Courier Prime" font-weight="700" font-size="22" fill="#8ff0a4">3.2°C</text>`;
-{ const temps = [3.1, 3.0, 3.2, 3.1, 3.0, 2.9, 3.0, 3.6, 3.9, 3.4, 3.1, 3.0, 3.2, 3.5, 3.3, 3.2];
-  const pts = temps.map((v, i) => `${516 + i * 11.7},${136 - (v - 1) / 4 * 24}`).join(' ');
-  TAGS += `<polyline points="${pts}" fill="none" stroke="#8ff0a4" stroke-width="2.2" stroke-linejoin="round"/><circle cx="${516 + 15 * 11.7}" cy="${136 - 2.2 / 4 * 24}" r="3" fill="#8ff0a4"/>`
-    + `<text x="690" y="142" text-anchor="end" font-family="Courier Prime" font-size="8.5" fill="#8ff0a4" opacity=".7">6h · 1–5°C</text>`; }
-TAGS += `<circle cx="745" cy="124" r="12" fill="#fff" ${st(2)}/><path d="M745 124v-7M745 124l5 3" ${st(2)}/>`
-  + t(764, 120, 'door open', 12.5, 'opacity=".7"') + `<text id="p-door-t" x="764" y="141" font-family="Gochi Hand" font-size="19" fill="${C.terra}">0:42</text>`
-  + `<use href="#p-drop" x="866" y="110" width="22" height="22"/>` + gt(892, 132, '86%', 18) + t(934, 131, 'RH', 12, 'opacity=".6"')
-  + `<rect x="968" y="110" width="96" height="26" rx="13" fill="#e4efd9" ${st(2)}/>` + t(1016, 128, 'compressor', 12.5, 'text-anchor="middle"');
-TAGS += gt(1225, 132, 'dry store', 22, 'text-anchor="middle"') + t(1306, 131, 'FIFO', 12.5, 'opacity=".6"');
-TAGS += `<text x="116" y="758" text-anchor="middle" font-family="Courier Prime" font-weight="700" font-size="11" fill="#8ff0a4">4.20kg</text>`
-  + `<rect x="1188" y="738" width="30" height="12" fill="none"/>` + t(1203, 749, '×1000', 10, 'text-anchor="middle"')
-  + t(1483, 756, 'cold chain', 12, 'text-anchor="middle" fill="#fff"');
-// the label printer feeding a lot label
-const FEED = `<g class="p-feed"><rect x="256" y="680" width="48" height="32" rx="3" fill="#fffefb" ${st(1.8)}/><rect x="256" y="680" width="48" height="8" fill="${FR.fresh}" ${st(1.4)}/>
-${[0, 1, 2, 3, 4, 5, 6, 7].map(k => `<rect x="${262 + k * 5}" y="${694}" width="${k % 3 ? 1.6 : 3}" height="10" fill="${I}"/>`).join('')}</g>`;
-
-/* ---------- cold air, fans, sparkle ---------- */
-let FX = `<g transform="translate(560 174)"><g class="p-spin">${[0, 120, 240].map(a => `<path d="M0 0q-3-12 4-14q4 6-4 14z" fill="${K.steelD}" ${st(1.4)} transform="rotate(${a})"/>`).join('')}</g></g>
+/* ---------- assemble: static room + live layers ---------- */
+const g = (id, extra = '') => `<g id="${id}" ${extra}></g>`;
+const $ = (id) => document.getElementById(id);
+document.getElementById('pantry-scene').innerHTML = DEFS
+  + `<g filter="url(#wob)">${M}</g>` + g('p-fx') + `<g id="p-stock" filter="url(#wob)"></g><g filter="url(#wob)">${STRIPS}${CHAN}${DOOR}</g>`
+  + g('p-feed') + `<g filter="url(#wob)">${BENCH}</g>` + g('p-tags') + g('p-head') + g('p-hits')
+  + `<rect width="1600" height="1000" filter="url(#grain)" opacity=".22" pointer-events="none"/>`;
+{ let FX = `<g transform="translate(560 174)"><g class="p-spin">${[0, 120, 240].map(a => `<path d="M0 0q-3-12 4-14q4 6-4 14z" fill="${K.steelD}" ${st(1.4)} transform="rotate(${a})"/>`).join('')}</g></g>
 <g transform="translate(640 174)"><g class="p-spin" style="animation-delay:-.3s">${[0, 120, 240].map(a => `<path d="M0 0q-3-12 4-14q4 6-4 14z" fill="${K.steelD}" ${st(1.4)} transform="rotate(${a})"/>`).join('')}</g></g>
 <circle class="k-drip" cx="600" cy="200" r="2.6" fill="#9fd0e8"/>`;
-[[160, 260, 0], [150, 420, -1.5], [170, 560, -3], [150, 690, -.8], [180, 340, -2.2]].forEach(([x, y, d]) =>
-  FX += `<path class="p-wisp" style="animation-delay:${d}s" d="M${x} ${y}q-24-10-46 0t-46 0" fill="none" stroke="#cfe7f2" stroke-width="7" stroke-linecap="round" opacity=".8"/>`);
-[[182, 178], [1012, 176], [210, 166], [978, 170]].forEach(([x, y], i) =>
-  FX += `<path class="p-tw" style="animation-delay:${-i * .6}s" d="M${x} ${y-6}L${x+1.5} ${y-1.5}L${x+6} ${y}L${x+1.5} ${y+1.5}L${x} ${y+6}L${x-1.5} ${y+1.5}L${x-6} ${y}L${x-1.5} ${y-1.5}Z" fill="#fff" ${st(1.2)}/>`);
+  [[160, 260, 0], [150, 420, -1.5], [170, 560, -3], [150, 690, -.8], [180, 340, -2.2]].forEach(([x, y, d]) =>
+    FX += `<path class="p-wisp" style="animation-delay:${d}s" d="M${x} ${y}q-24-10-46 0t-46 0" fill="none" stroke="#cfe7f2" stroke-width="7" stroke-linecap="round" opacity=".8"/>`);
+  [[182, 178], [1012, 176], [210, 166], [978, 170]].forEach(([x, y], i) =>
+    FX += `<path class="p-tw" style="animation-delay:${-i * .6}s" d="M${x} ${y-6}L${x+1.5} ${y-1.5}L${x+6} ${y}L${x+1.5} ${y+1.5}L${x} ${y+6}L${x-1.5} ${y+1.5}L${x-6} ${y}L${x-1.5} ${y-1.5}Z" fill="#fff" ${st(1.2)}/>`);
+  $('p-fx').innerHTML = FX; }
+$('p-hits').innerHTML = SLOTS.map((it) => { const b = S[it.s];
+  return `<rect class="p-hit" data-id="${it.id}" data-item="${it.id}" tabindex="0" role="button" aria-label="${R.human(it.id)}" x="${it.x - it.w / 2}" y="${b - it.h - 18}" width="${it.w}" height="${it.h + 62}" rx="10"/>`; }).join('');
 
-/* ---------- hover targets ---------- */
-let HIT = '';
-for (const it of ITEMS) { const b = S[it.s];
-  HIT += `<rect class="p-hit" data-id="${it.id}" tabindex="0" role="button" aria-label="${it.name}: ${it.on}" x="${it.x - it.w / 2}" y="${b - it.h - 18}" width="${it.w}" height="${it.h + 62}" rx="10"/>`; }
+const artS = (s, it, size) => { const row = s?.inventory?.[it.id]; return art(it.id === 'rescue' ? it : shaped(it, row ? row.on_hand / Math.max(1e-9, row.par || 1) : .6), size); };
+/* ---------- reading the inventory ---------- */
+const UNIT = {g: [1000, 'kg'], ml: [1000, 'L'], pc: [1, '']};
+function qtyText(row){ if (!row) return '—'; const [k, u] = UNIT[row.uom] || [1, row.uom || ''];
+  const v = row.on_hand / k; return (row.uom === 'pc' ? Math.round(v) : v >= 10 ? Math.round(v) : v.toFixed(1)) + (u ? ' ' + u : ''); }
+const nameOf = (row, id) => String(row?.name || R.human(id)).replace(/\s*\((fictional|bakery|frozen|toned)\)/i, '').toLowerCase();
+/* lot freshness, the same rule as the backend (backend.md §6.1 /inventory freshness_rules) */
+function lotClass(l, now){
+  if (l.expires_s == null) return 'none';
+  const left = l.expires_s - now, life = Math.max(1, l.expires_s - (l.received_s ?? now)), share = left / life, h = left / 3600;
+  if (h <= 24 || (share <= .1 && h <= 168)) return 'bad';
+  if (h <= 72 || (share <= .3 && h <= 336)) return 'mid';
+  return 'fresh';
+}
+const KL = {bad: 'bad', mid: 'soon', fresh: 'fresh', none: 'fresh'};
+const fmtLeft = (sec) => sec == null ? '—' : sec < 0 ? 'past' : sec < 86400 ? Math.max(1, Math.round(sec / 3600)) + 'h' : sec < 45 * 86400 ? Math.round(sec / 86400) + 'd' : Math.round(sec / 2592000) + 'mo';
+const DATE = (s0, st2) => { if (s0 == null || !st2?.clock?.date) return ''; const d = new Date(st2.clock.date + 'T00:00:00'); d.setDate(d.getDate() + Math.floor(s0 / 86400) - (st2.clock.day || 0));
+  return `${d.getDate()} ${['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'][d.getMonth()]}`; };
+function lotsOf(s, id){
+  const L = s.lots?.[id];
+  if (L && L.length) return [...L].sort((a, c) => a.expires_s - c.expires_s);
+  const row = s.inventory?.[id];
+  return row?.next_expiry_s ? [{lot_id: id + ':next', qty: row.on_hand, expires_s: row.next_expiry_s, received_s: null, status: 'sealed', approx: true}] : [];
+}
+function rescueItems(s, now){
+  const out = [];
+  for (const it of SLOTS) { if (it.id === 'rescue') continue; const l = lotsOf(s, it.id)[0]; if (l && lotClass(l, now) === 'bad') out.push({it, l}); }
+  return out;
+}
 
-document.getElementById('pantry-scene').innerHTML = DEFS
-  + `<g filter="url(#wob)">${M}</g>` + FX + `<g filter="url(#wob)">${STOCK}${STRIPS}${CHAN}${DOOR}</g>`
-  + FEED + `<g filter="url(#wob)">${BENCH}</g>` + TAGS + HIT
-  + `<rect width="1600" height="1000" filter="url(#grain)" opacity=".22" pointer-events="none"/>`;
+/* ---------- live layers ---------- */
+const lStock = R.layer($('p-stock'), {
+  key: (x) => x.it.id, sig: (x) => x.sig, html: (x) => x.html,
+});
+let tagSig = '', headSig = '';
+function renderShelves(s, now){
+  const rows = [], inv = s.inventory || {};
+  for (const it of SLOTS) {
+    if (it.id === 'rescue') { const r = rescueItems(s, now); rows.push({it, sig: 'r' + r.length, html: r.length ? draw(it, it.x, S[it.s] - 6) : `<path d="M${it.x - 66} ${S[it.s] - 42}h132v36h-132z" fill="none" ${st(2)} stroke-dasharray="6 5" opacity=".5"/>`}); continue; }
+    const row = inv[it.id], frac = row ? row.on_hand / Math.max(1e-9, row.par || row.on_hand || 1) : null;
+    const o = shaped(it, frac), sig = JSON.stringify([o.n, o.lvl && +o.lvl.toFixed(2), o.lv && o.lv.map((v) => +v.toFixed(2)), o.f, o.hs, o.cups && o.cups.length, !!row]);
+    const empty = row && row.on_hand <= 0;
+    rows.push({it, sig, html: empty || (NONE[it.kind] && !o.n) ? `<path d="M${it.x - it.w / 2 + 8} ${S[it.s] - 8}h${it.w - 16}" ${st(2)} stroke-dasharray="5 5" opacity=".6"/>${t(it.x, S[it.s] - 14, 'out', 13, `text-anchor="middle" fill="${C.terra}"`)}` : draw(o, it.x, S[it.s] - 6)});
+  }
+  lStock.sync(rows);
+  // channel labels (par gauge + on hand) and lot tags in FEFO order
+  let tags = '';
+  for (const it of SLOTS) {
+    const b = S[it.s], x0 = it.x - it.w / 2 + 4, w = it.w - 8, row = inv[it.id], bw = Math.min(42, w - 50);
+    let lots = lotsOf(s, it.id), on = qtyText(row), par = row ? Math.min(1, row.on_hand / Math.max(1e-9, row.par || 1)) : 0, cov = row?.days_of_cover;
+    if (it.id === 'rescue') { const r = rescueItems(s, now); lots = r.map((q) => q.l); on = `${r.length} to use`; par = r.length ? 1 : 0; cov = .3; }
+    tags += `<g data-shelf="${it.id}"><rect x="${x0 + 2}" y="${b + 8}" width="${bw}" height="8" rx="4" fill="#f1ece5" ${st(1.3)}/><rect x="${x0 + 2.5}" y="${b + 8.5}" width="${((bw - 1) * par).toFixed(1)}" height="7" rx="3.5" fill="${covCol(cov)}"/>`
+      + t(x0 + bw + 7, b + 17, esc(on), 12) + '</g>';
+    lots = lots.slice(0, 3);
+    if (!lots.length) continue;
+    const tx0 = it.x - (lots.length * 30 + 14) / 2;
+    tags += `<g class="p-fefo"><path d="M${tx0} ${b + 33}h9" stroke="${C.terra}" stroke-width="3" stroke-linecap="round"/><path d="M${tx0 + 6} ${b + 28}l6 5l-6 5" fill="none" stroke="${C.terra}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></g>`;
+    lots.forEach((l, i) => { const f = lotClass(l, now), x = tx0 + 16 + i * 30, y = b + 25;
+      tags += `<g class="${f === 'bad' ? 'p-pulse ' : ''}lt ${KL[f]}" data-lot="${esc(l.lot_id)}"><path d="M${it.x} ${b + 22}L${x + 13} ${y}" ${st(1)} opacity=".35"/>
+      <rect x="${x}" y="${y}" width="27" height="17" rx="4" fill="${FR[f]}" stroke="${I}" stroke-width="${i === 0 ? 2.6 : 1.6}"/>
+      ${l.status === 'opened' ? `<path d="M${x + 19} ${y}h8v8z" fill="#fff" ${st(1.2)}/>` : ''}
+      <text x="${x + 12}" y="${y + 13}" text-anchor="middle" font-family="Patrick Hand" font-size="11.5" fill="${I}">${fmtLeft(l.expires_s - now)}</text></g>`; });
+  }
+  if (tags !== tagSig) { tagSig = tags; $('p-tags').innerHTML = tags; }
+  // header readouts: things the sim really knows (no fake sensors)
+  const chilled = Object.values(inv).filter((r) => ['milk', 'oat_milk', 'almond_milk', 'butter', 'paneer', 'cheddar', 'parmesan', 'avocado', 'microgreens', 'mint_chutney', 'tikka_masala', 'strawberry_puree', 'croissant_dough', 'coldbrew_concentrate', 'chai_base', 'arrabbiata_sauce', 'green_chilli'].includes(r.key));
+  const val = chilled.reduce((a, r) => a + (r.value_inr || 0), 0), exp = chilled.filter((r) => r.freshness === 'expiring').length;
+  const co2 = Object.values(inv).reduce((a, r) => a + (r.co2e_kg_per_kg || 0) * ((r.uom === 'g' || r.uom === 'ml') ? r.on_hand / 1000 : 0), 0);
+  const nextPo = Object.values(s.pos || {}).filter((p) => p.status === 'open').sort((a, c) => a.eta_s - c.eta_s)[0] || (s.rest?.purchasing?.next_delivery_s ? {eta_s: s.rest.purchasing.next_delivery_s} : null);
+  const head = gt(187, 131, 'walk-in', 21, 'text-anchor="middle"') + `<use href="#p-snow" class="p-spin" x="216" y="114" width="20" height="20"/>`
+    + `<text x="420" y="132" font-family="Courier Prime" font-weight="700" font-size="20" fill="#8ff0a4">${val ? R.rsk(val) : '—'}</text>`
+    + `<text x="694" y="122" text-anchor="end" font-family="Courier Prime" font-size="10.5" fill="#8ff0a4" opacity=".8">chilled stock</text>`
+    + `<text x="694" y="137" text-anchor="end" font-family="Courier Prime" font-size="10.5" fill="${exp ? '#f6c76a' : '#8ff0a4'}">${chilled.length} keys · ${exp} expiring</text>`
+    + `<circle cx="745" cy="124" r="12" fill="#fff" ${st(2)}/><path d="M745 124v-7M745 124l5 3" ${st(2)}/>`
+    + t(764, 120, 'next truck', 12.5, 'opacity=".7"') + `<text x="764" y="141" font-family="Gochi Hand" font-size="19" fill="${C.terra}">${nextPo ? R.hm(nextPo.eta_s) : '—'}</text>`
+    + `<use href="#p-leaf" x="864" y="110" width="22" height="22"/>` + gt(890, 132, co2 ? Math.round(co2) + ' kg' : '—', 17) + t(944, 131, 'CO₂e', 12, 'opacity=".6"')
+    + `<rect x="968" y="110" width="96" height="26" rx="13" fill="#e4efd9" ${st(2)}/>` + t(1016, 128, 'FEFO ✓', 12.5, 'text-anchor="middle"')
+    + gt(1225, 132, 'dry store', 22, 'text-anchor="middle"') + t(1306, 131, 'FIFO', 12.5, 'opacity=".6"');
+  if (head !== headSig) { headSig = head; $('p-head').innerHTML = head; }
+}
 
 /* ---------- hover card ---------- */
 const tipEl = document.getElementById('p-tip');
 const icon = (id, w = 18, h = 14) => `<svg width="${w}" height="${h}" aria-hidden="true"><use href="#${id}" width="${w}" height="${h}"/></svg>`;
-function tipHTML(it){
-  const lots = [...it.lots].sort((a, c) => (a.dl ?? 1e9) - (c.dl ?? 1e9));
-  const rows = lots.map((l, i) => { const f = fresh(l), el = l.dl == null ? 0 : Math.min(1, Math.max(0, 1 - l.dl / l.life));
-    return `<div class="lot${i === 0 ? ' first' : ''}"><span class="lq">${i === 0 ? '<b class="fefo">➜</b>' : ''}${l.q}</span>
-      <span class="tl"><small>${l.rec}</small><span class="tb"><i style="width:${(l.dl == null ? 100 : el * 100).toFixed(0)}%;background:${FR[f]}"></i>${l.dl != null ? `<em style="left:${(el * 100).toFixed(0)}%"></em>` : ''}</span><small>${l.exp}</small></span>
-      <span class="dl" style="background:${FR[f]}">${fmtDl(l.dl)}</span>
-      ${l.op ? `<span class="op" title="opened ${l.op}">${icon('p-open', 16, 16)}${l.op}</span>` : `<span class="op sealed" title="sealed">${icon('p-seal', 16, 16)}</span>`}</div>`; }).join('');
-  let fc = '';
-  if (it.p50 != null) { const max = Math.max(it.p90, it.onN) * 1.15, pc = v => (v / max * 100).toFixed(1) + '%';
-    fc = `<div class="fc"><span>today</span><span class="bul"><i class="stock" style="width:${pc(it.onN)};background:${covCol(it.cover)}"></i>
-      <b style="left:${pc(it.p50)}"><small>p50 ${it.p50}</small></b><b class="p90" style="left:${pc(it.p90)}"><small>p90 ${it.p90}</small></b></span><span>${it.u}</span></div>`; }
-  const cov = [0, 1, 2, 3, 4].map(d => { const f = Math.min(1, Math.max(0, it.cover - d)) * 100;
-    return `<i style="background:linear-gradient(90deg,${covCol(it.cover)} ${f}%,#fff ${f}%)"></i>`; }).join('');
-  const re = it.re ? `<span class="re">${icon('p-truck')}${it.re}${it.by ? ' · ' + it.by : ''}</span>` : `<span class="re ok">✓ stocked</span>`;
-  return `<div class="th">${art(it, 50)}<div class="tn"><b>${it.name}</b><span class="sup">${icon('p-truck')}${it.sup}</span></div><span class="onhand">${it.on}</span></div>
-    <div class="lots">${rows}</div>${fc}
-    <div class="meta"><span class="cov" title="days of cover">${cov}<b>${it.cover}d</b></span>${re}
-    <span class="co2" title="kg CO₂e per kg">${icon('p-leaf', 16, 16)}${it.co2}<small>CO₂e/kg</small><i style="--w:${Math.min(1, it.co2 / 20).toFixed(2)}"></i></span></div>`;
+const proposal = (s, id) => { const P = s.rest?.purchasing; if (!P) return null;
+  for (const o of P.orders || [P]) for (const ln of o.lines || []) if (ln.ingredient === id) return {...ln, eta_s: o.eta_s, supplier: o.supplier}; return null; };
+function tipHTML(s, id, now){
+  const it = BY[id], row = s.inventory?.[id], u = UNIT[row?.uom] || [1, ''];
+  if (id === 'rescue') { const r = rescueItems(s, now), L = Object.values(s.replate?.listings || {}).filter((x) => !x.outcome);
+    return `<div class="th">${artS(s, it, 50)}<div class="tn"><b>use-today bin</b><span class="sup">first expiry, first out</span></div><span class="onhand">${r.length}</span></div>
+      <div class="lots">${r.map(({it: i2, l}) => `<div class="lot first"><span class="lq">${esc(nameOf(s.inventory?.[i2.id], i2.id))}</span><span class="tl"><small></small><span></span><small></small></span><span class="dl" style="background:${FR.bad}">${fmtLeft(l.expires_s - now)}</span><span></span></div>`).join('') || '<div class="lot"><span class="lq">nothing expiring today ♡</span></div>'}</div>
+      <div class="meta">${L.length ? L.slice(0, 3).map((x) => `<span class="dish">${icon('p-plate', 18, 18)}${esc(R.human(x.sku))} −${Math.round(x.discount_pct)}%</span>`).join('') : '<span class="re ok">✓ nothing on the rescue shelf</span>'}</div>`; }
+  if (!row) return `<div class="th">${artS(s, it, 50)}<div class="tn"><b>${esc(R.human(id))}</b></div></div><div class="more">loading…</div>`;
+  const lots = lotsOf(s, id);
+  const rows = lots.slice(0, 4).map((l, i) => { const f = lotClass(l, now), life = l.received_s != null ? l.expires_s - l.received_s : null;
+    const el = life ? Math.min(1, Math.max(0, 1 - (l.expires_s - now) / life)) : null;
+    return `<div class="lot${i === 0 ? ' first' : ''}"><span class="lq">${i === 0 ? '<b class="fefo">➜</b>' : ''}${l.approx ? 'next lot' : (row.uom === 'pc' ? Math.round(l.qty) : (l.qty / u[0]).toFixed(1)) + (u[1] ? ' ' + u[1] : '')}</span>
+      <span class="tl"><small>${DATE(l.received_s, s)}</small><span class="tb"><i style="width:${el == null ? 100 : (el * 100).toFixed(0)}%;background:${FR[f]}"></i>${el != null ? `<em style="left:${(el * 100).toFixed(0)}%"></em>` : ''}</span><small>${DATE(l.expires_s, s)}</small></span>
+      <span class="dl" style="background:${FR[f]}">${fmtLeft(l.expires_s - now)}</span>
+      ${l.status === 'opened' ? `<span class="op" title="opened ${l.opened_s ? R.hm(l.opened_s) : ''}">${icon('p-open', 16, 16)}${l.opened_s ? R.hm(l.opened_s) : ''}</span>` : `<span class="op sealed" title="sealed">${icon('p-seal', 16, 16)}</span>`}</div>`; }).join('');
+  const fc = s.rest?.usage?.[id];
+  let fcH = '';
+  if (fc && fc.p50 != null) { const max = Math.max(fc.p90, row.on_hand) * 1.15 || 1, pc = (v) => (v / max * 100).toFixed(1) + '%', fmt = (v) => row.uom === 'pc' ? Math.round(v) : (v / u[0]).toFixed(1);
+    fcH = `<div class="fc"><span>today</span><span class="bul"><i class="stock" style="width:${pc(row.on_hand)};background:${covCol(row.days_of_cover)}"></i>
+      <b style="left:${pc(fc.p50)}"><small>p50 ${fmt(fc.p50)}</small></b><b class="p90" style="left:${pc(fc.p90)}"><small>p90 ${fmt(fc.p90)}</small></b></span><span>${u[1]}</span></div>`; }
+  else fcH = `<div class="more">today’s usage forecast loading…</div>`;
+  const c = row.days_of_cover, cov = [0, 1, 2, 3, 4].map((d) => { const f = c == null ? 0 : Math.min(1, Math.max(0, c - d)) * 100;
+    return `<i style="background:linear-gradient(90deg,${covCol(c)} ${f}%,#fff ${f}%)"></i>`; }).join('');
+  const p = proposal(s, id);
+  const re = p ? `<span class="re">${icon('p-truck')}+${row.uom === 'pc' ? Math.round(p.qty) : (p.qty / u[0]).toFixed(1)}${u[1] ? ' ' + u[1] : ''} · ${R.hm(p.eta_s)}</span>`
+    : row.on_order > 0 ? `<span class="re">${icon('p-truck')}on order</span>` : `<span class="re ok">✓ stocked</span>`;
+  const co2 = row.co2e_kg_per_kg;
+  return `<div class="th">${art(shaped(it, row.on_hand / Math.max(1e-9, row.par || 1)), 50)}<div class="tn"><b>${esc(nameOf(row, id))}</b><span class="sup">${icon('p-truck')}${esc(String(row.supplier || '').replace(/\s*\(fictional\)/, ''))}</span></div><span class="onhand">${qtyText(row)}</span></div>
+    <div class="lots">${rows || '<div class="lot"><span class="lq">no lots</span></div>'}</div>${fcH}
+    <div class="meta"><span class="cov" title="days of cover">${cov}<b>${c == null ? '—' : c.toFixed(1) + 'd'}</b></span>${re}
+    ${co2 != null ? `<span class="co2" title="kg CO₂e per kg">${icon('p-leaf', 16, 16)}${co2}<small>CO₂e/kg</small><i style="--w:${Math.min(1, co2 / 20).toFixed(2)}"></i></span>` : ''}</div>`;
 }
-let current = null;
-function show(id){
-  const it = BY[id]; if (!it || current === id) return; current = id;
-  document.querySelectorAll('.p-hit').forEach(h => h.classList.toggle('on', h.dataset.id === id));
-  tipEl.innerHTML = tipHTML(it);
+let current = 'oat_milk', tipSig = '';
+function placeTip(id){ const it = BY[id]; if (!it) return;
   const W = 336, Hh = tipEl.offsetHeight || 230, b = S[it.s];
   let left = it.x < 800 ? it.x + it.w / 2 + 16 : it.x - it.w / 2 - 16 - W;
   left = Math.max(12, Math.min(1588 - W, left));
   const top = Math.max(158, Math.min(796 - Hh, b - it.h - 24));
-  tipEl.style.left = left + 'px'; tipEl.style.top = top + 'px';
+  tipEl.style.left = left + 'px'; tipEl.style.top = top + 'px'; }
+function renderTip(s, now){
+  const html = tipHTML(s, current, now);
+  if (html === tipSig) return; tipSig = html; tipEl.innerHTML = html; placeTip(current);
 }
-document.getElementById('pantry-scene').addEventListener('pointerover', e => { const h = e.target.closest('.p-hit'); if (h) show(h.dataset.id); });
-document.getElementById('pantry-scene').addEventListener('focusin', e => { const h = e.target.closest('.p-hit'); if (h) show(h.dataset.id); });
-document.getElementById('pantry-scene').addEventListener('click', e => { const h = e.target.closest('.p-hit'); if (h) show(h.dataset.id); });
-show('oat');
+function show(id){
+  if (!BY[id]) return; current = id; tipSig = '';
+  document.querySelectorAll('.p-hit').forEach(h => h.classList.toggle('on', h.dataset.id === id));
+  const s = R.S(); if (s) renderTip(s, R.now());
+  window.BrewLive?.refresh?.('usage', id);
+}
+const scene = document.getElementById('pantry-scene');
+scene.addEventListener('pointerover', e => { const h = e.target.closest('.p-hit'); if (h && h.dataset.id !== current) show(h.dataset.id); });
+scene.addEventListener('focusin', e => { const h = e.target.closest('.p-hit'); if (h) show(h.dataset.id); });
+scene.addEventListener('click', e => { const h = e.target.closest('.p-hit'); if (h) show(h.dataset.id); });
 
 /* ---------- bottom panels ---------- */
-const urgent = ITEMS.filter(it => it.kind !== 'rescue' && it.lots.some(l => fresh(l) === 'bad'));
-document.getElementById('p-today').innerHTML = urgent.map(it => {
-  const l = it.lots.find(x => fresh(x) === 'bad');
-  return `<button class="it" data-pick="${it.id}" title="${it.name} · ${l.q}">${art(it, 38)}<b>${fmtDl(l.dl)}</b></button>`; }).join('');
-const waste = [3.1, 2.4, 2.8, 1.6, 1.2, .9, .7];
-document.getElementById('p-waste').innerHTML = waste.map((v, i) => `<i style="height:${(v / 3.6 * 100).toFixed(0)}%" title="${['wed','thu','fri','sat','sun','mon','tue'][i]} · ${v} kg"></i>`).join('') + `<em style="bottom:${(3.4 / 3.6 * 100).toFixed(0)}%"></em>`;
-document.getElementById('p-cover').innerHTML = ['lids', 'milk', 'avo', 'oat', 'berry', 'dough', 'beans', 'cups', 'flour'].map(id => { const it = BY[id];
-  return `<button class="cell" data-pick="${id}" title="${it.name}">${art(it, 28)}<span class="cb"><i style="width:${Math.min(100, it.cover / 5 * 100)}%;background:${covCol(it.cover)}"></i></span><span>${it.cover}d</span></button>`; }).join('');
-const orders = ITEMS.filter(it => it.re && it.re.startsWith('+')).sort((a, c) => a.cover - c.cover);
-document.getElementById('p-order').innerHTML = orders.slice(0, 3).map(it =>
-  `<button class="or" data-pick="${it.id}">${art(it, 30)}<span>${it.name}</span><span class="re">${it.re}</span><small>${it.sup.split(' ')[0]} · ${it.by}</small></button>`).join('')
-  + `<div class="more">+${orders.length - 3} more · ${orders.slice(3).map(it => it.name).join(', ')}</div>`;
-document.querySelectorAll('[data-pick]').forEach(b => b.addEventListener('click', () => show(b.dataset.pick)));
+const room = document.getElementById('pantry');
+room.addEventListener('click', (e) => { const b = e.target.closest('[data-pick]'); if (b) show(b.dataset.pick); });
+let freshSig = '';
+function renderFresh(s, now){
+  const el = room.querySelector('.pfresh'); if (!el) return;
+  const rows = Object.values(s.inventory || {});
+  let fr = s.rest?.inventory_summary?.freshness;
+  if (!fr && rows.length) { const v = {fresh: 0, soon: 0, expiring: 0}; let tot = 0; for (const r of rows) { v[r.freshness || 'fresh'] += r.value_inr || 0; tot += r.value_inr || 0; }
+    fr = tot ? {fresh: v.fresh / tot, soon: v.soon / tot, expiring: v.expiring / tot} : null; }
+  const rescue = rescueItems(s, now).slice(0, 4);
+  const L = Object.values(s.replate?.listings || {}).filter((x) => !x.outcome).slice(0, 2);
+  const imp = s.rest?.impact, days = imp?.waste_kg_by_day || [];
+  const A = s.rest?.comparison?.policies?.A || s.rest?.comparison?.baseline, me = s.rest?.comparison?.policies?.[s.policy?.policy || 'D'];
+  const vs = A && me ? Math.round((me.mean_waste_kg / A.mean_waste_kg - 1) * 100) : null;
+  const max = Math.max(...days.map((d) => d.waste_kg), A?.mean_waste_kg || 0, 1) * 1.1;
+  const pct = (x) => Math.round((x || 0) * 100);
+  const html = `<h3>freshness <small>stock value · first expiry, first out</small></h3>`
+    + (fr ? `<div class="stack"><span style="width:${pct(fr.fresh)}%;background:#bfe6cf">${fr.fresh > .18 ? 'fresh ' + pct(fr.fresh) + '%' : ''}</span><span style="width:${pct(fr.soon)}%;background:#f6c76a">${fr.soon > .14 ? 'soon ' + pct(fr.soon) + '%' : ''}</span><span style="width:${Math.max(0, 100 - pct(fr.fresh) - pct(fr.soon))}%;background:#ef7d6d">${fr.expiring > .05 ? pct(fr.expiring) + '%' : ''}</span></div>` : `<div class="stack"><span style="width:100%;background:#ece4d8">loading the walk-in…</span></div>`)
+    + `<div class="prow"><span>use today</span><div id="p-today">${rescue.map(({it, l}) => `<button class="it" data-pick="${it.id}" title="${esc(nameOf(s.inventory?.[it.id], it.id))}">${artS(s, it, 38)}<b>${fmtLeft(l.expires_s - now)}</b></button>`).join('') || '<small style="opacity:.6">nothing expiring ♡</small>'}</div><span style="font-size:20px">→</span>`
+    + (L.length ? L.map((x) => `<span class="dish" data-listing="${esc(x.listing_id)}"><svg><use href="#p-plate"/></svg>${esc(R.human(s.menu?.[x.sku]?.name || x.sku).toLowerCase())} −${Math.round(x.discount_pct)}%</span>`).join('') : `<span class="dish"><svg><use href="#p-plate"/></svg>rescue shelf empty</span>`) + `</div>`
+    + `<div class="prow"><span>waste / day</span><div id="p-waste">${days.map((d) => `<i style="height:${Math.max(4, d.waste_kg / max * 100).toFixed(0)}%${d.partial ? ';opacity:.55' : ''}" title="${d.date || 'day ' + d.day} · ${d.waste_kg.toFixed(1)} kg${d.partial ? ' so far' : ''}"></i>`).join('')}${A ? `<em style="bottom:${(A.mean_waste_kg / max * 100).toFixed(0)}%"></em>` : ''}</div>`
+    + (vs != null ? `<span class="chip" style="background:${vs <= 0 ? '#e4efd9' : '#fbe1d9'}">${vs <= 0 ? '−' : '+'}${Math.abs(vs)}% vs naive</span><small style="opacity:.65">dashed = policy A</small>` : `<small style="opacity:.65">${imp ? (imp.waste_kg_today ?? 0).toFixed(1) + ' kg today' : ''}</small>`) + `</div>`;
+  if (html !== freshSig) { freshSig = html; el.innerHTML = html; }
+}
+let coverSig = '';
+function renderCover(s){
+  const el = room.querySelector('.pboard'); if (!el) return;
+  const ids = SLOTS.filter((it) => it.id !== 'rescue' && s.inventory?.[it.id]?.days_of_cover != null).sort((a, b) => s.inventory[a.id].days_of_cover - s.inventory[b.id].days_of_cover).slice(0, 9);
+  const cells = ids.map((it) => { const c = s.inventory[it.id].days_of_cover;
+    return `<button class="cell" data-pick="${it.id}" title="${esc(nameOf(s.inventory[it.id], it.id))}">${artS(s, it, 28)}<span class="cb"><i style="width:${Math.min(100, c / 5 * 100)}%;background:${covCol(c)}"></i></span><span>${c.toFixed(1)}d</span></button>`; }).join('');
+  const html = `<div class="bh">days of cover <small><i class="led r"></i>&lt;1d <i class="led a"></i>&lt;2d <i class="led g"></i>ok</small></div><div class="cells" id="p-cover">${cells}</div>`;
+  if (html !== coverSig) { coverSig = html; el.innerHTML = html; }
+}
+let orderSig = '', approving = false, approved = '';
+function renderOrder(s){
+  const el = room.querySelector('.porder'); if (!el) return;
+  const P = s.rest?.purchasing, orders = P ? (P.orders || (P.lines ? [P] : [])) : null;
+  const lines = (orders || []).flatMap((o) => (o.lines || []).map((l) => ({...l, eta_s: o.eta_s, supplier: o.supplier})));
+  lines.sort((a, b) => (s.inventory?.[a.ingredient]?.days_of_cover ?? 9) - (s.inventory?.[b.ingredient]?.days_of_cover ?? 9));
+  const key = orders ? orders.map((o) => o.supplier + (o.lines || []).map((l) => l.ingredient + l.qty).join()).join('|') : '';
+  const when = P?.next_delivery_s ?? orders?.[0]?.eta_s;
+  const head = `<h3><svg><use href="#p-truck"/></svg>next delivery <span class="chip dark">${when != null ? (Math.floor(when / 86400) > (s.clock?.day ?? 0) ? 'tomorrow ' : 'today ') + R.hm(when) : '—'}</span></h3>`;
+  let body;
+  if (!P) body = `<div class="more">asking policy ${s.policy?.policy || 'D'} what it would order…</div>`;
+  else if (!lines.length) body = `<div class="or"><span></span><span>nothing to order: every shelf is above its reorder point</span><span></span><small></small></div>`;
+  else body = lines.slice(0, 3).map((l) => { const row = s.inventory?.[l.ingredient], u = UNIT[row?.uom || l.uom] || [1, ''], it = BY[l.ingredient];
+    return `<button class="or" data-pick="${BY[l.ingredient] ? l.ingredient : ''}">${it ? artS(s, it, 30) : `<svg class="art" width="30" height="30"><use href="#p-truck" width="30" height="24"/></svg>`}<span>${esc(nameOf(row, l.ingredient))}</span><span class="re">+${(row?.uom || l.uom) === 'pc' ? Math.round(l.qty) : (l.qty / u[0]).toFixed(1)}${u[1] ? ' ' + u[1] : ''}</span><small>${esc(String(l.supplier || '').split('_')[0])} · ${R.hm(l.eta_s)}</small></button>`; }).join('')
+    + (lines.length > 3 ? `<div class="more">+${lines.length - 3} more · ${lines.slice(3).map((l) => esc(nameOf(s.inventory?.[l.ingredient], l.ingredient))).join(', ')}</div>` : '');
+  const done = approved && approved === key;
+  const foot = `<div class="foot"><span>${P && lines.length ? `<b>${R.rs(P.total_inr || 0)}</b> · ${Math.round(P.co2e_kg || 0)} kg CO₂e · ${esc(P.service_level || 'sized to forecast')}` : ''}</span>`
+    + `<button class="btn" data-action="place_po" ${!lines.length || approving || done ? 'disabled' : ''}>${done ? 'ordered ✓' : approving ? 'ordering…' : 'approve order'}</button></div>`;
+  const html = head + body + foot + (orderSig ? '' : '');
+  if (html !== orderSig) { orderSig = html; el.innerHTML = html; el.dataset.key = key; }
+}
+room.querySelector('.porder')?.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-action="place_po"]'); if (!b || b.disabled || !window.BrewApi) return;
+  const s = R.S(), P = s?.rest?.purchasing; if (!P) return;
+  approving = true; orderSig = ''; renderOrder(s);
+  try { for (const o of (P.orders || [P])) if (o.lines?.length) await BrewApi.act('place_po', {supplier: o.supplier_key || o.supplier, lines: o.lines});
+    approved = b.closest('.porder').dataset.key; window.BrewToast?.('order placed ♡ watch for the truck'); window.BrewLive?.refresh?.('purchasing'); }
+  catch (err) { window.BrewToast?.(err.message || 'order refused', true); }
+  finally { approving = false; orderSig = ''; renderOrder(R.S()); }
+});
 
-/* ---------- live: door-open timer + temperature drift ---------- */
-if (document.body.classList.contains('still') || /[?&]still\b/.test(location.search) || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-let open = 42;
-setInterval(() => {
-  open++;
-  document.getElementById('p-door-t').textContent = `${Math.floor(open / 60)}:${String(open % 60).padStart(2, '0')}`;
-  const temp = Math.min(4.6, 3.2 + open / 400 + Math.sin(open / 3) * .05);
-  const el = document.getElementById('p-temp');
-  el.textContent = temp.toFixed(1) + '°C';
-  el.setAttribute('fill', temp > 4 ? '#f6c76a' : '#8ff0a4');
-  if (open > 300) open = 20;
-}, 1000);
+/* ---------- frame ---------- */
+let lastRefresh = 0;
+function render(s){
+  if (!s) return;
+  const now = R.now();
+  renderShelves(s, now); renderTip(s, now); renderFresh(s, now); renderCover(s); renderOrder(s);
+  if (document.body.dataset.room === 'pantry' && performance.now() - lastRefresh > 60000) { lastRefresh = performance.now(); window.BrewLive?.refresh?.('pantry', SLOTS.map((x) => x.id).filter((x) => x !== 'rescue')); }
+}
+R.onState(render);
+setInterval(() => { if (document.body.dataset.room === 'pantry') render(R.S()); }, 5000);
+window.BrewPantry = {render, show, SLOTS};
 })();

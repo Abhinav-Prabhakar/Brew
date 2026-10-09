@@ -19,13 +19,16 @@ combos = [
     {"id": x.id, "name": x.name, "skus": list(x.skus), "discount_pct": x.discount_pct, "tagline": x.tagline}
     for x in c.combos.combos
 ]
+modifiers = {
+    x.id: {"label": x.label, "long": x.long, "allergy": bool(getattr(x, "allergy", False))} for x in c.modifiers
+}
 data = {
-    "_note": "snapshot of configs/cafe; the live app reads GET /api/v1/worlds/{id}/state",
-    "menu": menu, "combos": combos, "combo_round_to": c.combos.round_to,
+    "_note": "static catalogue from configs/cafe; live prices/state come from GET /api/v1/worlds/{id}/state",
+    "menu": menu, "combos": combos, "combo_round_to": c.combos.round_to, "modifiers": modifiers,
 }
 out = Path(repo_root()) / "design" / "data" / "menu.js"
 out.write_text(
-    "/* generated from configs/cafe (menu.yaml, combos.yaml) by scripts/export_menu.py — do not edit by hand */\n"
+    "/* generated from configs/cafe (menu.yaml, combos.yaml, modifiers.yaml) by scripts/export_menu.py — do not edit by hand */\n"
     "window.BREW_MENU = " + json.dumps(data, indent=1, ensure_ascii=False) + ";\n"
 )
 print(f"wrote {out} ({len(menu)} items, {len(combos)} combos)")
