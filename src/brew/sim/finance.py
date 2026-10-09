@@ -90,6 +90,7 @@ class Finance:
                     "mods": list(ln["mods"]),
                     "unit_price": ln["unit_price"],
                     "amount": amt,
+                    "replate": bool(ln.get("replate")),
                 }
             )
         subtotal = round2(subtotal)

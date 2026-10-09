@@ -79,7 +79,7 @@ def sim_bench(seed: int = typer.Option(7), days: int = typer.Option(3, min=1)) -
     tbl = Table(title="brew-sim bench")
     for c in ("policy", "sec/day", "events/day", "fork ms (mid-day)"):
         tbl.add_column(c)
-    for pol in ("A", "B"):
+    for pol in ("A", "B", "C"):
         w = World(policy=pol, seed=seed, days=days, sink=ListSink(), telemetry=True)
         t0 = time.perf_counter()
         w.run(days)
@@ -184,14 +184,116 @@ def seed_main() -> None:
 
 
 # ------------------------------------------------------- brew-train / brew-eval
+train_app = typer.Typer(
+    help="Training pipeline stages (history, forecast, elasticity, ...).", no_args_is_help=True, add_completion=False
+)
+M3_STAGES = ("bc", "ppo", "adversarial", "export")
+
+
+def _train_cfg(config: Path) -> object:
+    from brew.train.config import load_train_config
+
+    return load_train_config(config)
+
+
+def _report(stage: str, res: dict) -> None:
+    import json
+
+    keep = {k: v for k, v in res.items() if not isinstance(v, dict | list) or k in ("backtest",)}
+    console.print(f"[bold]{stage}[/bold]: " + json.dumps(keep, default=str)[:900])
+
+
+@train_app.command("stage")
+def train_stage(
+    stage: str = typer.Argument(..., help="history|forecast|elasticity|prep_time|rider_eta|text|replate|eval|all"),
+    config: Path = typer.Option(Path("configs/train/smoke.yaml"), "--config", help="Train config YAML."),
+    device: str = typer.Option("auto", help="Reserved for M3 (RL) stages."),
+) -> None:
+    """Run one pipeline stage (or ``all`` M2 stages) from a train config."""
+    from brew.train.pipeline import M2_STAGES, run_all, run_stage
+
+    cfg = _train_cfg(config)
+    if stage in M3_STAGES:
+        console.print(f"stage '{stage}' belongs to milestone M3 (learning) - not available yet.")
+        raise typer.Exit(0)
+    if stage == "all":
+        t0 = time.perf_counter()
+        res = run_all(cfg, M2_STAGES, log=lambda m: console.print(m))  # type: ignore[arg-type]
+        console.print(f"[green]all M2 stages done in {time.perf_counter() - t0:.1f}s[/green]")
+        for k, v in res.items():
+            _report(k, v)
+        return
+    res1 = run_stage(stage, cfg)  # type: ignore[arg-type]
+    _report(stage, res1)
+
+
 def train_main() -> None:
-    """Stub until M2/M3."""
-    console.print("brew-train: available in M2/M3 (forecasting, elasticity, RL).")
+    """Entry point: ``brew-train <stage> --config configs/train/smoke.yaml``."""
+    train_app()
+
+
+eval_app = typer.Typer(help="Policy arena: policies x seeds x days with paired statistics.", add_completion=False)
+
+
+@eval_app.callback(invoke_without_command=True)
+def eval_cmd(
+    policies: str = typer.Option("A,B,C", help="Comma separated policy codes."),
+    seeds: int = typer.Option(3, min=1, help="Number of seeds (1..N)."),
+    days: int = typer.Option(1, min=1, help="Sim days per run."),
+    scenario: str = typer.Option("weekday_normal"),
+    replate_ab: bool = typer.Option(False, "--replate-ab", help="Also run C with Replate on vs off."),
+    waste_breakdown: bool = typer.Option(False, "--waste-breakdown", help="With --replate-ab: per-item waste kg on/off."),
+    params: str = typer.Option("", help="JSON overrides for policy C/E parameters."),
+    workers: int = typer.Option(0, help="Process-pool workers (0 = sequential)."),
+    out: Path = typer.Option(None, help="Write the JSON result here."),
+) -> None:
+    """Run the arena and print mean profit, paired CIs vs A and Wilcoxon p-values."""
+    import json
+
+    from brew.analysis.arena import run_arena, run_replate_ab
+
+    pols = [p.strip().upper() for p in policies.split(",") if p.strip()]
+    seed_list = list(range(1, seeds + 1))
+    t0 = time.perf_counter()
+    over = json.loads(params) if params else None
+    res = run_arena(pols, seed_list, days, scenario, workers=workers, params=over)
+    summ = res.summary()
+    tbl = Table(title=f"arena {scenario} seeds={seeds} days={days} ({time.perf_counter() - t0:.1f}s)")
+    for c in ("policy", "mean profit/day", "d vs A", "95% CI", "wilcoxon p", "waste kg", "sla breach", "rating"):
+        tbl.add_column(c)
+    for pc, row in summ["policies"].items():
+        d = row.get("vs_A") or {}
+        ci = d.get("ci95")
+        tbl.add_row(
+            pc, f"{row['mean_profit']:.0f}", f"{d.get('mean_diff', 0.0):+.0f}" if d else "-",
+            f"[{ci[0]:+.0f}, {ci[1]:+.0f}]" if ci else "-", f"{d.get('wilcoxon_p', float('nan')):.3f}" if d else "-",
+            f"{row['mean_waste_kg']:.1f}", f"{row['mean_sla_breach']:.3f}", f"{row['mean_rating']:.2f}",
+        )  # fmt: skip
+    console.print(tbl)
+    result: dict = {"arena": summ}
+    if replate_ab:
+        ab = run_replate_ab("C", seed_list, days, scenario, workers=workers, params=over)
+        result["replate_ab"] = ab
+        console.print(
+            f"replate on vs off (C): waste kg {ab['off']['waste_kg']:.1f} -> {ab['on']['waste_kg']:.1f} "
+            f"({ab['waste_reduction_pct']:.0f}% less), profit {ab['off']['profit']:.0f} -> {ab['on']['profit']:.0f}"
+        )
+        if waste_breakdown:
+            wt = Table(title="waste kg/day per item (C, Replate off vs on)")
+            for c in ("item", "off", "on", "rescuable"):
+                wt.add_column(c)
+            for r in ab["waste_breakdown"]:
+                if max(r["kg_off"], r["kg_on"]) < 0.005:
+                    continue
+                wt.add_row(r["key"], f"{r['kg_off']:.2f}", f"{r['kg_on']:.2f}", "yes" if r["rescuable"] else "no")
+            console.print(wt)
+    if out:
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(json.dumps(result, indent=2, default=str))
 
 
 def eval_main() -> None:
-    """Stub until M2/M3."""
-    console.print("brew-eval: available in M2/M3 (policy arena).")
+    eval_app()
 
 
 if __name__ == "__main__":

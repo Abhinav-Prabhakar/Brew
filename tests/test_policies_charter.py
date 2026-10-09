@@ -150,10 +150,10 @@ def test_b_happy_hour_prices_in_dead_hours():
     assert w.menu["latte"].price == w.menu["latte"].base
 
 
-def test_future_policies_are_stubs():
-    for code, ms in (("C", "M2"), ("D", "M3"), ("E", "M2")):
-        with pytest.raises(NotImplementedError, match=ms):
-            make_policy(code)
+def test_policy_d_is_a_stub_c_and_e_exist():
+    with pytest.raises(NotImplementedError, match="M3"):
+        make_policy("D")
+    assert make_policy("C").code == "C" and make_policy("E").code == "E"
 
 
 def test_policy_decisions_recorded(day_b):
@@ -162,9 +162,9 @@ def test_policy_decisions_recorded(day_b):
 
 
 # ------------------------------------------------------------------ observation
-def test_observation_is_named_179(day_b):
+def test_observation_is_named_183(day_b):
     obs = ObservationBuilder(day_b).build()
-    assert obs.vec.shape == (179,) and len(NAMES) == 179 and len(set(NAMES)) == 179
+    assert obs.vec.shape == (183,) and len(NAMES) == 183 and len(set(NAMES)) == 183
     assert obs.get("tod_sin") is not None
     assert all(abs(v) <= 3.5 for v in obs.vec)
 

@@ -17,6 +17,7 @@ from brew.settings import Settings, get_settings
 from brew.sim.actions import ActionError
 from brew.version import __version__
 
+from .jobs import JobRegistry
 from .world_manager import NotImplementedYet, UnknownWorld, WorldManager
 
 
@@ -40,7 +41,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
         app.state.manager = WorldManager(s)
+        app.state.jobs = JobRegistry()
         yield
+        app.state.jobs.shutdown()
         await app.state.manager.shutdown()
 
     app = FastAPI(
@@ -90,12 +93,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         code = {404: "not_found", 405: "method_not_allowed"}.get(e.status_code, "http_error")
         return ORJSONResponse(error_body(code, str(e.detail)), status_code=e.status_code)
 
-    from .routers import meta, read, worlds, ws
+    from .routers import analysis, meta, read, worlds, ws
 
     prefix = "/api/v1"
     app.include_router(meta.router, prefix=prefix)
     app.include_router(worlds.router, prefix=prefix)
     app.include_router(read.router, prefix=prefix)
+    app.include_router(analysis.router, prefix=prefix)
     app.include_router(ws.router, prefix=prefix)
     return app
 

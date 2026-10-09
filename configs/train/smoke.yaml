@@ -1,3 +1,31 @@
-# Placeholder - filled in M2/M3.
+# Smoke configuration: every M2 stage end to end on an 8 GB Apple-silicon laptop in a few minutes.
 name: smoke
-history: {days: 14, seeds: 1}
+runs_dir: data/runs/smoke
+models_dir: models
+history:
+  scenario: weekday_normal
+  runs:                       # exploration worlds: random price levels, make-ahead batches, markdown ladders
+    - {policy: B, seed: 101, days: 28}
+    - {policy: B, seed: 102, days: 21}
+    - {policy: A, seed: 103, days: 7}
+  price_explore_prob: 0.8
+  premake_explore: true
+  ladder_explore: true
+  price_experiment: {groups: 20, variants: 4, seed: 500, policy: B}   # CRN price experiment for elasticity
+forecast: {n_estimators: 120, folds: 3, test_days: 2, min_history: 7}
+elasticity: {alpha: 1.0e-6, shrink_k: 200}
+prep_time: {n_estimators: 80}
+rider_eta: {n_estimators: 80}
+replate_model: {n_estimators: 60}
+text: {source: clean, test_size: 0.25, seed: 0}
+eval:
+  policies: [A, B, C]
+  seeds: [1, 2, 3, 4, 5]     # acceptance protocol: 5 seeds x 5 days with CRN
+  days: 5
+  scenario: weekday_normal
+  replate_ab: true
+  workers: 4
+# M3 (reserved): bc, ppo, adversarial, export
+bc: {days: 5}
+ppo: {total_timesteps: 20000, n_envs: 4, episode_days: 1}
+adversarial: {total_timesteps: 5000}

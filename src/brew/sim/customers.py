@@ -4,13 +4,14 @@
 from __future__ import annotations
 
 import math
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from brew.domain.ids import uuid7
 from brew.domain.timeutil import epoch_ms
 from brew.sim.rng import lognormal_params
 
 from .engine import P_DONE, P_TIMEOUT
+from .replate import RP
 from .state import T_CANCEL, T_READY, Order, Party, Table, Task
 
 if TYPE_CHECKING:
@@ -115,29 +116,65 @@ class Customers:
         bulk = int(plan.bulk[i]) > 0
         food_prob = float(per.basket.get("food_prob", 0.4))
         skus = ch.skus
+        J = ch.J
+        rp = w.replate
+        agg = int(plan.chan[i]) >= 2
+        allowed = ch.rp_deliv if agg else None
+        claimed: dict[str, int] = {}
         items: list[tuple[str, tuple[str, ...]]] = []
         for k in range(nd):
             j = ch.choose(
-                persona, "drink", plan.gumbel[off + k], with_outside=(k == 0 and apply_outside and not bulk)
+                persona,
+                "drink",
+                plan.gumbel[off + k],
+                with_outside=(k == 0 and apply_outside and not bulk),
+                gumbel_rp_row=plan.gumbel_rp[off + k],
+                rp_allowed=allowed,
             )
             if j < 0:
                 if k == 0 and apply_outside and not bulk:
                     return None
                 continue
-            sku = skus[j]
-            items.append((sku, self.pick_mods(persona, sku, plan.mod_u[off + k])))
+            sku = skus[j % J]
+            mods = self.pick_mods(persona, sku, plan.mod_u[off + k])
+            items.append((sku, self._rp_mark(rp, sku, mods, j >= J, claimed)))
         for k in range(nf):
             r = off + nd + k
             if not bulk and plan.take_u[r] >= food_prob:
                 continue
-            j = ch.choose(persona, "food", plan.gumbel[r], with_outside=False)
+            j = ch.choose(
+                persona, "food", plan.gumbel[r], with_outside=False, gumbel_rp_row=plan.gumbel_rp[r],
+                rp_allowed=allowed,
+            )  # fmt: skip
             if j < 0:
                 continue
-            sku = skus[j]
-            items.append((sku, self.pick_mods(persona, sku, plan.mod_u[r])))
+            sku = skus[j % J]
+            mods = self.pick_mods(persona, sku, plan.mod_u[r])
+            items.append((sku, self._rp_mark(rp, sku, mods, j >= J, claimed)))
         if not items and nd + nf > 0:
             return None
+        if items and not bulk and w.cfg.replate.addon_enabled and ch.rp_mask is not None:
+            ja = ch.addon_choice(persona, plan.gumbel_rp[off], float(plan.gumbel_addon[off]), allowed)
+            if ja >= 0:
+                sku = skus[ja]
+                if claimed.get(sku, 0) + 1 <= rp.listed_units(sku):
+                    claimed[sku] = claimed.get(sku, 0) + 1
+                    items.append((sku, (RP,)))
         return items
+
+    @staticmethod
+    def _rp_mark(
+        rp: Any, sku: str, mods: tuple[str, ...], chose_rp: bool, claimed: dict[str, int]
+    ) -> tuple[str, ...]:
+        """Tag ``mods`` with the replate marker when the customer picked the replate alternative and the
+        listing still has units for this basket (otherwise they pay the regular price)."""
+        if not chose_rp:
+            return mods
+        n = claimed.get(sku, 0) + 1
+        if n > rp.listed_units(sku):
+            return mods
+        claimed[sku] = n
+        return (*mods, RP)
 
     def attach_note(
         self, plan: DayPlan, i: int, items: list[tuple[str, tuple[str, ...]]]
@@ -543,8 +580,9 @@ class Customers:
             (u for u in first.units if w.ix.menu[u.sku].cat in ("coffee", "notcoffee")), first.units[0]
         )
         o = w.orders.make_order(
-            p.channel, p.persona, p.name, p.id, [(drink.sku, drink.mods)], None, [], refill=True
-        )
+            p.channel, p.persona, p.name, p.id, [(drink.sku, tuple(m for m in drink.mods if m != RP))], None, [],
+            refill=True,
+        )  # fmt: skip
         if w.orders.commit(o):
             p.order_nos.append(o.order_no)
             w.emit("customer.ordering", party_id=pid)

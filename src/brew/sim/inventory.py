@@ -39,6 +39,7 @@ class Inventory:
         self.is_pack: dict[str, bool] = {}
         self.weight_g: dict[str, float] = {}
         self.finished: set[str] = set()
+        self.pc: dict[str, bool] = {}
         self.lot_seq = 0
         self.cost_mult = 1.0  # price_shock disruption
         self.stock_dirty: set[str] = set()
@@ -51,6 +52,7 @@ class Inventory:
                 i.is_packaging,
                 i.unit_weight_g,
             )
+            self.pc[i.key] = i.base_uom == "pc"
             if i.finished_good:
                 self.finished.add(i.key)
         for p in cfg.prep_items:
@@ -59,6 +61,7 @@ class Inventory:
             for c in p.components:
                 cost += c.qty * ix.ingredient[c.ingredient].unit_cost
             self._register(p.key, hold_h, hold_h, cost / max(1.0, p.batch_size), False, p.unit_weight_g)
+            self.pc[p.key] = p.base_uom == "pc"
             if p.finished_good:
                 self.finished.add(p.key)
         # sku -> keys used by its base bom (for availability checks), and reverse
@@ -70,13 +73,41 @@ class Inventory:
             self.sku_keys[m.sku] = comps
             for k, _q in comps:
                 self.key_skus.setdefault(k, []).append(m.sku)
+        # --- Replate: virtual keys for make-ahead plates and the set of tracked (replate-able) keys
+        self.virtual: set[str] = set()
+        self.tracked: set[str] = set()
+        self.premade_key: dict[str, str] = {}  # sku -> virtual make-ahead key
+        for m in cfg.menu:
+            rp = m.replate
+            if not rp.eligible:
+                continue
+            if rp.stock_key:
+                self.tracked.add(rp.stock_key)
+                continue
+            key = "pm_" + m.sku
+            food = [(k, q) for k, q, pack in self.bom(m.sku, (), False) if not pack]
+            cost = sum(q * self.unit_cost[k] for k, q in food)
+            grams = sum(q * self.weight_g[k] for k, q in food)
+            hold_h = rp.premake_hold_s / 3600.0
+            self._register(key, hold_h, hold_h, cost, False, max(20.0, min(600.0, grams)))
+            self.finished.add(key)
+            self.pc[key] = True
+            self.virtual.add(key)
+            self.tracked.add(key)
+            self.premade_key[m.sku] = key
+            self.key_skus.setdefault(key, []).append(m.sku)
+        for bk in cfg.replate.prep_backed:  # prep-backed listings draw on (and track) these lots
+            if bk in self.mov:
+                self.tracked.add(bk)
 
     def _register(
         self, key: str, sealed_h: float, opened_h: float, cost: float, pack: bool, wt: float
     ) -> None:
         self.lots[key] = []
         self.onhand[key] = 0.0
-        self.mov[key] = {"initial": 0.0, "receive": 0.0, "consume": 0.0, "waste": 0.0, "donate": 0.0}
+        self.mov[key] = {
+            "initial": 0.0, "receive": 0.0, "consume": 0.0, "waste": 0.0, "donate": 0.0, "waste_replate": 0.0,
+        }  # fmt: skip
         self.cost_consumed[key] = 0.0
         self.shelf_sealed[key] = sealed_h
         self.shelf_opened[key] = opened_h
@@ -158,6 +189,10 @@ class Inventory:
         self.onhand[key] += qty
         self.mov[key]["initial" if kind == "initial" else "receive"] += qty
         self.stock_dirty.add(key)
+        if key in self.tracked and self.w is not None:
+            rp = getattr(self.w, "replate", None)
+            if rp is not None:
+                rp.on_lot_added(key, lot)
         return lot
 
     def usable(self, key: str, now: float) -> float:
@@ -184,7 +219,11 @@ class Inventory:
         cost = 0.0
         qsum = 0.0
         reorder = False
-        for lt in list(lots):
+        rp = getattr(self.w, "replate", None) if key in self.tracked and self.w is not None else None
+        seq = list(lots)
+        if rp is not None and rp.prefer:  # replate sale of a prep-backed listing: draw the expiring lot first
+            seq.sort(key=lambda lt: lt.lot_id != rp.prefer)
+        for lt in seq:
             if need <= EPS:
                 break
             if lt.expires_s <= now or lt.qty <= 0:
@@ -205,6 +244,8 @@ class Inventory:
             got += take
             cost += take * lt.unit_cost
             qsum += q * take
+            if rp is not None:
+                rp.on_take(lt, take)
         if reorder:
             lots.sort(key=lambda lt: (lt.expires_s, lt.received_s, lt.lot_id))
         self.lots[key] = [lt for lt in lots if lt.qty > EPS]
@@ -228,12 +269,16 @@ class Inventory:
             if not lots or lots[0].expires_s > now:
                 continue
             keep = []
+            rp = getattr(self.w, "replate", None) if key in self.tracked and self.w is not None else None
             for lt in lots:
                 if lt.expires_s <= now and lt.qty > EPS:
                     self.onhand[key] -= lt.qty
-                    self.mov[key]["waste"] += lt.qty
+                    listed = rp is not None and rp.lot_is_listed(lt)
+                    self.mov[key]["waste_replate" if listed else "waste"] += lt.qty
                     out.append((key, lt, lt.qty * lt.unit_cost))
                     self.stock_dirty.add(key)
+                    if rp is not None:
+                        rp.on_retire(lt, lt.qty, "wasted")
                 else:
                     keep.append(lt)
             self.lots[key] = keep
@@ -253,6 +298,8 @@ class Inventory:
             cost += take * lt.unit_cost
             self.mov[key][kind] += take
             self.onhand[key] -= take
+            if key in self.tracked and self.w is not None and getattr(self.w, "replate", None) is not None:
+                self.w.replate.on_retire(lt, take, "donated" if kind == "donate" else "wasted")
         self.lots[key] = [lt for lt in lots if lt.qty > EPS]
         self.stock_dirty.add(key)
         return cost
@@ -261,6 +308,8 @@ class Inventory:
         """Sealed finished-goods lots with < ``horizon_h`` of shelf life left."""
         out = []
         for key in sorted(self.finished):
+            if key in self.virtual:
+                continue
             for lt in self.lots[key]:
                 if lt.opened_s is None and 0 < lt.expires_s - now < horizon_h * 3600.0 and lt.qty > EPS:
                     out.append((key, lt))
@@ -272,17 +321,37 @@ class Inventory:
         cost = qty * lot.unit_cost
         lot.qty = 0.0
         self.mov[key]["donate"] += qty
+        if key in self.tracked and self.w is not None:
+            rp = getattr(self.w, "replate", None)
+            if rp is not None:
+                rp.on_retire(lot, qty, "donated")
         self.onhand[key] -= qty
         self.lots[key] = [lt for lt in self.lots[key] if lt.qty > EPS]
         self.stock_dirty.add(key)
         return cost
+
+    def kg_of(self, key: str, qty: float) -> float:
+        """Weight in kg of ``qty`` base units of ``key``."""
+        return qty * self.weight_g[key] / 1000.0 if self.pc.get(key) else qty / 1000.0
+
+    def bom_premade(self, sku: str, carry: bool) -> tuple[tuple[str, float, bool], ...]:
+        """BOM of a unit served from make-ahead stock: the pm key plus serving packaging."""
+        ck = (sku, ("~pm",), carry)
+        hit = self._bom_cache.get(ck)
+        if hit is not None:
+            return hit
+        out = [(self.premade_key[sku], 1.0, False)]
+        out += [(k, q, p) for k, q, p in self.bom(sku, (), carry) if p]
+        res = tuple(out)
+        self._bom_cache[ck] = res
+        return res
 
     # ------------------------------------------------------------ analytics
     def check_conservation(self, tol: float = 1e-6) -> dict[str, float]:
         """Return keys violating the conservation invariant (empty dict = OK)."""
         bad = {}
         for k, m in self.mov.items():
-            calc = m["initial"] + m["receive"] - m["consume"] - m["waste"] - m["donate"]
+            calc = m["initial"] + m["receive"] - m["consume"] - m["waste"] - m["donate"] - m["waste_replate"]
             lots_sum = sum(lt.qty for lt in self.lots[k])
             if (
                 abs(calc - self.onhand[k]) > tol
@@ -294,7 +363,10 @@ class Inventory:
 
     def sku_available(self, sku: str, now: float) -> bool:
         """Can one unit of ``sku`` (base recipe, no mods) be made from non-expired stock?"""
-        return all(self.usable(k, now) + EPS >= q for k, q in self.sku_keys[sku])
+        if all(self.usable(k, now) + EPS >= q for k, q in self.sku_keys[sku]):
+            return True
+        pk = self.premade_key.get(sku)
+        return pk is not None and self.usable(pk, now) >= 1.0 - EPS
 
     def value_expiring(self, now: float, within_s: float) -> float:
         """INR value of stock expiring within ``within_s`` seconds."""

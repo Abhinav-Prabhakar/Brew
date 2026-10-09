@@ -1,3 +1,65 @@
 code: C
-name: Optimised (M2)
-status: stub
+name: Optimised (solver)
+status: available
+# Dispatch: weighted EDF + batching; CP-SAT rolling plan (tight time limit) with greedy fallback.
+solver:
+  enabled: true
+  time_limit_s: 0.02
+  max_tasks: 40
+  min_ready: 8              # solve only when at least this many tasks are waiting
+  replan_min_s: 120         # at most one solve per this many sim seconds ...
+  replan_delta: 5           # ... or when the ready set changed by this many tasks
+  max_solves_per_day: 90
+batch_window_s: 45
+register_first: true
+forecast:
+  dispersion: 1.8           # variance / mean of horizon demand (day-level shocks)
+  horizon_slots: 24
+prep:                       # marginal-batch newsvendor over the item's hold window
+  max_batches_per_tick: 2
+  underage_floor: 0.25      # share of the lost margin charged for a stock-out while re-prepping
+  waste_shadow_inr_per_kg: 20.0   # disposal + CO2e shadow price charged on an unused kg
+premake:                    # make-ahead plates / bottled cold brew (replate-eligible, non-bakery)
+  enabled: true
+  window_min: 120           # cover demand over this horizon (capped by the hold window)
+  speed_value_inr: 60       # underage value of a unit served instantly (SLA / capacity relief), x busy factor
+  busy_floor: 0.0
+  kitchen_load_max: 1.0
+  min_window_demand: 1.2    # expected sales in the window below which nothing is made ahead
+  max_units: 8
+  start_h: 10.0
+  stop_h: 20.5
+  waste_penalty_inr: 8      # overage penalty per unit besides ingredient cost (disposal, CO2e shadow)
+replate:
+  custom: true              # per-lot markdown of surplus units only (rescue bag), chosen with the sell-through model
+  levels_pct: [0, 20, 30, 40]
+  waste_value_inr: 12
+  recovery_prior: 0.0       # > 0: fixed share of leftover value assumed recovered when sizing make-ahead batches
+  recovery_scale: 0.0       # else: share of the sell-through model's recovery probability used (0 = identical sizing on/off; 0.25+ made more plates, more waste, less profit)
+  max_hours_before_list: 2.0    # never list earlier than this many hours before the sell-by ...
+  list_frac: 0.5                # ... or before the lot's remaining hold fraction falls to this
+  surplus_quantile: 0.35    # units beyond this demand quantile are surplus
+  min_surplus_units: 1.0
+salvage:
+  enabled: true             # bake-and-list: bake a whole batch from dough that would expire unused
+  window_h: 4.0
+  max_stock_batches: 4.0    # skip when this many batches of the baked item are already on hand
+pricing:
+  enabled: true
+  every_min: 60
+  first_h: 9.0
+  last_h: 20.0
+  min_gain_inr: 120         # only move prices when the modelled gain beats this
+  util_threshold: 0.9
+  default_beta: -1.1
+  default_loss: 1.0
+purchasing:
+  z: 1.4                    # safety sigmas on lead + review period demand
+  cv: 0.35                  # day-to-day coefficient of variation of usage
+  shelf_cap_frac: 0.7
+  min_cover_days: 1.2
+  late_buffer_days: 0.45    # hedge a late truck (+6 h = 0.43 of a 14 h open day)
+accept:
+  max_extra_promise_s: 900
+  reject_if_late_s: 2400
+  slack_s: 90

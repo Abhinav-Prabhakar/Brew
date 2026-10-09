@@ -6,10 +6,8 @@ import subprocess
 from functools import lru_cache
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
-from brew.api.schemas import ArenaRequest
-from brew.api.world_manager import NotImplementedYet
 from brew.config.loader import default_cafe, default_policies, list_scenarios, load_scenario, repo_root
 from brew.events.schema import event_json_schema
 from brew.policies.registry import AVAILABLE, PLANNED
@@ -39,8 +37,11 @@ def git_sha() -> str:
 
 
 @router.get("/health")
-def health() -> dict[str, Any]:
-    return {"status": "ok", "version": __version__, "git_sha": git_sha(), "models_loaded": 0}
+def health(request: Request) -> dict[str, Any]:
+    from brew.models.registry import ModelRegistry
+
+    n = ModelRegistry(str(request.app.state.settings.resolved_models_dir())).models_loaded()
+    return {"status": "ok", "version": __version__, "git_sha": git_sha(), "models_loaded": n}
 
 
 @router.get("/cafe")
@@ -79,24 +80,3 @@ def cafe() -> dict[str, Any]:
 def events_schema() -> dict[str, Any]:
     """JSON Schema of the event union (for frontend codegen)."""
     return event_json_schema()
-
-
-# ---------------------------------------------------------------- later milestones
-@router.get("/models")
-def models() -> Any:
-    raise NotImplementedYet("M2/M3", "model registry")
-
-
-@router.post("/arena")
-def arena_create(body: ArenaRequest) -> Any:
-    raise NotImplementedYet("M2", "policy arena")
-
-
-@router.get("/arena/{arena_id}")
-def arena_get(arena_id: str) -> Any:
-    raise NotImplementedYet("M2", "policy arena")
-
-
-@router.get("/decisions/{decision_id}/explain")
-def explain(decision_id: str) -> Any:
-    raise NotImplementedYet("M2", "decision explanations")

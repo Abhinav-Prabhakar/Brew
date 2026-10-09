@@ -68,6 +68,8 @@ class DayPlan:
     mod_u: np.ndarray
     take_u: np.ndarray
     laptop_u: np.ndarray
+    gumbel_rp: np.ndarray
+    gumbel_addon: np.ndarray
     day_noise: float
     static_mult: dict[str, np.ndarray]
 
@@ -166,6 +168,8 @@ def build_day_plan(
     gumbel = rng.choice.gumbel(size=(total, n_sku + 1))
     take_u = rng.choice.random(total)
     mod_u = rng.modifiers.random((total, 4))
+    gumbel_rp = rng.replate.gumbel(size=(total, n_sku))
+    gumbel_addon = rng.replate.gumbel(size=total)
     return DayPlan(
         day=day,
         personas=P,
@@ -191,6 +195,8 @@ def build_day_plan(
         mod_u=mod_u,
         take_u=take_u,
         laptop_u=cu[:, 2],
+        gumbel_rp=gumbel_rp,
+        gumbel_addon=gumbel_addon,
         day_noise=day_noise,
         static_mult=static_mult,
     )

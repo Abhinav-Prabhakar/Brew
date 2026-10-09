@@ -33,6 +33,7 @@ class PolicyA:
     code = "A"
     default_preset = "fcfs"
     default_batch_window_s = 0.0
+    default_replate_mode = "off"
 
     def __init__(self) -> None:
         self.last_decision: dict[str, Explanation] = {}

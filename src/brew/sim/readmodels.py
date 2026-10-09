@@ -81,7 +81,7 @@ def order_json(w: World, o: Order, batches: dict[int, int] | None = None) -> dic
     return {
         "order_no": o.order_no, "order_id": o.id, "channel": o.channel, "persona": o.persona, "name": o.name,
         "party_id": o.party_id, "status": o.state, "progress_state": state, "progress": round(prog, 2),
-        "items": [{"sku": ln["sku"], "qty": ln["qty"], "mods": ln["mods"], "unit_price": ln["unit_price"]} for ln in o.lines],
+        "items": [{"sku": ln["sku"], "qty": ln["qty"], "mods": ln["mods"], "unit_price": ln["unit_price"], "replate": ln["replate"]} for ln in o.lines],
         "note": o.note, "note_flags": o.note_flags, "placed_s": round(o.placed_s, 1),
         "promised_s": round(o.promised_s, 1), "ready_s": round(o.ready_s, 1) if o.ready_s else None,
         "served_s": round(o.served_s, 1) if o.served_s else None, "bumped": o.bumped,
@@ -178,6 +178,8 @@ def tables(w: World) -> dict[str, Any]:
 def inventory(w: World) -> list[dict[str, Any]]:
     out = []
     for key in w.inv.onhand:
+        if key in w.inv.virtual:
+            continue
         ing = w.ix.ingredient.get(key)
         prep = w.ix.prep.get(key)
         uom = ing.base_uom if ing else prep.base_uom  # type: ignore[union-attr]
@@ -211,11 +213,36 @@ def inventory_lots(w: World, key: str) -> list[dict[str, Any]]:
     ]  # fmt: skip
 
 
+def replate(w: World) -> dict[str, Any]:
+    """Replate (rescue menu): mode, held lots, active listings and KPIs."""
+    rp = w.replate
+    lots = rp.lots_view()
+    return {
+        "mode": rp.mode,
+        "override": rp.override,
+        "category": {"key": "replate", "title": "Replate", "tagline": "Still lovely, just made earlier"},
+        "eligible": sorted(rp.active),
+        "prep_backed": dict(rp.backed),
+        "listings": [x for x in lots if x["listed"]],
+        "lots": lots,
+        "kpis": rp.kpis(),
+        "ladders": {k: v.model_dump(mode="json") for k, v in w.cfg.replate.ladders.items()},
+        "premake_inflight": {s: rp.inflight(s) for s in rp.premake_skus if rp.inflight(s) > 0},
+    }
+
+
 def fridge(w: World) -> list[dict[str, Any]]:
-    out = [
+    out: list[dict[str, Any]] = [
         {"sku": sku, "key": key, "qty": round(w.inv.onhand[key], 1), "low": w.low_flag.get(key, False), "par": (w.ix.ingredient.get(key) or w.ix.prep[key]).par}
         for sku, key in FRIDGE.items()
     ]  # fmt: skip
+    for r in out:
+        pl = w.replate.listing(r["sku"])
+        r["replate"] = (
+            {"listing_id": pl.listing_id, "price": pl.price, "discount_pct": pl.discount_pct, "units": pl.remaining}
+            if pl is not None
+            else None
+        )
     cb = w.inv.onhand["coldbrew_concentrate"]
     out.append(
         {
@@ -224,8 +251,17 @@ def fridge(w: World) -> list[dict[str, Any]]:
             "qty": round(cb / 330.0, 1),
             "low": cb < 1200,
             "par": round(6000 / 330.0, 1),
+            "replate": None,
         }
     )
+    pm = w.replate.pm_key("coldbrew")
+    if pm:
+        out[-1]["premade_units"] = round(w.inv.onhand[pm], 1)
+        pl = w.replate.listing("coldbrew")
+        if pl is not None:
+            out[-1]["replate"] = {
+                "listing_id": pl.listing_id, "price": pl.price, "discount_pct": pl.discount_pct, "units": pl.remaining
+            }
     return out
 
 
@@ -346,6 +382,7 @@ def state(w: World) -> dict[str, Any]:
         "customers": customers(w),
         "tables": tables(w),
         "fridge": fridge(w),
+        "replate": replate(w),
         "shelf": shelf(w),
         "staff": staff(w),
         "equipment": equipment(w),

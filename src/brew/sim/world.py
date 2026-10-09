@@ -29,15 +29,18 @@ from .calendar import Calendar
 from .choice import ChoiceModel, weather_fit
 from .customers import Customers
 from .delivery import Delivery
+from .demandlog import DemandLog
 from .disruptions import Disruptions
 from .engine import P_CLOCK, P_DECIDE, P_TELEMETRY, Engine
 from .finance import Finance
 from .forecast_ma import MaForecast
 from .inventory import Inventory
+from .investments import Investments
 from .kitchen import Kitchen
 from .kpis import Kpis
 from .observation import KAPPA_CLASSES, ObservationBuilder
 from .orders import Orders
+from .replate import Replate, ReplateError
 from .reviews import Reviews
 from .rng import RngStreams
 from .state import EquipState, MenuState, Regular, Table, Task
@@ -74,6 +77,7 @@ class World:
         corpora: Corpora | None = None,
         pol_cfg: PoliciesConfig | None = None,
         cash_start: float | None = None,
+        replate: str | None = None,
     ) -> None:
         self.cfg = cfg or default_cafe()
         self.ix = ConfigIndex.of(self.cfg)
@@ -131,6 +135,7 @@ class World:
         self.ctx_dirty = True
         self.ctx_slot = -1
         self.low_flag: dict[str, bool] = {}
+        self.waste_by_key: dict[str, float] = {}  # cumulative kg wasted per inventory key (analysis)
         self.invest_log: list[dict[str, Any]] = []
         self.daily_kpis: list[dict[str, Any]] = []
         self.decisions: list[dict[str, Any]] = []
@@ -149,17 +154,27 @@ class World:
         self.suppliers = Suppliers(self)
         self.reviews = Reviews(self)
         self.fin = Finance(self, keep_ledger_entries)
+        self.replate = Replate(self)
+        self.dlog = DemandLog([m.sku for m in self.cfg.menu])
+        self.invest = Investments(self)
+        self.fridge_factor = 1.0
         if cash_start is not None:
             self.fin.cash = cash_start
         self.kpi = Kpis(self)
         self.dis = Disruptions(self)
         self.ma = MaForecast(self)
         self.obs_builder = ObservationBuilder(self)
+        from brew.analysis.bottleneck import BottleneckAnalyzer
+
+        self.bn = BottleneckAnalyzer(self)
         self._view = WorldView(self)
         self.regulars: list[Regular] = []
         self._init_regulars()
         self.policy: Policy = None  # type: ignore[assignment]
         self.set_policy(policy, announce=False)
+        if replate is not None:  # experiment / owner override of the replate ladder
+            self.replate.mode = replate
+            self.replate.override = True
         self._h: dict[str, Any] = {}
         self._build_handlers()
         self.engine.schedule(self.day_start_t(0), "DAY_START", 0, P_CLOCK)
@@ -171,6 +186,10 @@ class World:
 
     def view(self) -> WorldView:
         return self._view
+
+    def tod_minutes(self) -> int:
+        """Whole minutes since local midnight."""
+        return int(tod_s(self.now) // 60)
 
     def emit(self, type_: str, **data: Any) -> None:
         """Append an event to the stream (seq strictly increasing from 1)."""
@@ -241,6 +260,7 @@ class World:
             "RIDER_ARRIVE": d.on_rider_arrive,
             "DELIVERED": d.on_delivered,
             "PO_ARRIVE": self.suppliers.on_arrive,
+            "INVEST_DELIVER": self.invest.deliver,
             "DIS_START": de.on_start,
             "DIS_END": de.on_end,
         }
@@ -305,6 +325,7 @@ class World:
         if not self.stock_init_done:
             self.init_stock()
         self.kpi.reset()
+        self.replate.reset_day()
         self.customers.walkouts_today = self.customers.balks_today = self.customers.reneges_today = 0
         self.customers.arrived_today = self.customers.table_turns_today = 0
         self.reviews.neg_today = 0
@@ -334,6 +355,7 @@ class World:
         dt = date_of(day, self.start_date)
         self.cal_arrays = self.calendar.day_arrays(dt)
         self.cal_flags = self.calendar.flags(dt)
+        self.dlog.new_day(day, self.weekday(day), self.cal_flags)
         # arrival plan
         self.day_noise = float(self.rng.arrivals.lognormal(0.0, cfg.cafe.params.day_noise_sigma))
         static = self._static_mult(day)
@@ -462,6 +484,9 @@ class World:
             speed=self.speed,
         )
         self.kitchen.on_minute()
+        self.bn.sample()
+        if int(self.now) % 300 == 0:
+            self.replate.tick()
         if self.pending_hides:
             self.retry_pending_hides()
         if self.kitchen.dish_wash_pending is False and any(v["dirty"] >= 4 for v in self.dish.values()):
@@ -505,22 +530,42 @@ class World:
     def run_manager(self, phase: str) -> None:
         """Expiry sweep, observation, policy decision, shield + apply."""
         self.last_manager_s = self.now
+        self.dlog.snapshot(self)
         self.sweep_expired()
         self.price_mult_dirty = True
+        self.replate.tick()
         obs = self.obs_builder.build()
         action = self.policy.on_manager_tick(obs, self._view)
         if action is not None and not action.is_noop():
             self.apply_manager_action(action, by=self.policy.code)
         self.ctx_dirty = True
 
+    def decision_context(self) -> dict[str, Any]:
+        """Snapshot of the numbers an explanation may quote (explainer slots)."""
+        kit = self.kitchen
+        return {
+            "hhmm": hhmm(self.now), "hour": int(tod_s(self.now) // 3600), "load_pct": round(kit.load_pct(), 1),
+            "queue": len(self.customers.queue), "orders": len(self.orders.open),
+            "open_agg": self.delivery.open_aggregator_orders(), "temp": round(self.temp_c, 1),
+            "rain": round(self.rain_mm_h, 1), "weather": self.weather_state, "strategy": self.manual_strategy,
+            "rating": round(self.reviews.rep.overall(), 2),
+        }  # fmt: skip
+
     def make_decision(
-        self, typ: str, summary: str, by: str, factors: list | None = None, clipped: list | None = None
+        self,
+        typ: str,
+        summary: str,
+        by: str,
+        factors: list | None = None,
+        clipped: list | None = None,
+        changes: list | None = None,
     ) -> str:
         self.decision_seq += 1
         did = f"dec-{self.decision_seq:06d}"
         rec = {
             "decision_id": did, "sim_s": self.now, "type": typ, "summary": summary, "policy": by,
-            "top_factors": factors or [], "clipped": clipped or [],
+            "top_factors": factors or [], "clipped": clipped or [], "changes": changes or [],
+            "context": self.decision_context(),
         }  # fmt: skip
         self.decisions.append(rec)
         if len(self.decisions) > 2000:
@@ -542,6 +587,7 @@ class World:
     def apply_manager_action(self, a: ManagerAction, by: str) -> dict[str, Any]:
         """Pass a ManagerAction through the charter shield and apply what survives."""
         applied: list[str] = []
+        changes: list[dict[str, Any]] = []
         clipped: list[str] = []
         reason = a.reason
         if a.strategy and a.strategy != self.preset and self.manual_strategy == "balanced":
@@ -554,6 +600,7 @@ class World:
         for ch, lvl in a.throttles.items():
             if self.delivery.set_throttle(ch, lvl):
                 applied.append(f"{ch} throttle -> {lvl}")
+                changes.append({"kind": "throttle", "channel": ch, "level": lvl})
         for k, v in a.kappa.items():
             self.kappa[k] = v
         # prices
@@ -566,11 +613,13 @@ class World:
                     price_targets[m.sku] = self.menu[m.sku].price * (1 + step)
         price_targets.update(a.sku_prices)
         for sku, newp in price_targets.items():
+            old_p = self.menu[sku].price
             ok, why = self.set_price(
                 sku, newp, by, reason or "policy", promotion=a.promotion, restore=a.restore
             )
             if ok:
                 applied.append(f"{sku} -> {self.menu[sku].price:g}")
+                changes.append({"kind": "price", "item": sku, "old": old_p, "new": self.menu[sku].price})
             elif why:
                 clipped.append(f"{sku}: {why}")
         # featured
@@ -593,20 +642,54 @@ class World:
                 started = self.kitchen.start_prep(key, qty)
                 if started > 0:
                     applied.append(f"prep {key} x{started:g}")
+                    changes.append({"kind": "prep", "prep_item": key, "qty": started})
+        rp = self.replate
+        if a.replate_mode is not None and rp.set_mode(a.replate_mode, by):
+            applied.append(f"replate mode -> {a.replate_mode}")
+        for sku, units in a.premake.items():
+            if units > 0:
+                try:
+                    res = rp.premake(sku, int(units), by)
+                    applied.append(f"premake {sku} x{res['units']:g}")
+                    changes.append({"kind": "prep", "prep_item": sku, "qty": res["units"], "item": sku})
+                except ReplateError as e:
+                    clipped.append(f"premake {sku}: {e}")
+        for po in a.pos:
+            lines = {ln.ingredient: ln.qty for ln in po.lines if ln.qty > 0}
+            if lines:
+                placed = self.suppliers.place(po.supplier, lines, source=by, arrive_tod_s=po.arrive_tod_s)
+                if placed is not None:
+                    applied.append(f"PO {po.supplier} ({len(placed['lines'])} lines)")
+                    changes.append({
+                        "kind": "reorder", "supplier": po.supplier, "ingredient": placed["lines"][0]["ingredient"],
+                        "qty": placed["lines"][0]["qty"],
+                    })  # fmt: skip
+        for lot_id, pct in a.replate_discounts.items():
+            try:
+                if rp.set_discount(lot_id, pct, by, strict=False, cap=a.replate_caps.get(lot_id)):
+                    applied.append(f"replate {lot_id} -{pct:.0f}%")
+                    lot = rp.lots.get(lot_id)
+                    changes.append({"kind": "replate", "item": lot.sku if lot else "", "pct": pct})
+            except ReplateError as e:
+                clipped.append(f"replate {lot_id}: {e}")
         result = {"applied": applied, "clipped": clipped}
         if applied or clipped:
             summary = reason or "; ".join(applied[:3]) or "adjustments clipped by charter"
             if applied and reason:
                 summary = f"{reason}: " + "; ".join(applied[:3])
-            self.make_decision(self._decision_type(a), summary, by, a.factors, clipped)
+            self.make_decision(self._decision_type(a), summary, by, a.factors, clipped, changes)
         return result
 
     @staticmethod
     def _decision_type(a: ManagerAction) -> str:
         if a.price_steps or a.sku_prices:
             return "price_change"
-        if a.prep_now:
+        if a.prep_now or a.premake:
             return "prep_start"
+        if a.pos:
+            return "reorder"
+        if a.replate_mode is not None or a.replate_discounts:
+            return "replate_markdown"
         if a.throttles:
             return "throttle"
         if a.hide:
@@ -771,6 +854,8 @@ class World:
         self.policy.reset(self._view, self.seed)
         self.preset = getattr(self.policy, "default_preset", "fcfs")
         self.batch_window_s = float(getattr(self.policy, "default_batch_window_s", 0.0))
+        if not self.replate.override:
+            self.replate.mode = str(getattr(self.policy, "default_replate_mode", "off"))
         if announce:
             self.emit("policy.changed", policy=self.policy.code, previous=prev)
 
@@ -798,7 +883,13 @@ class World:
             cal[j] = math.log(cm)
         p = cfg.cafe.params
         wf = weather_fit(cfg, self.temp_c, self.weather_state, p.choice_delta_weather, 0.3)
-        self.choice.set_context(lnr, feat, vis, wf, cal)
+        rp_mask, rp_price, rp_q = self.replate.choice_arrays()
+        if rp_mask.any():
+            refs = np.array([max(1.0, self.menu[m.sku].ref_price) for m in cfg.menu])
+            rp_lnr = np.log(np.maximum(1.0, rp_price) / refs)
+            self.choice.set_context(lnr, feat, vis, wf, cal, rp_mask, rp_lnr, rp_q)
+        else:
+            self.choice.set_context(lnr, feat, vis, wf, cal)
         self.ctx_dirty = False
         self.ctx_slot = slot
 
@@ -809,16 +900,10 @@ class World:
 
     def book_waste(self, key: str, qty: float, cost: float) -> None:
         self.fin.post("waste", cost)
-        ing = self.ix.ingredient.get(key)
-        wt = self.inv.weight_g[key]
-        if (ing is not None and ing.base_uom == "pc") or (
-            key in self.ix.prep and self.ix.prep[key].base_uom == "pc"
-        ):
-            kg = qty * wt / 1000.0
-        else:
-            kg = qty / 1000.0
+        kg = self.inv.kg_of(key, qty)
         self.kpi.waste_kg += kg
         self.kpi.waste_inr += cost
+        self.waste_by_key[key] = self.waste_by_key.get(key, 0.0) + kg
 
     def on_lot_opened(self, key: str, lot: Any) -> None:
         if not self.inv.is_pack[key]:
@@ -854,7 +939,10 @@ class World:
                     self.set_hidden(sku, False, "stock", "inventory", "restocked")
             qty = inv.onhand[k]
             ing = self.ix.ingredient.get(k)
-            reorder = ing.reorder_point if ing else self.ix.prep[k].reorder_point
+            if ing is not None:
+                reorder = ing.reorder_point
+            else:
+                reorder = self.ix.prep[k].reorder_point if k in self.ix.prep else 0.0
             low = qty < reorder
             if k in inv.finished:
                 self.emit("stock.changed", key=k, qty=round(qty, 2), low=low)
@@ -987,6 +1075,7 @@ class World:
         k.dish_wash_pending = False
         k.prep_jobs = {}
         k.prep_inflight = {}
+        self.replate.on_day_end()
         for tb in self.tables.values():
             if tb.state != "free" or tb.occ:
                 for kk, v in tb.dirty_ware.items():
@@ -1003,6 +1092,7 @@ class World:
         k.labour_accrued = 0.0
         self.sweep_expired()
         self.fin.close_day(day, staff_cost)
+        self.invest.day_end()
         # policy: purchasing + donation
         view = self._view
         act: DayEndAction = self.policy.on_day_end(view)
@@ -1018,9 +1108,7 @@ class World:
                     qty = lot.qty
                     cost = self.inv.donate_lot(key, lot)
                     self.fin.post("donation_writeoff", cost)
-                    ing = self.ix.ingredient.get(key)
-                    wt = self.inv.weight_g[key]
-                    self.kpi.donated_kg += qty * wt / 1000.0 if ing and ing.base_uom == "pc" else qty / 1000.0
+                    self.kpi.donated_kg += self.inv.kg_of(key, qty)
                     self.emit("lot.donated", key=key, lot_id=lot.lot_id, qty=qty)
         self.recheck_availability(self.inv.stock_dirty)
         # reference price EMA (fairness memory)

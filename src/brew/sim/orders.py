@@ -7,8 +7,10 @@ from collections import deque
 from typing import TYPE_CHECKING, Any
 
 from brew.domain.money import round2
+from brew.domain.timeutil import tod_s
 
 from .engine import P_DONE
+from .replate import RP
 from .state import Order, Unit
 
 if TYPE_CHECKING:
@@ -31,6 +33,7 @@ class Orders:
         self.pack_short: set[int] = set()
         self.ready_now: set[int] = set()
         self.crit: dict[str, float] = {}
+        self.sku_idx = {m.sku: i for i, m in enumerate(w.cfg.menu)}
 
     # ------------------------------------------------------------------ helpers
     def critical_path(self, sku: str) -> float:
@@ -51,7 +54,7 @@ class Orders:
         w = self.w
         best = 0.0
         for sku, mods in items:
-            extra = sum(w.ix.mod[m].extra_prep_s for m in mods)
+            extra = sum(w.ix.mod[m].extra_prep_s for m in mods if m != RP)
             best = max(best, self.critical_path(sku) + extra)
         return best + (w.cfg.cafe.bag_s if carry else 0.0)
 
@@ -83,12 +86,14 @@ class Orders:
         units: list[Unit] = []
         ref_total = 0.0
         for li, ((sku, mods), qty) in enumerate(grouped.items()):
-            ms = w.menu[sku]
-            delta = w.mod_delta(mods)
-            lines.append({"sku": sku, "qty": qty, "mods": list(mods), "unit_price": round2(ms.price + delta)})
-            ref_total += (ms.ref_price + delta) * qty
+            line, ref = self._line(sku, mods, qty)
+            lines.append(line)
+            ref_total += ref
             for _ in range(qty):
-                units.append(Unit(sku, mods, li, no))
+                u = Unit(sku, mods, li, no)
+                if line["replate"]:
+                    u.rp_price = line["unit_price"] - w.mod_delta(line["mods"])
+                units.append(u)
         o = Order(
             order_no=no, id=w.new_id(), channel=channel, persona=persona, name=name, party_id=party_id,
             lines=lines, units=units, note=note, note_flags=note_flags, placed_s=w.now, promised_s=w.now,
@@ -99,6 +104,17 @@ class Orders:
         o.is_refill = refill
         self.orders[no] = o
         return o
+
+    def _line(self, sku: str, mods: tuple[str, ...], qty: int) -> tuple[dict[str, Any], float]:
+        """Order line (live or replate price) and its reference-price total."""
+        w = self.w
+        ms = w.menu[sku]
+        rp = RP in mods
+        real = tuple(m for m in mods if m != RP)
+        delta = w.mod_delta(real)
+        price = w.replate.price(sku) if rp else ms.price
+        line = {"sku": sku, "qty": qty, "mods": list(real), "unit_price": round2(price + delta), "replate": rp}
+        return line, (ms.ref_price + delta) * qty
 
     def estimate_promise(self, o: Order, extra: float = 0.0) -> float:
         carry = o.channel != "dine_in"
@@ -112,12 +128,26 @@ class Orders:
         """Consume the unit's BOM (FEFO). Packaging may run short (flagged); food may not."""
         w = self.w
         carry = o.channel != "dine_in"
-        bom = w.inv.bom(u.sku, u.mods, carry)
+        rp = w.replate
+        real = tuple(m for m in u.mods if m != RP)
+        premade = False
+        backed = None
+        if RP in u.mods and not remake:
+            lst = rp.listing(u.sku)
+            backed = lst if lst is not None and lst.backed else None
+        if not remake and not real and backed is None and rp.premade_units_avail(u.sku) >= 1.0 - 1e-9:
+            bom = w.inv.bom_premade(u.sku, carry)
+            premade = True
+        else:
+            bom = w.inv.bom(u.sku, real, carry)
         food = [(k, q) for k, q, pack in bom if not pack]
         if not remake and not w.inv.can_supply(food, w.now):
             return False
         cost = 0.0
         qmin = 1.0
+        rp.ctx = "remake" if remake else ("replate" if RP in u.mods else "full")
+        rp.last_lot_id = ""
+        rp.prefer = backed.lot_id if backed is not None else ""
         for k, q, pack in bom:
             got, c, qual = w.inv.consume(k, q, w.now, partial=True)
             if pack and got < q - 1e-9:
@@ -126,9 +156,16 @@ class Orders:
             cost += c
             if not pack and got > 0:
                 qmin = min(qmin, qual)
+        rp.ctx = "full"
+        rp.prefer = ""
         u.cost += cost
         o.cogs += cost
         u.ing_quality = qmin
+        if not remake:
+            u.premade = premade
+            u.lot_id = rp.last_lot_id
+            if RP in u.mods:
+                rp.record_sale(o, u)
         return True
 
     def commit(
@@ -149,8 +186,10 @@ class Orders:
         o.promised_s = self.estimate_promise(o, extra_promise)
         self.open[o.order_no] = o
         w.kitchen.build_order_tasks(o)
+        slot = int(tod_s(w.now) // 900)
         for ln in o.lines:
             w.menu[ln["sku"]].sold_today += ln["qty"]
+            w.dlog.add(self.sku_idx[ln["sku"]], o.channel, slot, ln["qty"], ln["replate"])
         w.kpi.on_order_placed(o)
         if w.tele is not None:
             w.tele.order_placed(w, o)
@@ -163,18 +202,21 @@ class Orders:
         return True
 
     def _rebuild_lines(self, o: Order, keep: list[Unit]) -> None:
-        w = self.w
         grouped: dict[tuple[str, tuple[str, ...]], int] = {}
         for u in keep:
             grouped[(u.sku, u.mods)] = grouped.get((u.sku, u.mods), 0) + 1
         lines = []
         ref_total = 0.0
         idx = {}
+        old_lines = o.lines
         for li, ((sku, mods), qty) in enumerate(grouped.items()):
-            ms = w.menu[sku]
-            delta = w.mod_delta(mods)
-            lines.append({"sku": sku, "qty": qty, "mods": list(mods), "unit_price": round2(ms.price + delta)})
-            ref_total += (ms.ref_price + delta) * qty
+            line, ref = self._line(sku, mods, qty)
+            if line["replate"]:  # keep the price quoted at ordering time
+                prev = next((x for x in old_lines if x["sku"] == sku and x["replate"] and x["mods"] == line["mods"]), None)
+                if prev is not None:
+                    line["unit_price"] = prev["unit_price"]
+            lines.append(line)
+            ref_total += ref
             idx[(sku, mods)] = li
         for u in keep:
             u.line = idx[(u.sku, u.mods)]
@@ -194,7 +236,10 @@ class Orders:
             persona=o.persona,
             name=o.name,
             items=[
-                {"sku": ln["sku"], "qty": ln["qty"], "mods": ln["mods"], "unit_price": ln["unit_price"]}
+                {
+                    "sku": ln["sku"], "qty": ln["qty"], "mods": ln["mods"], "unit_price": ln["unit_price"],
+                    "replate": ln["replate"],
+                }
                 for ln in o.lines
             ],
             note=o.note,

@@ -88,6 +88,16 @@ class CafeProfile(_M):
         return int(h) * 3600 + int(m) * 60
 
 
+class ReplateItem(_M):
+    """Per-SKU Replate (rescue menu) block in ``menu.yaml``."""
+
+    eligible: bool = False
+    stock_key: str | None = None  # inventory finished-goods key backing the SKU (bakes); None = make-ahead plate
+    premake_hold_s: float = 0  # safe hold of a pre-made unit (seconds); stock-backed SKUs use the lot shelf life
+    min_quality: float = 0.6
+    donate: bool = False  # sealed bakery: retire as donation instead of waste
+
+
 class MenuItem(_M):
     sku: str
     name: str
@@ -108,6 +118,7 @@ class MenuItem(_M):
     popularity_prior: float = 1.0
     tags: tuple[str, ...] = ()
     desc: str = ""
+    replate: ReplateItem = ReplateItem()
 
     @model_validator(mode="after")
     def _bounds(self) -> MenuItem:
@@ -340,6 +351,37 @@ class CalendarEvent(_M):
     source_note: str = ""
 
 
+class Ladder(_M):
+    """Markdown ladder: ``(frac_left_threshold, discount_pct)`` rungs plus a final time-based rung."""
+
+    rungs: tuple[tuple[float, float], ...]
+    last_s: float = 2700
+    last_pct: float = 70
+
+
+class ReplateConfig(_M):
+    """Replate (rescue menu) parameters, ``configs/cafe/replate.yaml``."""
+
+    modes: tuple[str, ...] = ("off", "gentle", "standard", "aggressive")
+    ladders: dict[str, Ladder] = {}
+    floor_cost_factor: float = 0.5
+    round_to: float = 5.0
+    phi: float = 1.2  # utility penalty per unit of lost quality
+    noise_tau: float = 0.35  # scale of the extra CRN Gumbel draw on the replate alternative
+    affinity: dict[str, float] = {}
+    min_ladder_gap_pct: float = 1.0
+    max_premake_job: int = 8
+    prep_backed: dict[str, str] = {}  # prepped intermediate / perishable key -> dish SKU listed from it
+    backed_frac: float = 0.5  # a prep-backed lot becomes listable once its remaining hold fraction is <= this
+    backed_raw_s: float = 10800.0  # ... a raw perishable once it has less than this many seconds left
+    surplus_only: bool = True  # ladder modes list only units beyond the full-price demand expected before use-by
+    surplus_z: float = 0.5  # safety margin (in sqrt-units) added to that expected demand
+    choice_alt: bool = True  # listings are extra alternatives in the customer's choice set (backend.md 3.11)
+    addon_enabled: bool = True  # counter impulse add-on: after choosing, a customer may add one listed rescue unit
+    addon_beta: float = 2.4  # impulse sensitivity to the discount depth d = -ln(listing price / reference price)
+    addon_kappa: float = 2.75  # utility of "no add-on" (higher = fewer add-ons)
+
+
 class CafeConfig(_M):
     cafe: CafeProfile
     menu: tuple[MenuItem, ...]
@@ -357,6 +399,7 @@ class CafeConfig(_M):
     personas: dict[str, Persona]
     catalog: tuple[CatalogItem, ...]
     calendar_fallback: tuple[CalendarEvent, ...]
+    replate: ReplateConfig = ReplateConfig()
 
     # --- convenience lookups (computed lazily, cached outside the frozen model) ---
     def index(self) -> ConfigIndex:
