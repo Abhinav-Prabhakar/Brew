@@ -16,6 +16,6 @@ from multiprocessing.context import BaseContext
 def pool_context() -> BaseContext:
     if sys.platform == "darwin":
         ctx = multiprocessing.get_context("forkserver")
-        ctx.set_forkserver_preload(["lightgbm", "ortools.sat.python.cp_model"])
+        ctx.set_forkserver_preload(["lightgbm", "ortools.sat.python.cp_model", "onnxruntime"])
         return ctx
     return multiprocessing.get_context("spawn")

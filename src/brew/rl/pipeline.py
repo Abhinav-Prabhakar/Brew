@@ -492,11 +492,14 @@ def summarize(allm: dict[str, Any]) -> dict[str, Any]:
     if "bc" in st:
         lines.append(f"BC: policy loss {st['bc']['loss_first']:.3f} -> {st['bc']['loss_last']:.3f} (accuracy {st['bc']['accuracy']:.3f})")
         acc["bc_loss_reduced"] = st["bc"]["loss_last"] < st["bc"]["loss_first"]
-    if "ppo" in st:
+    for name in ("ppo", "adversarial"):
+        if st.get(name, {}).get("skipped"):
+            lines.append(f"{name}: skipped ({st[name].get('reason', 'manual')})")
+    if "ppo" in st and not st["ppo"].get("skipped"):
         p = st["ppo"]
         lines.append(f"PPO: eval reward {p['first_eval']['mean_reward']:.3f} -> {p['last_eval']['mean_reward']:.3f} (best {p['best']['mean_reward']:.3f}); {p['total_steps']} steps")
         acc["ppo_improved"] = p["improved"]
-    if "adversarial" in st:
+    if "adversarial" in st and not st["adversarial"].get("skipped"):
         h = st["adversarial"]["history"][-1]["adversary"]
         lines.append(f"RARL: {st['adversarial']['iterations']} iterations; adversary reward {h['mean_reward_first']} -> {h['mean_reward_last']}")
     if "export" in st:
