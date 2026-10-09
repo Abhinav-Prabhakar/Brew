@@ -122,3 +122,7 @@
   - RARL 150k adversary steps and 2×50k protagonist steps.
 - **Same run** `20261005_063045_cf21a5b`, resumed with `--resume --push-model` from the 404k checkpoint. It runs at about 46 steps/s. ETA ≈ 11–11.5 h, finishing around 01:00 UTC on 2026-10-06 (≈ 06:30 IST).
 - **Do not monitor.** The user will ping when it's done.
+
+## Update (2026-10-06 05:00 UTC)
+- The desktop was shut down overnight. The run was resumed from checkpoint 1,101,824 (curriculum stage 2, the 7-day episodes). It runs at about 56 steps/s, ETA ≈ 6–6.5 h in total (PPO about 4.4 h, then RARL, export and arena). It should finish around 11:30 UTC (≈ 17:00 IST).
+- **Watch:** eval profit/day peaked at ₹105.3k at 205k steps, then drifted down to ~₹99k by 1.1M during the 7-day curriculum stage. The champion is picked from the best checkpoints, so check whether the late PPO or RARL checkpoints beat the 205k one. Consider a lower LR or `ent_coef` for future runs.
