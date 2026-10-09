@@ -1,0 +1,394 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index f1e0e09..9582d24 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -55,8 +55,25 @@ jobs:
+       - name: Install Chromium
+         run: uv run playwright install --with-deps chromium
+ 
+-      - name: Frontend tests (golden streams, store, sources, end to end)
+-        run: uv run pytest -q -m "frontend and not slow"
++      - name: Frontend - golden streams, store, sources, rendering, no-mock, perf (headless Chromium)
++        run: uv run pytest -q -m "frontend and not integration and not visual and not slow"
++
++      - name: Frontend - end to end (the real page served by brew-api)
++        run: uv run pytest -q -m "frontend and integration"
++
++      # Screenshots of the rooms vs tests/visual/<platform>-*.png. The page loads Google Fonts: if they cannot be
++      # reached the tests SKIP (never flake); a platform without baselines (CI is linux, the committed ones are darwin)
++      # checks that every scene renders deterministically and skips. `--update-visual` creates baselines.
++      - name: Frontend - visual regression
++        run: uv run pytest -q -m visual -rs
++
++      - name: Upload visual diffs
++        if: failure()
++        uses: actions/upload-artifact@v4
++        with:
++          name: visual-diffs
++          path: tests/visual/_diff/
++          if-no-files-found: ignore
+ 
+       - name: design/contract.json is up to date
+         run: uv run python scripts/build_contract.py --check
+diff --git a/.gitignore b/.gitignore
+index 2999ee9..20cdeb3 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -26,3 +26,4 @@ kitchen/assets/_src/
+ .overnight/
+ design/dev/
+ .claude/worktrees/
++tests/visual/_diff/
+diff --git a/design/live/README.md b/design/live/README.md
+index 2e8a885..373449a 100644
+--- a/design/live/README.md
++++ b/design/live/README.md
+@@ -149,11 +149,13 @@ goes through one tested path.
+   paperclip. `select.rail()` puts `.batch = {id, order_nos, size, index}` on tickets only when 2+ of the group are on the rail.
+ - **Tables** have no "cleaned" event: `dirty -> free` is inferred from a finished `pass/clean` task (FIFO).
+ - **Staff** `station` / `task` come from the active `tasks`; `state` is `absent | off | break | working | idle`; `break_due_s` /
+-  `break_end_s` and `fatigue` only fill in with `staff.status` (pending backend) or `rest.staff`.
++  `break_end_s` and `fatigue` fill in with `staff.status` (every 60 sim-s) or `rest.staff`.
+ - **Shelf** also carries `riders` (rider.assigned/arrived arrive before the bag exists) and `waiting_for_slot`.
+ - **Internal keys** (not for renderers): `_next_prune_s`, `_dirty_tables`.
+ - **Pseudo events** `rest.<name>` (listed above) and `client.status` (`{lagging}`, from boot.js).
+-- **Pending backend** (reducers exist; mark in `contract.json`): `station.load`, `staff.status`, `chaos.cost`, `saves_s` on `batch.*`.
++- **Backend events that feed the kitchen** (all streamed now, in the fixtures): `station.load` (every 60 sim-s, one row per station), `staff.status` (every 60 sim-s: fatigue, break schedule, state), `chaos.cost` (shadow-fork cost of a manual disruption, phases active / resolved / final; at most 2 disruptions are cost-tracked at a time), `saves_s` on `batch.formed/started`, `headline` + `trigger` on `decision.made` (the immediate re-plan after a manual chaos carries the disruption id as `trigger`).
++- **Replays carry REST.** The recorded fixtures (and `design/data/demo-stream.jsonl`) include the `rest.*` pseudo-events (seq null) at the start and every 30 sim-min, so a replay renders the pantry lots / usage, the purchasing proposal, impact, comparison, forecast and bottlenecks like the live app. `ReplaySource` hands them to `BrewLive.ingest` (`state.seq` and `source.lastSeq` ignore them). A pseudo-event that moves `sim_s` forward also moves the clock (`'*'` handlers), so a replayed quiet night still shows the right time. `rest.advisor` is not recorded (it is a minutes-long counterfactual job).
++- **Stepping a replay** (`speed: 0`, i.e. `?source=replay&fixture=<name>&speed=0`): nothing is delivered until `BrewLive.source.stepTo(sim_s)`, which hands over every event with `sim_s <=` the target in one batch. The rendering and visual tests use it (`?still` removes animations / rolling numbers).
+ - **Boot params**: `?source=ws|replay &api= &world=<id> &clock=wall|open &policy=D &play=0 &fixture=<name> &replay=<url> &speed=<n> &loop=1`;
+   `window.BREW_LIVE_AUTOBOOT = false` skips auto boot (`BrewLive.boot(params)` by hand). Statuses: `booting | live | reconnecting |
+   replay | offline-demo | closed`; bus also emits `hydrate`, `frame`, `status`. `BrewLive.refresh(name, arg)` fetches a read model
+diff --git a/pyproject.toml b/pyproject.toml
+index b9fca96..9951269 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -57,7 +57,7 @@ build-backend = "hatchling.build"
+ packages = ["src/brew"]
+ 
+ [tool.pytest.ini_options]
+-markers = ["slow: training / long-running tests", "property: Hypothesis invariants", "integration: API / WS / DB tests", "frontend: tests of the design/live client layer (golden streams, headless Chromium via Python Playwright)"]
++markers = ["slow: training / long-running tests", "property: Hypothesis invariants", "integration: API / WS / DB tests", "frontend: tests of the design/live client layer (golden streams, headless Chromium via Python Playwright)", "visual: screenshot regression of the rooms (tests/visual/, --update-visual rewrites; skips without Google Fonts)"]
+ addopts = "-q -m 'not slow' --timeout=180"
+ asyncio_mode = "auto"
+ testpaths = ["tests"]
+@@ -92,6 +92,7 @@ dev = [
+     "hypothesis>=6.168.3",
+     "mypy>=2.4.0",
+     "pytest>=9.1.1",
++    "pillow>=11.0.0",
+     "pytest-asyncio>=1.4.0",
+     "pytest-cov>=7.1.0",
+     "pytest-playwright>=0.9.0",
+diff --git a/tests/conftest.py b/tests/conftest.py
+index 93858ae..dc0528f 100644
+--- a/tests/conftest.py
++++ b/tests/conftest.py
+@@ -58,3 +58,7 @@ def gap_client():
+     with TestClient(app) as cl:
+         cl.app_ = app  # type: ignore[attr-defined]
+         yield cl
++
++
++def pytest_addoption(parser: pytest.Parser) -> None:
++    parser.addoption("--update-visual", action="store_true", default=False, help="rewrite the visual-regression baselines (tests/visual/)")
+diff --git a/tests/frontend/README.md b/tests/frontend/README.md
+index 9cfc2c9..fc22a8e 100644
+--- a/tests/frontend/README.md
++++ b/tests/frontend/README.md
+@@ -5,8 +5,10 @@ Playwright (headless Chromium). No Node, no bundler. The units under test are th
+ 
+ ```bash
+ uv run playwright install chromium                      # once
+-uv run pytest -m frontend                               # everything below, ~35 s (e2e needs a free port)
++uv run pytest -m frontend                               # everything below, ~3 min (e2e needs a free port)
+ uv run pytest tests/frontend/test_store.py              # the fast pure-state suite, ~5 s
++uv run pytest tests/frontend/test_render.py             # the real page replaying fixtures, ~35 s
++uv run pytest -m visual --update-visual                 # (re)write the screenshot baselines, see below
+ uv run pytest -m slow tests/frontend/test_record_determinism.py   # re-records `closing` twice, byte compare
+ ```
+ 
+@@ -26,11 +28,15 @@ otherwise leave an asyncio loop running and break the asyncio backend tests that
+ | `snapshot` | `GET /worlds/{id}/state` at the start time |
+ | `event` ... | one per event, in the WebSocket envelope `{seq, sim_s, t, type, data}` |
+ | `checkpoint` | `{seq, data}`: the `/state` snapshot every 30 sim-min (when something happened) and at the end |
++| `event` with `seq: null` | **REST snapshots**: `{kind:"event", seq:null, sim_s, t, type:"rest.<name>", data}`, written at the start and every 30 sim-min, with exactly the payloads `BrewLive.refresh()` fetches (same endpoints, served by the real FastAPI app in-process): `inventory`, `lots` (one per pantry slot key: `{key, items}`), `purchasing` (`/purchasing/proposal`), `impact`, `comparison`, `forecast` (horizon 120), `bottlenecks`, `usage` (`{..., key}` per pantry slot key). `advisor` is not recorded: it runs counterfactual forks for minutes and the UI polls a job. They are always applied by the store (never move `state.seq`), so a replay and the offline demo show everything the live app shows. |
++
++Manual chaos and actions are recorded through `ManagedWorld.chaos` / `.act` (the code behind `POST /chaos` / `/actions`), so the
++streams contain the shadow-fork `chaos.cost` and the immediate re-plan `decision.made` (with `headline` / `trigger`).
+ 
+ | fixture | window | contains |
+ |---|---|---|
+ | `morning_rush` | 07:55-10:30 | espresso machine down 08:30 (30 min), owner `set_price` 09:00, `serve_order` 09:15 (order no in meta) |
+-| `lunch_delivery` | 12:00-14:00 | `rider_shortage` 12:30, `supplier_delay` 13:00, `invest marketing_push` 12:10, bags + riders |
++| `lunch_delivery` | 12:00-14:00 | `rider_shortage` 12:30, `rain_storm` 12:50, `supplier_delay` 13:00, `invest marketing_push` 12:10, bags + riders, `chaos.cost` (the 3rd disruption is not cost-tracked: 2 shadow worlds at most) |
+ | `closing` | 20:30 -> 07:10 | `day.ended`, closed night, `day.started`, weather |
+ 
+ `design/data/demo-stream.jsonl` is a copy of `morning_rush` (the offline demo of `BrewLive`).
+@@ -51,12 +57,19 @@ re-run the suite and commit the new fixtures. Recording is deterministic (same a
+ 
+ | file | what |
+ |---|---|
+-| `test_contract.py` (no browser) | every fixture event validates against its pydantic model; seq strictly increasing and gap-free; fixtures not stale vs `event_json_schema()`; `demo-stream.jsonl == morning_rush.jsonl`; **`design/contract.json`**: every backend event type (and every one in `backend.md` section 6.3) is handled or explicitly ignored, each handled one says what it drives on screen, every `snapshot_fields` path exists in the fixture snapshots. Reducers for events the backend does not emit yet (`station.load`, `staff.status`, `chaos.cost`) are tolerated and reported as "pending backend". |
++| `test_contract.py` (no browser) | every fixture event validates against its pydantic model; seq strictly increasing and gap-free (the `rest.*` lines are separate); fixtures not stale vs `event_json_schema()`; scenarios contain what they promise (`chaos.cost`, `station.load`, `staff.status`, one re-plan decision per manual chaos, `rain_storm`); **REST snapshots** at the start and every 30 sim-min with a stable set of models, and every `rest.*` type in the fixtures has a reducer + a visual in `contract.json`; `demo-stream.jsonl == morning_rush.jsonl`; **`design/contract.json`**: every backend event type (and every one in `backend.md` section 6.3) is handled or explicitly ignored, each handled one says what it drives on screen, every `snapshot_fields` path exists in the fixture snapshots. |
+ | `test_store.py` | the pure store over the fixtures: **event sourcing == snapshot** at every checkpoint (rail, orders, customers, tables, menu, combos, rescue listings, fridge, kpis, equipment/stations, staff, disruptions, shelf, last seq); purity (deep-frozen inputs and intermediate states), idempotence, reconnect-overlap dedupe, pruning at gone+90 sim-s; selectors on known moments of `morning_rush`; synthetic events for the types no fixture contains; `contract.json` == `BrewStore.describe()`; every backend type handled or ignored. |
+ | `test_sources.py` | `WsSource` against a fake in-page `WebSocket` + mocked `fetch` (hello, frames, disconnect -> reconnect with `since_seq`, backoff, resync, gap -> resync, dedupe, heartbeat/lagging, ping); `ReplaySource` (`speed: Infinity` deterministic, paced, loop); `BrewApi` request shapes and `BrewApiError`; boot fallback to the offline demo; frame coalescing; bus compatibility with `menu.js`. |
+-| `test_e2e.py` (`integration`) | a real `brew-api` subprocess (`BREW_DB_ENABLED=0`, `BREW_LIVE_RATE=60`) + the harness page: WS connects, hydrates, events flow; `set_price`, `serve_order`, `chaos` round trips; forced socket close -> reconnect with `since_seq`, store seqs gap- and duplicate-free; store equals the server's `/state` once paused; boot creates a world when none matches. |
++| `test_e2e.py` (`integration`) | a real `brew-api` subprocess (`BREW_DB_ENABLED=0`, `BREW_LIVE_RATE=60`) + the harness page: WS connects, hydrates, events flow; `set_price`, `serve_order`, `chaos` round trips; forced socket close -> reconnect with `since_seq`, store seqs gap- and duplicate-free; store equals the server's `/state` once paused; boot creates a world when none matches. Then **the real page served by FastAPI at `/`** (`?world=<id>&clock=open&play=0`, a paused policy-A world the test steps through `/control`, so nothing races the runners): a chaos button downs the oven (LED red, chaos card lists it, the re-plan decision with its `trigger` shows as "RL: ..."), `serve_order` tears the ticket off the rail, `set_price` rewrites the menu-book `.now`, "approve order" -> `po.created`, the profit card opens `#cmp` with 4 policy rows, a forced socket close -> `reconnecting` -> `live` with a gap-free store. ~25 s. |
++| `test_render.py` | **rendering**: `brew.html?source=replay&fixture=<name>&speed=0&still` (a paused `ReplaySource`; `BrewLive.source.stepTo(sim_s)` delivers events up to a sim time, helpers in `appkit.py`) and the DOM asserted against the store at fixed moments: rail tickets == `select.rail` (order by x), a serve tears its ticket off, customers in the venue drawn with their `data-state`, menu-book prices == `state.menu` over all three spreads (+ combos, lectern), HUD profit / clock / rating, profit card -> comparison with A..D rows, station LEDs through the espresso outage, crew rows + fatigue bars, the 6 chaos buttons, the chaos card's re-plan / cost, pantry lot tags vs the backend freshness rule, the approve-order button vs the proposal, plus a dozen slices through each whole fixture across all rooms. **Every test fails on a page error, a console error or `NaN` / `undefined` / `[object` in any DOM attribute or text.** |
++| `test_nomock.py` | none of the old mock strings (`#041 #043 #044 #045 #046 #038`, `asha`, `ravi`, `₹18,420`, `day 12 of 30`, `38 orders/hr`, `tech called · 08:31`, `₹6,840`, `GreenLeaf`, `tomorrow 07:30`, `seed 7`, and `tue · 08:42 am` unless the sim clock is 08:42) renders in `#viewport`: hydrated, at 8 moments of the 3 fixtures, with the menu book and the comparison open. `08:42`, `meera`, `kabir` are legitimate live values. |
++| `test_visual.py` (`visual`) | screenshot regression of lobby, kitchen, pantry, the menu book and the profit comparison at fixed fixture moments, `?still`, 1632x1040, against `tests/visual/<platform>-<scene>.png` (256-colour palette PNGs). A pixel differs when a channel moves by more than 24/255; fail above **1.5 %** differing pixels (`tests/visual/_diff/` gets the actual + a red diff). `--update-visual` or `BREW_UPDATE_VISUAL=1` rewrites baselines. Fonts come from Google Fonts: the test waits for `document.fonts.ready` and **skips** with a reason if they did not load. Baselines are per platform (macOS and Linux rasterise text differently): the committed ones are `darwin-*`; where none exist the scene is rendered twice and must be identical (determinism guard), then the test skips. |
++| `test_perf.py` | replays `lunch_delivery` at speed 60 for 8 s in the lobby and the kitchen with a `requestAnimationFrame` probe: fails if p95 frame time > 50 ms; prints p50 / p95 / max (`-s`). Kitchen: 16.7 ms. **Lobby is an `xfail` (known, polish phase):** ~150 ms frames in headless software rendering, caused by the 18 animated `filter="url(#wob)"` groups of the lobby scene (remove the filters and it is 16.7 ms; JS is 93 % idle). |
+ | `test_record_determinism.py` (`slow`) | re-records `closing` in a temp dir with two hash seeds and compares bytes. |
+ 
++`T.load(name)` returns `{snapshot, events (backend, integer seq), rest (rest.* pseudo-events), all (stream order), checkpoints}`;
++`T.stateAt` ignores the REST lines, `T.stateAtWithRest` applies the ones that precede the event.
++
+ `helpers.js` is injected into the test pages as `window.T` (diffing, fixture loading); the heavy loops run in the browser and
+ only small results cross the wire. `design/live/harness.html` loads just the live scripts (no rooms, no CSS).
+ 
+@@ -66,5 +79,5 @@ Documented in `design/contract.json` -> `known_gaps` (source: `scripts/build_con
+ `test_store.py` (a new, undocumented difference fails the test):
+ 
+ - `patience-coarse`: `customer.patience` fires only at the 60/30/10 % thresholds.
+-- `fatigue`: staff fatigue is not streamed until `staff.status` exists.
++- `fatigue`: staff fatigue is streamed by `staff.status` every 60 sim-s only (a checkpoint falls between ticks).
+ - `staff-task`, `weather-temp`, `coldbrew`, `replate-units`, `fridge-replate`, `bag-quality`, `kpis`, `table-clean`, `bump`: see the file.
+diff --git a/uv.lock b/uv.lock
+index 4cce8dd..f8596c9 100644
+--- a/uv.lock
++++ b/uv.lock
+@@ -163,6 +163,7 @@ postgres = [
+ dev = [
+     { name = "hypothesis" },
+     { name = "mypy" },
++    { name = "pillow" },
+     { name = "pytest" },
+     { name = "pytest-asyncio" },
+     { name = "pytest-cov" },
+@@ -213,6 +214,7 @@ provides-extras = ["postgres"]
+ dev = [
+     { name = "hypothesis", specifier = ">=6.168.3" },
+     { name = "mypy", specifier = ">=2.4.0" },
++    { name = "pillow", specifier = ">=11.0.0" },
+     { name = "pytest", specifier = ">=9.1.1" },
+     { name = "pytest-asyncio", specifier = ">=1.4.0" },
+     { name = "pytest-cov", specifier = ">=7.1.0" },
+diff --git a/tests/frontend/test_perf.py b/tests/frontend/test_perf.py
+new file mode 100644
+index 0000000..a72f49c
+--- /dev/null
++++ b/tests/frontend/test_perf.py
+@@ -0,0 +1,61 @@
++"""Basic performance guard: replay ``lunch_delivery`` at speed 60 (one sim-minute per second: a busy stream, animations on)
++and measure frame times with a requestAnimationFrame probe while a room is on screen. Fails when p95 > 50 ms (generous:
++the 16 ms target is enforced in the polish phase). p50 / p95 / max are printed (``pytest -s``).
++"""
++
++from __future__ import annotations
++
++import pytest
++
++pytestmark = pytest.mark.frontend
++
++P95_LIMIT_MS = 50.0
++MEASURE_MS = 8000
++
++PROBE_JS = """(ms) => new Promise((resolve) => {
++  const dts = []; let last = null; const t0 = performance.now();
++  const tick = (t) => {
++    if (last !== null) dts.push(t - last);
++    last = t;
++    if (t - t0 < ms) requestAnimationFrame(tick); else resolve(dts);
++  };
++  requestAnimationFrame(tick);
++})"""
++
++
++def pct(xs: list[float], q: float) -> float:
++    s = sorted(xs)
++    return s[min(len(s) - 1, int(q * len(s)))]
++
++
++LOBBY_KNOWN = pytest.mark.xfail(
++    strict=False,
++    reason="KNOWN (polish phase): the 18 animated `filter=url(#wob)` groups in the lobby scene cost "
++    "~150 ms per frame in headless Chromium's software rasteriser; with the filters removed the lobby runs at 16.7 ms. "
++    "Not an event-handling cost (JS is 93 % idle in a profile). Drop this marker when the lobby passes.",
++)
++
++
++@pytest.mark.parametrize("room", [pytest.param("lobby", marks=LOBBY_KNOWN), "kitchen"])
++def test_frame_times_while_replaying_the_lunch_rush(browser, static_url, room):
++    ctx = browser.new_context(viewport={"width": 1632, "height": 1040})
++    page = ctx.new_page()
++    errors: list[str] = []
++    page.on("pageerror", lambda e: errors.append(str(e)))
++    page.route("**/fonts.g*/**", lambda r: r.abort())
++    try:
++        page.goto(f"{static_url}/design/brew.html?source=replay&fixture=lunch_delivery&speed=60#{room}")
++        page.wait_for_function("window.BrewLive && BrewLive.state && BrewLive.source && BrewLive.source.stream", timeout=15000)
++        page.wait_for_timeout(1500)  # the first sim-minutes: customers walking in, tickets landing
++        seq0 = page.evaluate("BrewLive.state.seq")
++        dts = page.evaluate(PROBE_JS, MEASURE_MS)
++        seq1 = page.evaluate("BrewLive.state.seq")
++        assert page.evaluate("document.body.dataset.room") == room
++    finally:
++        ctx.close()
++    assert not errors, errors[:3]
++    assert seq1 - seq0 > 100, f"the replay really ran ({seq1 - seq0} events in {MEASURE_MS / 1000:.0f} s)"
++    assert len(dts) > 30, f"only {len(dts)} frames in {MEASURE_MS / 1000:.0f} s: the page is starving"
++    p50, p95, worst = pct(dts, 0.5), pct(dts, 0.95), max(dts)
++    print(f"\nperf {room}: {len(dts)} frames, {seq1 - seq0} events, p50 {p50:.1f} ms  p95 {p95:.1f} ms  max {worst:.1f} ms")
++    assert p95 <= P95_LIMIT_MS, f"{room}: p95 frame time {p95:.1f} ms > {P95_LIMIT_MS:.0f} ms"
+diff --git a/tests/frontend/test_visual.py b/tests/frontend/test_visual.py
+new file mode 100644
+index 0000000..c808861
+--- /dev/null
++++ b/tests/frontend/test_visual.py
+@@ -0,0 +1,125 @@
++"""Visual regression: one screenshot per room (lobby, kitchen, pantry), the menu book open and the profit comparison open,
++at fixed fixture moments, ``?still`` (no CSS animation, no rolling numbers) and a fixed 1632x1040 viewport, diffed against
++``tests/visual/<platform>-<scene>.png`` with a tolerance so the hand-drawn look cannot drift unnoticed.
++
++    uv run pytest -m visual                          # compare
++    uv run pytest -m visual --update-visual          # rewrite the baselines (or BREW_UPDATE_VISUAL=1)
++
++Tolerance: a pixel differs when any channel moves by more than ``PIXEL_TOL`` (of 255); the test fails when more than
++``MAX_DIFF_RATIO`` (1.5 %) of the pixels differ. The diff image is written to ``tests/visual/_diff/`` (git-ignored).
++
++Robustness: the page loads its fonts from Google Fonts. If they cannot be loaded (offline CI) the tests SKIP with that
++reason instead of flaking; a platform without baselines (text rasterisation differs between macOS and Linux, so the
++baselines are per platform) renders each scene twice and asserts the two renders are identical (a determinism guard),
++then skips with the instruction to create baselines.
++"""
++
++from __future__ import annotations
++
++import io
++import os
++import sys
++from pathlib import Path
++from typing import Any
++
++import numpy as np
++import pytest
++from PIL import Image
++
++from .conftest import ROOT
++
++pytestmark = [pytest.mark.frontend, pytest.mark.visual]
++
++VISUAL = ROOT / "tests" / "visual"
++PLATFORM = "darwin" if sys.platform == "darwin" else "linux" if sys.platform.startswith("linux") else sys.platform
++PIXEL_TOL = 24
++MAX_DIFF_RATIO = 0.015
++
++SCENES: dict[str, dict[str, str]] = {
++    "lobby": {"fixture": "morning_rush", "when": "08:45", "room": "lobby"},
++    "kitchen": {"fixture": "morning_rush", "when": "08:45", "room": "kitchen"},  # espresso machine down
++    "pantry": {"fixture": "lunch_delivery", "when": "13:30", "room": "pantry"},
++    "menu_book": {"fixture": "morning_rush", "when": "09:30", "room": "lobby", "open": "book"},
++    "comparison": {"fixture": "morning_rush", "when": "09:30", "room": "lobby", "open": "comparison"},
++}
++
++
++def update_mode(config: pytest.Config) -> bool:
++    return bool(config.getoption("--update-visual")) or os.environ.get("BREW_UPDATE_VISUAL") == "1"
++
++
++def fonts_loaded(page: Any) -> bool:
++    return bool(
++        page.evaluate(
++            """async () => { await document.fonts.ready;
++              const ok = new Set([...document.fonts].filter((f) => f.status === 'loaded').map((f) => f.family.replace(/"/g, '')));
++              return ['Gochi Hand', 'Patrick Hand'].every((f) => ok.has(f)); }"""
++        )
++    )
++
++
++def shoot(open_app: Any, scene: dict[str, str]) -> bytes:
++    app = open_app(scene["fixture"], fonts=True)
++    app.page.wait_for_load_state("load")
++    if not fonts_loaded(app.page):
++        pytest.skip("Google Fonts could not be loaded (offline?): the hand-drawn text would not match the baselines")
++    app.step_to(scene["when"], 500)
++    app.room(scene["room"], 500)
++    if scene.get("open") == "book":
++        app.ev("() => BREW_MENUBOOK.open()")
++        app.page.wait_for_timeout(500)
++    elif scene.get("open") == "comparison":
++        app.ev("() => document.querySelector('#hud .money').click()")
++        app.page.wait_for_timeout(500)
++    app.page.mouse.move(2, 2)
++    app.page.wait_for_timeout(200)
++    app.page.evaluate("document.fonts.ready")
++    png: bytes = app.page.screenshot(full_page=False)
++    app.check()
++    return png
++
++
++def compare(a: bytes, b: bytes) -> tuple[float, Image.Image | None]:
++    """(share of pixels that differ by more than PIXEL_TOL in any channel, a red-on-grey diff image)."""
++    ia, ib = Image.open(io.BytesIO(a)).convert("RGB"), Image.open(io.BytesIO(b)).convert("RGB")
++    if ia.size != ib.size:
++        return 1.0, None
++    xa, xb = np.asarray(ia, dtype=np.int16), np.asarray(ib, dtype=np.int16)
++    mask = np.abs(xa - xb).max(axis=2) > PIXEL_TOL
++    ratio = float(mask.mean())
++    out = np.asarray(ib.convert("L").convert("RGB"), dtype=np.uint8).copy() // 2 + 100
++    out[mask] = (255, 0, 0)
++    return ratio, Image.fromarray(out)
++
++
++@pytest.mark.parametrize("name", list(SCENES))
++def test_scene_matches_its_baseline(open_app, request, name):
++    png = shoot(open_app, SCENES[name])
++    path = VISUAL / f"{PLATFORM}-{name}.png"
++    if update_mode(request.config):
++        VISUAL.mkdir(parents=True, exist_ok=True)
++        # 256-colour palette: ~0.8 MB instead of ~1.8 MB per baseline; costs < 0.2 % of the 1.5 % pixel budget
++        Image.open(io.BytesIO(png)).convert("RGB").quantize(256, dither=Image.Dither.NONE).save(path, optimize=True)
++        return
++    if not path.exists():
++        again = shoot(open_app, SCENES[name])
++        ratio, _ = compare(png, again)
++        assert ratio <= MAX_DIFF_RATIO / 10, f"{name} does not render deterministically ({ratio:.2%} of the pixels differ between two loads)"
++        pytest.skip(f"no baseline for {PLATFORM}: run `uv run pytest -m visual --update-visual` (the scene renders deterministically)")
++    ratio, diff = compare(png, path.read_bytes())
++    if ratio > MAX_DIFF_RATIO:
++        out = VISUAL / "_diff"
++        out.mkdir(parents=True, exist_ok=True)
++        (out / f"{PLATFORM}-{name}.actual.png").write_bytes(png)
++        if diff is not None:
++            diff.save(out / f"{PLATFORM}-{name}.diff.png")
++    assert ratio <= MAX_DIFF_RATIO, (
++        f"{name}: {ratio:.2%} of the pixels differ (limit {MAX_DIFF_RATIO:.1%}); see tests/visual/_diff/. "
++        "If the change is intended: uv run pytest -m visual --update-visual"
++    )
++
++
++def test_baselines_are_not_orphaned() -> None:
++    names = {p.name for p in VISUAL.glob("*.png")} if VISUAL.exists() else set()
++    known = {f"{plat}-{n}.png" for n in SCENES for plat in ("darwin", "linux")}
++    assert names <= known, f"baselines without a scene: {sorted(names - known)}"
+diff --git a/tests/visual/darwin-comparison.png b/tests/visual/darwin-comparison.png
+new file mode 100644
+index 0000000..f2863a8
+Binary files /dev/null and b/tests/visual/darwin-comparison.png differ
+diff --git a/tests/visual/darwin-kitchen.png b/tests/visual/darwin-kitchen.png
+new file mode 100644
+index 0000000..6ecd779
+Binary files /dev/null and b/tests/visual/darwin-kitchen.png differ
+diff --git a/tests/visual/darwin-lobby.png b/tests/visual/darwin-lobby.png
+new file mode 100644
+index 0000000..d236545
+Binary files /dev/null and b/tests/visual/darwin-lobby.png differ
+diff --git a/tests/visual/darwin-menu_book.png b/tests/visual/darwin-menu_book.png
+new file mode 100644
+index 0000000..dfef7c3
+Binary files /dev/null and b/tests/visual/darwin-menu_book.png differ
+diff --git a/tests/visual/darwin-pantry.png b/tests/visual/darwin-pantry.png
+new file mode 100644
+index 0000000..2e797f6
+Binary files /dev/null and b/tests/visual/darwin-pantry.png differ

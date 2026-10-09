@@ -1,5 +1,8 @@
 # ROADMAP: from here to a polished demo (written 2026-10-06, updated the same day)
 
+> **Integration phase checkpoint:** see `docs/handoff/integration-status.md` for what's done and the remaining items
+> (verify `main`, finish visual/perf tests from `docs/handoff/wave2-wip.patch`, get CI green), then `polish.md`.
+
 > Read `plan.md` first. It is the master plan and was rewritten on 2026-10-06. This file is the short, current
 > status plus the ordered roadmap. Each phase has its own self-contained handoff doc, written for a fresh chat.
 
