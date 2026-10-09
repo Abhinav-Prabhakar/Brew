@@ -20,11 +20,11 @@ replate_model: {n_estimators: 60}
 text: {source: clean, test_size: 0.25, seed: 0}
 eval:
   policies: [A, B, C]
-  seeds: [1, 2, 3]
+  seeds: [1, 2, 3, 4, 5]     # acceptance protocol: 5 seeds x 5 days with CRN
   days: 5
   scenario: weekday_normal
   replate_ab: true
-  workers: 0
+  workers: 4
 # M3 (reserved): bc, ppo, adversarial, export
 bc: {days: 5}
 ppo: {total_timesteps: 20000, n_envs: 4, episode_days: 1}

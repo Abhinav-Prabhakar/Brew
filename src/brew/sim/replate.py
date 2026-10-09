@@ -160,7 +160,7 @@ class Replate:
 
     def rescuable_keys(self) -> set[str]:
         """Inventory keys whose leftovers Replate can list (make-ahead, finished goods, prep-backed)."""
-        return set(self.sku_key.values()) | set(self.backed)
+        return set(self.sku_key.values()) | set(self.rc.prep_backed)
 
     # ------------------------------------------------------------------ queries
     def eligible(self, sku: str) -> bool:
