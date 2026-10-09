@@ -46,7 +46,7 @@ def train_adversary_phase(
     from .adversary import make_adv_env
 
     fns: Any = [partial(make_adv_env, env_cfg.replace(seed=env_cfg.seed + 7001 * (i + 1)), proto_files) for i in range(resolve_n_envs(cfg.n_envs))]
-    raw: Any = SubprocVecEnv(fns, start_method="spawn") if cfg.vec == "subproc" and len(fns) > 1 else DummyVecEnv(fns)
+    raw: Any = SubprocVecEnv(fns, start_method=torch_setup.vec_start_method()) if cfg.vec == "subproc" and len(fns) > 1 else DummyVecEnv(fns)
     venv = VecNormalize(VecMonitor(raw), gamma=0.99, clip_obs=10.0)
     if model is None:
         model = MaskablePPO(

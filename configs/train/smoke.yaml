@@ -24,7 +24,7 @@ eval:                          # M2 acceptance protocol (C vs A/B, Replate on/of
   seeds: [1, 2, 3]
   days: 3
   scenario: weekday_normal
-  replate_ab: false
+  replate_ab: true
   workers: 2
 bc:                            # behaviour cloning of Policy C
   days: 5

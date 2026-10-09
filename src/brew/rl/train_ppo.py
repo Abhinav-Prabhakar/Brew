@@ -37,7 +37,7 @@ def make_venv(base: EnvConfig, n_envs: int, kind: str = "dummy") -> Any:
 
     fns = [partial(make_env, c) for c in _env_cfgs(base, n_envs)]
     if kind == "subproc" and n_envs > 1:
-        return SubprocVecEnv(fns, start_method="spawn")  # type: ignore[arg-type]
+        return SubprocVecEnv(fns, start_method=torch_setup.vec_start_method())  # type: ignore[arg-type]
     return DummyVecEnv(fns)  # type: ignore[arg-type]
 
 

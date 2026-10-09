@@ -35,3 +35,19 @@ def pick_device(device: str = "auto") -> str:
     if device == "auto":
         return "cuda" if torch.cuda.is_available() else "cpu"
     return device
+
+
+def vec_start_method() -> str:
+    """Start method for ``SubprocVecEnv`` workers.
+
+    SB3's worker module imports torch before the pickled env factory (and so LightGBM) is unpickled, so
+    plain ``spawn`` workers hit the macOS import-order segfault above.  A forkserver that preloads LightGBM and
+    OR-tools forks workers with those runtimes already loaded; torch is then imported afterwards, as required.
+    Elsewhere ``spawn`` is fine (one OpenMP runtime).
+    """
+    if sys.platform != "darwin":
+        return "spawn"
+    import multiprocessing
+
+    multiprocessing.set_forkserver_preload(["lightgbm", "ortools.sat.python.cp_model"])
+    return "forkserver"
