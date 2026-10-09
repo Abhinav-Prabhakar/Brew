@@ -358,6 +358,7 @@ function rescueItems(s, now){
 /* ---------- live layers ---------- */
 const lStock = R.layer($('p-stock'), {
   key: (x) => x.it.id, sig: (x) => x.sig, html: (x) => x.html,
+  place: (r, x, isNew) => { if (r.changed && !isNew) R.bump(r.el, 'settle'); },  // a level moved: the jar is set down
 });
 let tagSig = '', headSig = '';
 function renderShelves(s, now){

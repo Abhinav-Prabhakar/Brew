@@ -24,7 +24,8 @@ const R = (() => {
             r = {el: node, sig: null, gone: false, data: {}}; map.set(k, r); isNew = true;
           }
           const s = sig ? sig(it) : JSON.stringify(it);
-          if (s !== r.sig) { r.el.innerHTML = html(it, r); r.sig = s; }
+          r.changed = s !== r.sig;
+          if (r.changed) { r.el.innerHTML = html(it, r); r.sig = s; }
           r.item = it;
           if (place) place(r, it, isNew, i);
         });

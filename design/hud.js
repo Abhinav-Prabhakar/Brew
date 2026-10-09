@@ -102,15 +102,16 @@ function drawCmp(s){
   let g = '';
   for (let v = lo; v <= hi; v += 10000) g += `<path d="M${X(v).toFixed(1)} 6V${H - 26}" stroke="${I}" stroke-width="1" opacity=".12"/><text x="${X(v).toFixed(1)}" y="${H - 10}" text-anchor="middle" font-family="Patrick Hand" font-size="12" fill="${I}" opacity=".6">₹${v / 1000}k</text>`;
   rows.forEach((r, i) => {
-    const y = 22 + i * rowH, p = r.p, seeds = p.profit_by_seed || [], mine = r.k === me;
+    const y = 22 + i * rowH, p = r.p, seeds = p.profit_by_seed || [], mine = r.k === me, d = `style="--d:${(.15 + i * .12).toFixed(2)}s"`;
     const ci = p.ci95 || (p.vs_A?.ci95 ? null : null), col = mine ? C.pinkD : {A: '#b9b3ad', B: C.mustard, C: C.sage}[r.k] || C.navy;
     if (mine) g += `<rect x="4" y="${y - 19}" width="${W - 8}" height="${rowH - 6}" rx="12" fill="${C.pinkL}" stroke="${C.pinkD}" stroke-width="2" stroke-dasharray="6 5"/>`;
     g += `<text x="14" y="${y + 2}" font-family="Gochi Hand" font-size="19" fill="${I}">${r.k} · ${POL[r.k]}</text>`
       + `<text x="14" y="${y + 18}" font-family="Patrick Hand" font-size="12.5" fill="${I}" opacity=".6">${money(p.mean_profit)}/day</text>`;
-    if (seeds.length) g += `<path d="M${X(Math.min(...seeds)).toFixed(1)} ${y}H${X(Math.max(...seeds)).toFixed(1)}" stroke="${I}" stroke-width="2" stroke-linecap="round"/>`
-      + seeds.map((v, j) => `<circle cx="${X(v).toFixed(1)}" cy="${(y + ((j % 3) - 1) * 4).toFixed(1)}" r="3" fill="#fff" stroke="${I}" stroke-width="1.4"/>`).join('');
-    if (ci && ci.length === 2) g += `<rect x="${X(ci[0]).toFixed(1)}" y="${y - 7}" width="${Math.max(3, X(ci[1]) - X(ci[0])).toFixed(1)}" height="14" rx="5" fill="${col}" stroke="${I}" stroke-width="2.2"/>`;
-    g += `<path d="M${X(p.mean_profit).toFixed(1)} ${y - 12}V${y + 12}" stroke="${I}" stroke-width="3.4" stroke-linecap="round"/>`;
+    // range, CI and mean are inked in (pathLength=1 → .ink draws them on unfold), the seed dots follow
+    if (seeds.length) g += `<path class="ink" ${d} pathLength="1" d="M${X(Math.min(...seeds)).toFixed(1)} ${y}H${X(Math.max(...seeds)).toFixed(1)}" stroke="${I}" stroke-width="2" stroke-linecap="round"/>`
+      + seeds.map((v, j) => `<circle class="dot" ${d} cx="${X(v).toFixed(1)}" cy="${(y + ((j % 3) - 1) * 4).toFixed(1)}" r="3" fill="#fff" stroke="${I}" stroke-width="1.4"/>`).join('');
+    if (ci && ci.length === 2) g += `<rect class="ink" ${d} pathLength="1" x="${X(ci[0]).toFixed(1)}" y="${y - 7}" width="${Math.max(3, X(ci[1]) - X(ci[0])).toFixed(1)}" height="14" rx="5" fill="${col}" stroke="${I}" stroke-width="2.2"/>`;
+    g += `<path class="ink" ${d} pathLength="1" d="M${X(p.mean_profit).toFixed(1)} ${y - 12}V${y + 12}" stroke="${I}" stroke-width="3.4" stroke-linecap="round"/>`;
   });
   const D = cmp.get(me), A = cmp.get('A'), Cc = cmp.get('C');
   const note = D && A ? `policy ${me} makes ${money(D.mean_profit - A.mean_profit)} more a day than running it naive${Cc && me !== 'C' ? `, ${money(D.mean_profit - Cc.mean_profit)} more than the optimiser` : ''}` : '';
@@ -120,11 +121,16 @@ function drawCmp(s){
     <div style="font-size:12.5px;opacity:.6;margin-top:2px">dots = one simulated week each · bar = 95% CI of the mean · tick = mean</div>`;
 }
 const card = $('.money');
-function toggle(){ const box = $('#cmp'); box.hidden = !box.hidden; card.setAttribute('aria-expanded', String(!box.hidden));
-  if (!box.hidden) { drawCmp(R.S() || {}); window.BrewLive?.refresh?.('comparison'); } }
+// unfold: the card grows from the profit chip and its chart is inked in once; fold: it shrinks back, then hides
+function toggle(){ const box = $('#cmp'), opening = box.hidden || box.classList.contains('folding');
+  clearTimeout(box._t); card.setAttribute('aria-expanded', String(opening));
+  if (opening) { box.classList.remove('folding'); box.hidden = false; drawCmp(R.S() || {}); R.bump(box, 'unfold');
+    box._t = setTimeout(() => box.classList.remove('unfold'), 1600); window.BrewLive?.refresh?.('comparison'); }
+  else if (R.reduced) box.hidden = true;
+  else { box.classList.remove('unfold'); box.classList.add('folding'); box._t = setTimeout(() => { box.hidden = true; box.classList.remove('folding'); }, 260); } }
 card.addEventListener('click', (e) => { if (!e.target.closest('.bgm')) toggle(); });
 card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
-document.addEventListener('click', (e) => { const box = $('#cmp'); if (!box.hidden && !e.target.closest('#cmp, .money')) toggle(); });
+document.addEventListener('click', (e) => { const box = $('#cmp'); if (!box.hidden && !box.classList.contains('folding') && !e.target.closest('#cmp, .money')) toggle(); });
 
 R.onState(render);
 setInterval(() => render(R.S()), 1000);

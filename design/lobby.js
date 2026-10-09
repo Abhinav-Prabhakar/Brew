@@ -340,15 +340,16 @@ const seatDrawing = (c, m, sd, mood, s) => Doodle.person({seed: sd, persona: c.p
 const lSeated = R.layer($('l-seated'), {
   key: (it) => `${it.c.party_id}:${it.m}`, sig: (it) => `${it.c.state}|${it.mood}|${it.c.laptop}`,
   html: (it) => `<g data-party="${it.c.party_id}" data-state="${it.c.state}" transform="translate(${it.x} ${it.y}) scale(${SC_SEAT})">${it.p.body}</g>`,
-  exit: () => 0,
+  exit: (r) => { r.el.style.transition = 'opacity .35s ease'; r.el.style.opacity = '0'; return 350; },
 });
 const lFront = R.layer($('l-front'), {
   key: (it) => `${it.c.party_id}:${it.m}`, sig: (it) => `${it.c.state}|${it.mood}|${it.c.laptop}`,
-  html: (it) => `<g transform="translate(${it.x} ${it.y}) scale(${SC_SEAT})">${it.p.front}</g>`, exit: () => 0,
+  html: (it) => `<g transform="translate(${it.x} ${it.y}) scale(${SC_SEAT})">${it.p.front}</g>`, exit: (r) => { r.el.style.transition = 'opacity .35s ease'; r.el.style.opacity = '0'; return 350; },
 });
 const lTables = R.layer($('l-tables'), {
   key: (it) => it.id, sig: (it) => `${it.state}|${it.dx}`,
   html: (it) => twoTop(TABLE_X[it.id], it.state, it.dx),
+  place: (r, it, isNew) => { if (r.changed && !isNew) R.bump(r.el, 'settle'); },
 });
 function renderPeople(s, t){
   const cs = Object.values(s.customers || {}).filter((c) => c.channel !== 'zomato' && c.channel !== 'swiggy' && c.channel !== 'delivery');

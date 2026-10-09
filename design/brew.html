@@ -12,6 +12,9 @@
     --ink:#1d1a1c; --paper:#fbf7f1; --ground:#efe6dc;
     --pink:#f7c3a3; --pink-d:#e07e52; --pink-l:#fdeee4;
     --sage:#8fa585; --olive:#6f7a4c; --terra:#c0634f; --mustard:#e3b25a; --navy:#3d4556; --kraft:#c9a27a;
+    /* one motion vocabulary: in (leaving), out (arriving), spring (stamps, chips, cards), move (things that travel), cam (the room track) */
+    --ease-in:cubic-bezier(.6,0,.75,.4); --ease-out:cubic-bezier(.2,.9,.3,1); --ease-spring:cubic-bezier(.3,1.6,.5,1);
+    --ease-move:cubic-bezier(.45,.05,.3,1); --ease-cam:cubic-bezier(.7,0,.22,1);
     --steel:#e4e7eb; --steel-l:#f2f4f6; --ok:#7fc37a; --warn:#f2b33d; --bad:#e2483d;
     --hand:'Gochi Hand','Comic Sans MS',cursive; --body:'Patrick Hand','Comic Sans MS',cursive;
     color-scheme:light;
@@ -24,7 +27,7 @@
   #frame{position:relative;overflow:hidden;max-width:1600px;margin-inline:auto}
   #wrap{width:1600px;height:1000px;transform-origin:top left}
   #viewport{position:relative;width:1600px;height:1000px;overflow:hidden;background:var(--paper)}
-  #track{position:absolute;top:0;left:0;width:4800px;height:1000px;transition:transform 1.1s cubic-bezier(.7,0,.22,1);will-change:transform}
+  #track{position:absolute;top:0;left:0;width:4800px;height:1000px;transition:transform 1.1s var(--ease-cam);will-change:transform}
   body[data-room="kitchen"] #track{transform:translateX(-1600px)}
   body[data-room="pantry"] #track{transform:translateX(-3200px)}
   .room{position:absolute;top:0;width:1600px;height:1000px;overflow:hidden}
@@ -68,9 +71,8 @@
   .money .amt.neg{color:var(--terra)}
   .money .up.down{background:#fbe1d9}
   .bgm{display:flex;align-items:center;gap:2px;font-size:13px;opacity:.7}
-  .cmp{right:18px;top:96px;width:560px;padding:10px 18px 12px;z-index:30;transform-origin:85% 0;animation:drop .45s cubic-bezier(.2,.9,.3,1.15)}
+  .cmp{right:18px;top:96px;width:560px;padding:10px 18px 12px;z-index:30;transform-origin:85% 0}
   .cmp[hidden]{display:none}
-  @keyframes drop{from{transform:translateY(-14px) scaleY(.6);opacity:0}to{transform:none;opacity:1}}
   .cmp h3{font-family:var(--hand);font-weight:400;font-size:24px;line-height:26px;display:flex;align-items:baseline;gap:8px}
   .cmp h3 small,.cmp .note{font-family:var(--body);font-size:13.5px;opacity:.65}
   .cmp .note{font-family:'Caveat',cursive;font-size:18px;opacity:.8;margin-top:2px}
@@ -328,7 +330,7 @@
   .mb-dim{position:absolute;inset:0;background:rgba(29,26,28,.5);opacity:0;transition:opacity .55s ease}
   #mb.on .mb-dim{opacity:1} #mb.closing .mb-dim{opacity:0;transition-delay:.25s}
   .mb-book{position:absolute;left:210px;top:142px;width:1180px;height:740px;transform-origin:50% 50%;transition:transform .82s cubic-bezier(.2,.85,.25,1);perspective:2600px}
-  #mb.closing .mb-book{transition:transform .78s cubic-bezier(.6,0,.75,.4)}
+  #mb.closing .mb-book{transition:transform .78s var(--ease-in)}
   .mb-cover{position:absolute;inset:-16px;background:var(--pink-d);border:3.5px solid var(--ink);border-radius:20px 28px 22px 20px;box-shadow:9px 11px 0 var(--ink)}
   .mb-cover::after{content:'';position:absolute;left:50%;top:6px;bottom:6px;width:18px;transform:translateX(-50%);background:linear-gradient(90deg,rgba(0,0,0,.25),rgba(0,0,0,0) 45%,rgba(0,0,0,0) 55%,rgba(0,0,0,.25));border-radius:6px}
   .mb-spread{position:absolute;inset:0;display:grid;grid-template-columns:1fr 1fr;transform-style:preserve-3d}
@@ -394,9 +396,9 @@
   .rrow.out{opacity:.35;transform:translateX(30px)}
   .rrow.out .gone{opacity:1}
   .rescue .empty{margin-top:30px;text-align:center;font-family:'Caveat',cursive;font-weight:700;font-size:24px;opacity:.6}
-  .pop{animation:pop .5s cubic-bezier(.3,1.6,.5,1)}
+  .pop{animation:pop .5s var(--ease-spring)}
   @keyframes pop{0%{transform:scale(1) rotate(-9deg)}40%{transform:scale(1.28) rotate(-4deg)}100%{transform:scale(1) rotate(-9deg)}}
-  .units.pop{animation:popu .45s cubic-bezier(.3,1.6,.5,1)}
+  .units.pop{animation:popu .45s var(--ease-spring)}
   @keyframes popu{40%{transform:scale(1.25)}}
   .slide{animation:slideIn .7s cubic-bezier(.2,.9,.3,1.2)}
   @keyframes slideIn{from{transform:translateX(60px) rotate(2deg);opacity:0}to{transform:none;opacity:1}}
@@ -431,7 +433,23 @@
   @media (prefers-reduced-motion: reduce){
     #viewport *{animation:none!important}
     #track{transition:none}
+    /* information still changes: movement becomes a short fade */
+    #viewport :is(.pop,.slide,.settle,.unfold),.cmp.unfold{animation:rmFade .3s ease!important}
+    .cmp.unfold .ink{stroke-dashoffset:0!important;animation:none!important} .cmp.unfold .dot{opacity:1!important;animation:none!important}
   }
+  @keyframes rmFade{from{opacity:.25}to{opacity:1}}
+  /* motion: the profit card unfolds like paper, its chart is inked in; it folds back up on close */
+  .cmp.unfold{animation:unfold .62s var(--ease-spring)} .cmp.folding{animation:fold .26s var(--ease-in) forwards}
+  @keyframes unfold{0%{transform:scale(.55,.04);opacity:0}35%{transform:scale(.96,.42);opacity:1}100%{transform:none}}
+  @keyframes fold{to{transform:scale(.6,.05);opacity:0}}
+  .cmp.unfold .ink{stroke-dasharray:1;stroke-dashoffset:1;animation:inkIn .7s var(--ease-out) var(--d,0s) forwards}
+  .cmp.unfold .dot{opacity:0;animation:fadeIn .3s ease calc(var(--d,0s) + .45s) forwards}
+  @keyframes inkIn{to{stroke-dashoffset:0}} @keyframes fadeIn{to{opacity:1}}
+  /* a stock level that changed settles like a jar set down; FEFO arrows nudge "use me first" */
+  .settle{transform-box:fill-box;transform-origin:50% 100%;animation:settle .55s var(--ease-spring)}
+  @keyframes settle{35%{transform:scale(1.04,.95)}}
+  .p-fefo{transform-box:fill-box;animation:fefo 1.6s ease-in-out infinite}
+  @keyframes fefo{0%,60%,100%{transform:none}75%{transform:translateX(3px)}}
   /* perf: CSS loops of the rooms off screen hold still (they are not painted anyway, but their style ticks) */
   body[data-room="lobby"] :is(#kitchen,#pantry) *,body[data-room="kitchen"] :is(#lobby,#pantry) *,body[data-room="pantry"] :is(#lobby,#kitchen) *{animation-play-state:paused!important}
   /* dev overlay: ?fps */
