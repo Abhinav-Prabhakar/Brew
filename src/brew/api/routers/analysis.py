@@ -128,7 +128,6 @@ def advisor(
     if stale:
         with mw.lock:
             snap = mw.world.fork(world_id=mw.world.world_id + "-advisor")
-        snap.bn = mw.world.bn  # reports are read only; the fork keeps its own copy after pickling
 
         def fn(j: Job) -> list[dict[str, Any]]:
             recs = run_advisor(snap, seeds=seeds, days=days)
