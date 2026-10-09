@@ -232,7 +232,7 @@
 
     _emit(batch) {
       if (!batch.length) return;
-      this.lastSeq = batch[batch.length - 1].seq;
+      for (let i = batch.length - 1; i >= 0; i--) if (batch[i].seq != null) { this.lastSeq = batch[i].seq; break; } // rest.* pseudo-events have seq null
       if (this.o.onEvents) this.o.onEvents(batch);
     }
 

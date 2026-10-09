@@ -252,7 +252,7 @@ def test_replay_infinite_speed_is_deterministic_and_reaches_the_final_state(harn
           };
           const a = await run(); const b = await run();
           const fx = await T.load(name);
-          const direct = BrewStore.reduceAll(BrewStore.hydrate(fx.snapshot), fx.events);
+          const direct = BrewStore.reduceAll(BrewStore.hydrate(fx.snapshot), fx.all);
           return { same: a.json === b.json, equalsDirect: a.json === JSON.stringify(direct), batches: a.batches, status: a.status, lastSeq: a.lastSeq, last: fx.events[fx.events.length - 1].seq };
         }""",
         name,
@@ -273,7 +273,7 @@ def test_paced_replay_through_boot_emits_frames_and_hydrate(fresh_page, static_u
           await BrewLive.source.done;
           await new Promise((r) => setTimeout(r, 150));
           const fx = await T.load('morning_rush');
-          const direct = BrewStore.reduceAll(BrewStore.hydrate(fx.snapshot), fx.events);
+          const direct = BrewStore.reduceAll(BrewStore.hydrate(fx.snapshot), fx.all);
           return { ...log, final: JSON.stringify(BrewLive.state) === JSON.stringify(direct), status0: BrewLive.status, nTypes: Object.keys(log.types).length, seq: BrewLive.state.seq };
         }"""
     )

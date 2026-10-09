@@ -48,7 +48,7 @@ VISUALS: dict[str, str] = {
     "order.rejected": "ticket stamped REJECTED then torn off",
     "order.progress": "ticket wait bar + now-brewing board columns (brewing / almost / ready)",
     "rail.reordered": "FLIP reorder of the rail + batch paperclips",
-    "batch.formed": "paperclip snaps onto the batched tickets ('batched x3 . saves 2m40s')",
+    "batch.formed": "paperclip snaps onto the batched tickets ('batched x3 . saves 2m40s' from saves_s, lobby.js)",
     "batch.started": "paperclip turns solid; station card shows the batch",
     "order.ready": "READY stamp, pass bell",
     "order.served": "ticket torn off the rail; seated party waits for a table",
@@ -89,7 +89,7 @@ VISUALS: dict[str, str] = {
     "equipment.down": "station LED red `#kitchen .board .cell[data-station] .led.r`, chaos card, technician ETA",
     "equipment.up": "station LED green",
     "kpi.tick": "HUD profit `#hud .money .amt`, rating, load, open orders",
-    "decision.made": "policy D decision card (latest 3-4 decisions with reasons)",
+    "decision.made": "policy D decision card in the lobby (latest decisions, `headline`) + the kitchen chaos card's 'RL reaction' (the decision whose `trigger` is the disruption id: the immediate re-plan)",
     "bottleneck.changed": "'what's limiting throughput?' card",
     "chaos.triggered": "kitchen chaos card: what's down, ETA, RL reaction",
     "chaos.resolved": "chaos card clears",
@@ -98,9 +98,9 @@ VISUALS: dict[str, str] = {
     "throttle.changed": "aggregator throttle control state",
     "investment.delivered": "the bought item appears in the scene",
     "action.applied": "-",
-    "station.load": "station board percentages + LED amber/green (pending backend)",
-    "staff.status": "crew fatigue bars, break-due countdown (pending backend)",
-    "chaos.cost": "'cost of chaos' figure on the chaos card (pending backend)",
+    "station.load": "kitchen stations board: `% busy` pill + LED amber (>= 85 %) / green; lobby espresso util on the bottleneck card (every 60 sim-s)",
+    "staff.status": "crew rows + doodle meters: fatigue bar, 'break due . N min' bubble, on-break countdown (every 60 sim-s)",
+    "chaos.cost": "kitchen chaos card 'cost of chaos' (cost_inr vs the shadow-fork world without the disruption; phases active / resolved / final)",
 }
 
 IGNORED_REASONS: dict[str, str] = {
@@ -114,10 +114,11 @@ REST_VISUALS: dict[str, str] = {
     "rest.bottlenecks": "ranked bottleneck card (GET /bottlenecks)",
     "rest.advisor": "invest recommendations list (GET /advisor)",
     "rest.impact": "waste / impact numbers (GET /impact)",
-    "rest.comparison": "profit component expands into D vs A/B/C (GET /policies/comparison, pending backend)",
-    "rest.staff": "crew shift times, wage (GET /staff)",
+    "rest.comparison": "profit component expands into D vs A/B/C (GET /policies/comparison)",
+    "rest.staff": "crew shift times, wage (GET /staff; the recorded fixtures carry staff.status instead)",
     "rest.decision_explain": "decision card 'why' text (GET /decisions/{id}/explain)",
-    "rest.purchasing": "proposed purchase order + approve (GET /purchasing, pending backend)",
+    "rest.purchasing": "pantry proposed purchase order + `[data-action=place_po]` approve button, next delivery (GET /purchasing/proposal)",
+    "rest.usage": "pantry lot hover card: today's usage forecast P50/P90, days of cover (GET /inventory/{key}/forecast, keyed by `key`)",
     "client.status": "live dot `#hud [data-live]`, lagging state (client-side pseudo event)",
 }
 
@@ -175,7 +176,7 @@ SNAPSHOT_FIELDS: dict[str, list[str]] = {
 # ---- where the event-sourced state cannot equal hydrate(snapshot) (asserted, with these tags, by test_store.py)
 KNOWN_GAPS: dict[str, str] = {
     "patience-coarse": "customer.patience only fires at the 60/30/10 % thresholds: patience_frac is a step function, not the live fraction (use patience_deadline_s with BrewLive.now() for a smooth ring)",
-    "fatigue": "staff fatigue is not streamed until staff.status (pending backend); hydrate/GET /staff carry it",
+    "fatigue": "staff fatigue is streamed by staff.status every 60 sim-s only (checkpoints fall between ticks); hydrate/GET /staff carry the live value",
     "staff-task": "a person with several concurrent tasks: the sim reports the latest started group, the store the most recent task.started",
     "weather-temp": "temp_c / rain_mm_h drift hourly but weather.changed only fires when the weather state changes",
     "coldbrew": "cold-brew concentrate is not a finished good: its fridge row only updates when the low flag flips",
@@ -219,8 +220,6 @@ def build() -> dict[str, Any]:
             events[t] = {"ignored": d["ignored"][t]}
         else:
             e: dict[str, Any] = {"handlers": d["events"][t], "visual": VISUALS.get(t, "TODO")}
-            if t in d["pending_backend"]:
-                e["pending_backend"] = True
             events[t] = e
     rest = {t: {"handlers": d["rest"][t], "visual": REST_VISUALS.get(t, "TODO")} for t in sorted(d["rest"])}
     return {
