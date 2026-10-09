@@ -149,10 +149,16 @@
   /* ------------------------------------------------------------------ selectors */
   const ROLE_ORDER = ['barista', 'cook', 'cashier', 'runner', 'dishwasher'];
   const select = {
-    /** open tickets in rail order; each gets `.batch` = {id, order_nos, size, index} | null */
+    /** open tickets in rail order; each gets `.batch` = {id, order_nos, size, index} when 2+ of the group's tickets
+     *  are still on the rail (a batch also lists orders that were already served), else null */
     rail(s) {
+      const onRail = new Set(s.rail.order_nos);
       const by = {};
-      for (const b of s.rail.batches) for (const no of b.order_nos) by[no] = b;
+      for (const b of s.rail.batches) {
+        // an order can sit in two live batches (two stations): the first group wins, one paperclip per ticket
+        const members = b.order_nos.filter((no) => onRail.has(no) && s.orders[no] && !by[no]);
+        if (members.length >= 2) for (const no of members) by[no] = { id: b.id, order_nos: members };
+      }
       const out = [];
       for (const no of s.rail.order_nos) {
         const o = s.orders[no];

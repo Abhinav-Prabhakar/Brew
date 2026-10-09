@@ -191,5 +191,13 @@
     return out;
   }
 
-  window.T = { load, slice, deepFreeze, compare, verifyCheckpoints, eq, near, FINAL, GONE };
+  /** hydrate(snapshot) + every event with seq <= upTo */
+  async function stateAt(name, upTo) {
+    const fx = await load(name);
+    return BrewStore.reduceAll(BrewStore.hydrate(fx.snapshot), fx.events.filter((e) => e.seq <= upTo));
+  }
+
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  window.T = { load, slice, stateAt, sleep, deepFreeze, compare, verifyCheckpoints, eq, near, FINAL, GONE };
 })();
