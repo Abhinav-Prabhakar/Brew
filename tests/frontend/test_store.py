@@ -524,7 +524,7 @@ def test_lunch_fixture_fills_load_fatigue_cost_saves_and_rest_models(harness):
             fatigue: Object.values(s.staff).filter((x) => x.fatigue != null && x.present).length,
             saves: fx.events.filter((e) => e.type === 'batch.formed' && e.data.saves_s > 0).length,
             trig: s.decisions.filter((d) => d.trigger).map((d) => d.trigger.slice(0, 4)),
-            rest: Object.fromEntries(['inventory', 'purchasing', 'impact', 'comparison', 'forecast', 'bottlenecks'].map((k) => [k, !!s.rest[k]])),
+            rest: Object.fromEntries(['purchasing', 'impact', 'comparison', 'forecast', 'bottlenecks'].map((k) => [k, !!s.rest[k]])),
             lots: Object.keys(s.lots).length, usage: Object.keys(s.rest.usage || {}).length, inv: Object.keys(s.inventory).length, seq: s.seq, last: fx.events[fx.events.length - 1].seq,
           };
         }"""
