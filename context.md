@@ -30,7 +30,7 @@
   - **Open spec questions:** should milk waste (3.2 kg/day) be rescuable? Should the choice model become a nested logit?
 - **M3, RL: in progress.** A background Sonnet agent is working in worktree `.claude/worktrees/agent-a736d2c0744d84c2f`, branch `worktree-agent-a736d2c0744d84c2f`.
   - Commits so far: env/actions/masks/reward, BC, MaskablePPO, RARL, ONNX + runtime Policy D, surrogate, pipeline + CLI, smoke/full configs, D wired into the API, mypy fixes.
-  - The agent may still be running. If it isn't, check `git log main..HEAD` and the status of that worktree, then finish M3 from where it stopped.
+  - **Agent stopped at handoff.** Its last commit is `a2fde65`, "wip(rl): RL tests", and it is pushed to `origin/worktree-agent-a736d2c0744d84c2f`. `tests/test_rl.py` and `tests/test_rl_slow.py` were never run. `models/rl_policy/` (564 KB) is untracked in that worktree; it is probably a smoke artifact, so decide whether to commit it. Finish M3 from here: work in that worktree, or merge the branch into `main` and fix things there.
   - **Required CLI contract** (the desktop script depends on it): `uv run brew-train all --config <yaml> --run-dir <dir> [--resume] [--dry-run]`. It must write:
     - `progress.json` (stage, step, total, steps_per_s, eta, last_eval)
     - `metrics.json`, `config.yaml`, `eval/`, `tb/`, `checkpoints/`
@@ -38,6 +38,12 @@
   - Training must make no network calls.
   - Tracked artifacts under `models/` must not be overwritten by smoke runs.
   - **Acceptance:** env passes `env_checker`; masks never all-false; smoke PPO improves; D ≥ A on 3 seeds; ONNX parity < 1e-4; `full.yaml --dry-run` OK; smoke end to end OK; env step < 40 ms.
+
+## Rules for the next chat (from the user)
+- **Do not monitor ML training.** Once full training is started on the desktop and confirmed running (`overnight.sh status` shows `training`), give the user the morning-check commands and **end the chat**. Don't poll, don't schedule wake-ups, don't loop. The user will come back and say when training is done; only then inspect the logs (`git fetch origin training-logs`, or SSH in and run `overnight.sh status`).
+- **Before ending**, finish every pending task below (steps 1–4).
+- **Sub-agents:** all were stopped at handoff (2026-10-04). None are running. Spawn new ones only if needed (Sonnet 5.5, worktree isolation, at most 2 worker processes on this Mac).
+- **Permissions:** `.claude/settings.json` pre-allows uv, git, gh, the desktop `ssh`/`scp` with the brew key, `overnight.sh`, and the common read/edit tools, so you can run what you need without prompts.
 
 ## Next steps (in order)
 1. **Verify M3 yourself:** tests, ruff, mypy, `brew-train all --config configs/train/smoke.yaml --run-dir runs/smoke_test`, and the arena including D. Then merge into `main` and push.
@@ -55,8 +61,9 @@
   - `nvidia-smi` lives in `/usr/lib/wsl/lib`.
   - `powershell.exe` must be called by full path.
   - The script handles both.
-- **DNS:** Tailscale overrides DNS (MagicDNS 100.100.100.100), and that caused one `uv sync` failure. The user should run `sudo tailscale set --accept-dns=false` and `sudo tailscale set --operator=$USER` (not done yet).
-- **Last state:** `uv sync` succeeded. `overnight.sh prepare` was running detached, with output in `~/prepare.log` on the desktop. Torch isn't installed yet because it arrives with the M3 merge; re-run `prepare` after merging.
+- **DNS:** fixed. The user ran `tailscale set --accept-dns=false` and `--operator=$USER`.
+- **Git identity:** set repo-locally in `~/brew`, so log commits work.
+- **Last state:** `overnight.sh prepare` succeeded (2026-10-04 17:12). Tests pass on the desktop, the RTX 3050 is detected, and the `training-logs` worktree has been initialised locally at `.overnight/logs` but not pushed yet. Torch isn't installed yet because it arrives with the M3 merge. After merging M3, run `git pull && bash scripts/desktop/overnight.sh prepare` on the desktop, which installs torch with CUDA; then check that `torch.cuda.is_available()` is `True`.
 
 ## `scripts/desktop/overnight.sh` (offline-first runner)
 - **Commands:** `prepare | start [config] [--resume] [--push-model] | status | tail | push | stop`.
