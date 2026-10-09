@@ -8,7 +8,7 @@ brew runs a live, real-time digital twin of an independent café and lets a lear
 what to charge, what to cook first, what to rescue before it's thrown away. Every number on screen comes from the
 simulation as it happens, and every claim below comes from paired, seed-controlled experiments.
 
-![tests](https://img.shields.io/badge/pytest-469%20tests-8fa585?style=flat-square)
+![tests](https://img.shields.io/badge/pytest-495%20tests-8fa585?style=flat-square)
 ![policy](https://img.shields.io/badge/RL-MaskablePPO-e07e52?style=flat-square)
 ![onnx](https://img.shields.io/badge/serving-ONNX-3d4556?style=flat-square)
 ![uv](https://img.shields.io/badge/python-uv%20·%203.12-c9a27a?style=flat-square)
