@@ -20,6 +20,13 @@ class Kpis:
         self.w = w
         self.history: list[dict[str, Any]] = []
         self.energy_kwh_today = 0.0
+        # cumulative (never reset) counters read by the RL reward tracker (rl/reward.py)
+        self.cum_late_min: dict[str, float] = defaultdict(float)  # persona -> minutes served/delivered past promise
+        self.cum_walkouts: dict[str, int] = defaultdict(int)  # persona -> balks + reneges
+        self.cum_overload_s = 0.0  # staff-seconds above 95 % attention
+        self.cum_price_changes = 0
+        self.cum_waste_kg = 0.0
+        self.cum_waste_inr = 0.0
         self.reset()
 
     def reset(self) -> None:
@@ -54,6 +61,8 @@ class Kpis:
         self.waits[o.channel].append(o.served_s - o.placed_s)
         if o.served_s > o.promised_s:
             self.sla_breach += 1
+            if o.channel not in ("zomato", "swiggy"):  # aggregator orders are judged at delivery
+                self.cum_late_min[o.persona] += (o.served_s - o.promised_s) / 60.0
 
     def on_void(self, o: Order, reason: str) -> None:
         self.voided += 1
@@ -65,6 +74,7 @@ class Kpis:
         self.delivered += 1
         if o.delivered_s > o.promised_s:
             self.delivery_late += 1
+            self.cum_late_min[o.persona] += (o.delivered_s - o.promised_s) / 60.0
         self.rider_wait_s += (o.rider or {}).get("wait_s", 0.0)
 
     # ------------------------------------------------------------------- views

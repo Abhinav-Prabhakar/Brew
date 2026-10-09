@@ -42,6 +42,7 @@ class ManagerAction:
     throttles: dict[str, str] = field(default_factory=dict)  # aggregator -> open|plus5|plus10|pause
     batch_window_s: float | None = None
     featured: str | None = None  # sku to feature; "" clears
+    featured_exclusive: bool = False  # un-feature every other SKU first (RL: a single featured item)
     hide: dict[str, bool] = field(default_factory=dict)  # sku -> hide?
     prep_now: dict[str, float] = field(default_factory=dict)  # prep key -> qty (base uom)
     premake: dict[str, int] = field(default_factory=dict)  # replate-eligible sku -> units to make ahead

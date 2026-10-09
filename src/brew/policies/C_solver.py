@@ -112,6 +112,14 @@ class PolicyC:
         self.unit_cost: dict[str, float] = {}
         self.key_users: dict[str, list[tuple[str, float]]] = {}
         self.decisions: list[dict[str, Any]] = []
+        # RL executor hooks (policies/D_rl.py): None = C's own logic.  ``kappa_ovr`` maps prep key -> service
+        # quantile (0 = off); ``premake_q_ovr`` is a fixed newsvendor quantile for make-ahead plates.
+        self.kappa_ovr: dict[str, float] | None = None
+        self.premake_q_ovr: float | None = None
+        # behaviour-cloning labels: what this tick's decisions imply in the RL action space
+        self.teach_kappa: dict[str, float] = {}
+        self.teach_premake: list[float] = []
+        self.teach_steps: dict[str, float] = {}
 
     # ------------------------------------------------------------------ fork support
     def __getstate__(self) -> dict[str, Any]:
@@ -182,6 +190,9 @@ class PolicyC:
     # ---------------------------------------------------------------- manager
     def on_manager_tick(self, obs: Observation, view: WorldView) -> ManagerAction:
         act = ManagerAction()
+        self.teach_kappa = {}
+        self.teach_premake = []
+        self.teach_steps = {}
         self._fc(view)
         if view.tod_s >= CLOSE_S - 1800:
             return act
@@ -263,12 +274,20 @@ class PolicyC:
             if lead_s > 4 * 3600.0:
                 mean_units = mean_units + lead_demand * 0.5
             batch = p.batch_size / avg_q
+            self.teach_kappa[key] = c_u / (c_u + c_o)
             best_b, best_v = 0, -1e18
-            for b in range(0, int(P["max_batches_per_tick"]) + 1):
-                sales, left = expected_overage(mean_units, s0 + b * batch, phi)
-                v = c_u * sales - c_o * left
-                if v > best_v + 1e-9:
-                    best_b, best_v = b, v
+            if self.kappa_ovr is not None and key in self.kappa_ovr:
+                kq = self.kappa_ovr[key]  # RL-chosen service level: batches up to the demand quantile
+                if kq <= 0.0:
+                    continue
+                need = demand_quantile(mean_units, kq, phi) - s0
+                best_b = int(min(P["max_batches_per_tick"], max(0, math.ceil(need / batch - 1e-9))))
+            else:
+                for b in range(0, int(P["max_batches_per_tick"]) + 1):
+                    sales, left = expected_overage(mean_units, s0 + b * batch, phi)
+                    v = c_u * sales - c_o * left
+                    if v > best_v + 1e-9:
+                        best_b, best_v = b, v
             if best_b > 0:
                 act.prep_now[key] = best_b * p.batch_size
                 started.append(f"{key} x{best_b}")
@@ -344,9 +363,13 @@ class PolicyC:
             # a pre-made unit only saves time when the kitchen is busy: scale the speed value with expected load
             busy = max(Pm.get("busy_floor", 0.0), min(1.0, max(0.0, (self._expected_load(view) - 0.35) / 0.4)))
             cu = Pm["speed_value_inr"] * busy
-            if cu <= 0.5:
-                continue
-            q = demand_quantile(mu, critical_ratio(cu, co), phi)
+            if self.premake_q_ovr is not None:  # RL-chosen make-ahead level (0 = none is handled by the caller)
+                q = demand_quantile(mu, self.premake_q_ovr, phi)
+            else:
+                if cu <= 0.5:
+                    continue
+                self.teach_premake.append(critical_ratio(cu, co))
+                q = demand_quantile(mu, critical_ratio(cu, co), phi)
             n = int(min(Pm["max_units"], max(0, math.floor(q - stock + 0.0))))
             if n >= 1:
                 act.premake[sku] = n
@@ -526,6 +549,7 @@ class PolicyC:
         if not dec.prices:
             return
         act.sku_prices.update(dec.prices)
+        self.teach_steps = dict(dec.steps)
         act.promotion = False
         self._note(
             act, view, "pricing ladder " + ", ".join(f"{c} {s:+.0%}" for c, s in dec.steps.items() if s),
