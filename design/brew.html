@@ -59,7 +59,10 @@
   .live[data-status="offline-demo"] i,.live[data-status="offline"] i{background:var(--bad);box-shadow:0 0 6px var(--bad);animation:blink 1.2s steps(2) infinite}
   .live[data-status="replay"] i{background:var(--pink-d);box-shadow:none}
   @keyframes pulse{50%{opacity:.45}}
-  .money{right:18px;top:12px;display:flex;gap:16px;align-items:center;padding:8px 18px}
+  .hudr{position:absolute;right:18px;top:12px;display:flex;gap:10px;align-items:stretch}
+  .hudr > .card{position:relative}
+  .money{display:flex;gap:16px;align-items:center;padding:8px 18px}
+  .snd{display:flex;align-items:center;padding:4px 8px}
   .money .lbl{font-size:14px;opacity:.7;line-height:14px}
   .money .amt{font-family:var(--hand);font-size:34px;line-height:34px}
   .money .up{font-size:14px;background:#e4efd9}
@@ -70,7 +73,15 @@
   .money .amt{font-variant-numeric:tabular-nums;min-width:150px}
   .money .amt.neg{color:var(--terra)}
   .money .up.down{background:#fbe1d9}
-  .bgm{display:flex;align-items:center;gap:2px;font-size:13px;opacity:.7}
+  .bgm{display:flex;flex-direction:column;align-items:center;gap:0;font:13px var(--body,'Patrick Hand');opacity:.8;background:none;border:0;cursor:pointer;color:var(--ink)}
+  .bgm.off svg path:last-child{opacity:.15} .bgm.off{opacity:.55}
+  #soundpanel{right:0;top:calc(100% + 10px);width:230px;padding:10px 14px;z-index:40;display:flex;flex-direction:column;gap:6px;font-size:16px;animation:unfold .45s var(--ease-spring);transform-origin:90% 0}
+  #soundpanel[hidden]{display:none} #soundpanel label{display:flex;align-items:center;gap:8px;cursor:pointer} #soundpanel small{opacity:.6;font-size:12.5px}
+  #soundpanel .vol{flex-wrap:wrap} #soundpanel input[type=range]{flex:1;accent-color:var(--pink-d)} #soundpanel input[type=checkbox]{accent-color:var(--pink-d);width:16px;height:16px}
+  /* sound captions: small paper strips bottom-centre */
+  #captions{position:absolute;left:50%;bottom:84px;transform:translateX(-50%);z-index:36;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
+  #captions span{font:18px 'Patrick Hand',sans-serif;background:var(--paper);border:2px solid var(--ink);border-radius:12px 4px 12px 4px;box-shadow:3px 3px 0 var(--ink);padding:2px 12px;animation:slideIn .4s var(--ease-out)}
+  #captions span.out{opacity:0;transition:opacity .45s ease}
   .cmp{right:18px;top:96px;width:560px;padding:10px 18px 12px;z-index:30;transform-origin:85% 0}
   .cmp[hidden]{display:none}
   .cmp h3{font-family:var(--hand);font-weight:400;font-size:24px;line-height:26px;display:flex;align-items:baseline;gap:8px}
@@ -516,10 +527,13 @@
       <span class="chip fc" hidden></span>
       <span class="live" data-live title="connecting…"><i></i><b>live</b></span>
     </div>
+    <div class="hudr">
     <div class="card money" role="button" tabindex="0" aria-expanded="false" aria-controls="cmp" title="compare policies">
       <div><div class="lbl">today's profit</div><div class="amt">—</div></div>
       <div><span class="chip up" data-vs hidden></span><div class="stars"></div></div>
-      <button class="bgm" type="button" aria-label="background music (coming soon)" title="sound arrives in the polish pass"><svg width="40" height="40" viewBox="0 0 40 40"><g stroke="#1d1a1c" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" fill="none"><path d="M6 15h7l9-7v24l-9-7H6z" fill="#fdeee4"/><path d="M27 14q4 6 0 12M31 10q8 10 0 20" opacity=".5"/></g></svg><span>bgm</span></button>
+    </div>
+    <div class="card snd">      <button class="bgm" type="button" aria-label="sound settings" title="sound settings"><svg width="40" height="40" viewBox="0 0 40 40"><g stroke="#1d1a1c" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" fill="none"><path d="M6 15h7l9-7v24l-9-7H6z" fill="#fdeee4"/><path d="M27 14q4 6 0 12M31 10q8 10 0 20" opacity=".5"/></g></svg><span>sound</span></button>
+    </div>
     </div>
     <div class="card cmp" id="cmp" hidden></div>
     <nav class="tabs" aria-label="Rooms">
@@ -549,6 +563,7 @@
 <script src="menu.js"></script>
 <script src="hud.js"></script>
 <script src="camera.js"></script>
+<script src="audio.js"></script>
 <script>/* ?fps: frames per second + p95 frame time over the last 2 s (dev) */
   if (/[?&]fps\b/.test(location.search)) { const el = document.createElement('div'); el.id = 'fps'; document.body.appendChild(el);
     const d = []; let last = 0, shown = 0;

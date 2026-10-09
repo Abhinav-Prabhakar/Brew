@@ -128,7 +128,7 @@ function toggle(){ const box = $('#cmp'), opening = box.hidden || box.classList.
     box._t = setTimeout(() => box.classList.remove('unfold'), 1600); window.BrewLive?.refresh?.('comparison'); }
   else if (R.reduced) box.hidden = true;
   else { box.classList.remove('unfold'); box.classList.add('folding'); box._t = setTimeout(() => { box.hidden = true; box.classList.remove('folding'); }, 260); } }
-card.addEventListener('click', (e) => { if (!e.target.closest('.bgm')) toggle(); });
+card.addEventListener('click', () => toggle());
 card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
 document.addEventListener('click', (e) => { const box = $('#cmp'); if (!box.hidden && !box.classList.contains('folding') && !e.target.closest('#cmp, .money')) toggle(); });
 

@@ -211,6 +211,7 @@
     const to = at + dir;
     if (!open || busy || to < 0 || to >= N) { bump(book, 'nudge'); return; }
     busy = true;
+    window.BREW_LIVE?.emit?.('ui.page', { dir });  // the page-turn sound (audio.js)
     const fwd = dir > 0;
     const leafEl = document.createElement('div');
     leafEl.className = `leaf3d ${fwd ? 'fwd' : 'back'}`;
@@ -255,5 +256,5 @@
   hot.addEventListener('click', openBook);
   if (window.BrewLive?.state) hydrate(window.BrewLive.state);
 
-  window.BREW_MENUBOOK = { open: openBook, close: closeBook, turn, state: { ITEMS, COMBOS, RESCUE } };
+  window.BREW_MENUBOOK = { open: openBook, close: closeBook, turn, state: { ITEMS, COMBOS, RESCUE }, get isOpen() { return open; } };
 })();
