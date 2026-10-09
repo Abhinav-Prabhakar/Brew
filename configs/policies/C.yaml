@@ -1,3 +1,55 @@
 code: C
-name: Optimised (M2)
-status: stub
+name: Optimised (solver)
+status: available
+# Dispatch: weighted EDF + batching; CP-SAT rolling plan (tight time limit) with greedy fallback.
+solver:
+  enabled: true
+  time_limit_s: 0.02
+  max_tasks: 40
+  min_ready: 8              # solve only when at least this many tasks are waiting
+  replan_min_s: 120         # at most one solve per this many sim seconds ...
+  replan_delta: 5           # ... or when the ready set changed by this many tasks
+  max_solves_per_day: 90
+batch_window_s: 45
+register_first: true
+forecast:
+  dispersion: 1.8           # variance / mean of horizon demand (day-level shocks)
+  horizon_slots: 24
+prep:
+  cover_h: 2.0              # cover demand this long after a batch is ready
+  service_level_cap: 0.9
+  max_batches_per_tick: 2
+premake:                    # make-ahead plates / bottled cold brew (replate-eligible, non-bakery)
+  enabled: true
+  window_min: 60            # cover demand over this horizon (capped by the hold window)
+  speed_value_inr: 40       # underage value of a unit served instantly (SLA / capacity relief), x busy factor
+  kitchen_load_max: 0.80
+  min_window_demand: 2.0    # expected sales in the window below which nothing is made ahead
+  max_units: 6
+  start_h: 10.0
+  stop_h: 20.5
+  waste_penalty_inr: 8      # overage penalty per unit besides ingredient cost (disposal, CO2e shadow)
+replate:
+  custom: true              # per-lot markdown chosen by maximising expected revenue (sell-through model)
+  levels_pct: [0, 20, 30, 40, 50, 60, 70]
+  waste_value_inr: 12       # value of keeping a unit out of the bin (CO2e shadow, disposal)
+  recovery_prior: 0.3       # expected share of leftover units recovered when planning make-ahead sizes
+pricing:
+  enabled: true
+  every_min: 60
+  first_h: 9.0
+  last_h: 20.0
+  min_gain_inr: 120         # only move prices when the modelled gain beats this
+  util_threshold: 0.9
+  default_beta: -1.1
+  default_loss: 1.0
+purchasing:
+  z: 1.4                    # safety sigmas on lead + review period demand
+  cv: 0.35                  # day-to-day coefficient of variation of usage
+  shelf_cap_frac: 0.7
+  min_cover_days: 1.2
+  late_buffer_days: 0.45    # hedge a late truck (+6 h = 0.43 of a 14 h open day)
+accept:
+  max_extra_promise_s: 900
+  reject_if_late_s: 2400
+  slack_s: 90

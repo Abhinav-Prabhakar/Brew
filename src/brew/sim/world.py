@@ -617,6 +617,12 @@ class World:
                     applied.append(f"premake {sku} x{res['units']:g}")
                 except ReplateError as e:
                     clipped.append(f"premake {sku}: {e}")
+        for po in a.pos:
+            lines = {ln.ingredient: ln.qty for ln in po.lines if ln.qty > 0}
+            if lines:
+                placed = self.suppliers.place(po.supplier, lines, source=by, arrive_tod_s=po.arrive_tod_s)
+                if placed is not None:
+                    applied.append(f"PO {po.supplier} ({len(placed['lines'])} lines)")
         for lot_id, pct in a.replate_discounts.items():
             try:
                 if rp.set_discount(lot_id, pct, by, strict=False):
@@ -637,6 +643,8 @@ class World:
             return "price_change"
         if a.prep_now or a.premake:
             return "prep_start"
+        if a.pos:
+            return "reorder"
         if a.replate_mode is not None or a.replate_discounts:
             return "replate_markdown"
         if a.throttles:
