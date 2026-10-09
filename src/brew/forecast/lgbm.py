@@ -76,17 +76,23 @@ class Forecaster:
         """Train on one or more demand logs (each a separate world history)."""
         cat_of = [F.CATS.index(c) for c in cats]
         all_days = [r for lg in logs for r in lg.all_days(include_current=False)]
-        profile = F.day_profile(all_days, len(skus))
+        profile, profile_n = F.day_profile(all_days, len(skus))
         xs, ys, vals = [], [], []
         for li, lg in enumerate(logs):
             recs = lg.all_days(include_current=False)
-            fs = F.build(recs, len(skus), cat_of, min_history=min_history, seed=seed + li)
+            # every day is a training day: young-world days use a leave-one-out profile for their lags,
+            # exactly what inference uses for a new world; censored (86'd) item-slots are dropped
+            fs = F.build(
+                recs, len(skus), cat_of, targets=list(range(len(recs))), min_history=min_history, seed=seed + li,
+                profile=profile, profile_n=profile_n, loo=True,
+            )  # fmt: skip
             if len(fs.y) == 0:
                 continue
-            xs.append(fs.X)
-            ys.append(fs.y)
-            cut = np.quantile(fs.day, 1.0 - val_frac)
-            vals.append(fs.day > cut)
+            keep = (fs.hidden == 0) if fs.hidden is not None else np.ones(len(fs.y), dtype=bool)
+            xs.append(fs.X[keep])
+            ys.append(fs.y[keep])
+            cut = np.quantile(fs.day[keep], 1.0 - val_frac)
+            vals.append(fs.day[keep] > cut)
         X = np.concatenate(xs)
         y = np.concatenate(ys)
         is_val = np.concatenate(vals)

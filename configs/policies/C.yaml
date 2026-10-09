@@ -15,10 +15,10 @@ register_first: true
 forecast:
   dispersion: 1.8           # variance / mean of horizon demand (day-level shocks)
   horizon_slots: 24
-prep:
-  cover_h: 2.0              # cover demand this long after a batch is ready
-  service_level_cap: 0.9
+prep:                       # marginal-batch newsvendor over the item's hold window
   max_batches_per_tick: 2
+  underage_floor: 0.4       # share of the lost margin charged for a stock-out while re-prepping
+  waste_penalty_inr: 0.0
 premake:                    # make-ahead plates / bottled cold brew (replate-eligible, non-bakery)
   enabled: true
   window_min: 60            # cover demand over this horizon (capped by the hold window)

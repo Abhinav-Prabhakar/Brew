@@ -8,6 +8,7 @@ import numpy as np
 
 from brew.domain.enums import CATEGORIES
 from brew.forecast.lgbm import ForecastArrays
+from brew.forecast.nowcast import GammaPoissonNowcast
 
 if TYPE_CHECKING:
     from brew.sim.views import WorldView
@@ -32,6 +33,14 @@ class DemandService:
         self.fa: ForecastArrays | None = None
         self._stamp: tuple[int, int] = (-1, -1)
         self.oracle: np.ndarray | None = None  # (96, n_sku, 2) true expected units (policy E)
+        # self-calibration: intraday Gamma-Poisson level + day-over-day bias of the raw forecast
+        self.calibrate = True
+        self.now = GammaPoissonNowcast(30.0, 30.0)
+        self.bias = 1.0
+        self._exp_slot: dict[int, float] = {}  # slot -> expected total units (one step ahead, uncalibrated)
+        self._day = -1
+        self._day_exp = 0.0
+        self._seen_slot = -1
 
     # ------------------------------------------------------------------ refresh
     def refresh(self, view: WorldView, horizon: int = 24) -> ForecastArrays:
@@ -40,6 +49,7 @@ class DemandService:
         if self.fa is not None and stamp == self._stamp:
             return self.fa
         self._stamp = stamp
+        self._calibrate_update(view, slot)
         start = max(slot, 28)
         if self.oracle is not None:
             fa = self._from_array(self.oracle, start, horizon)
@@ -52,8 +62,45 @@ class DemandService:
                 fa = self._fallback(view, start, horizon)
         else:
             fa = self._fallback(view, start, horizon)
+        if self.calibrate and self.oracle is None:
+            self._exp_slot[slot] = float(fa.mean[0].sum()) if len(fa.slots) else 0.0
+            lvl = self.level()
+            if abs(lvl - 1.0) > 1e-3:
+                fa = ForecastArrays(fa.slots, fa.p10 * lvl, fa.p50 * lvl, fa.p90 * lvl, fa.mean * lvl)
         self.fa = fa
         return fa
+
+    def level(self) -> float:
+        """Calibration multiplier: day-over-day bias x intraday Gamma-Poisson level (clipped)."""
+        return float(np.clip(self.bias * self.now.level, 0.45, 1.5))
+
+    def _calibrate_update(self, view: WorldView, slot: int) -> None:
+        """Feed the realised demand of the slot(s) that just finished into the nowcast."""
+        if view.day != self._day:
+            self._day = view.day
+            self.now.reset()
+            self._exp_slot = {}
+            self._seen_slot = 27
+        cur = view.demand_log().cur
+        if cur is None:
+            return
+        for s in range(self._seen_slot + 1, slot):
+            exp = self._exp_slot.get(s)
+            if exp is not None and 32 <= s < 88:
+                self.now.update(float(cur.counts[s].sum()), exp)
+        self._seen_slot = max(self._seen_slot, slot - 1)
+
+    def end_day(self, view: WorldView) -> None:
+        """Update the day-over-day bias from today's realised vs one-step-ahead expected total."""
+        cur = view.demand_log().cur
+        if cur is None or not self._exp_slot:
+            return
+        exp = sum(v for s, v in self._exp_slot.items() if 32 <= s < 88)
+        act = float(cur.counts[32:88].sum())
+        if exp > 50:
+            ratio = float(np.clip(act / exp, 0.5, 1.5))
+            # `exp` is the raw (uncalibrated) forecast, so the bias is a direct estimate of act/raw
+            self.bias = 0.5 * self.bias + 0.5 * ratio if self.bias != 1.0 or self.now.a != self.now.a0 else ratio
 
     def _shift(self, fa: ForecastArrays, start: int, horizon: int) -> ForecastArrays:
         """Pad the forecast with zero slots when the forecaster starts later than ``start``."""

@@ -55,16 +55,18 @@ def backtest(
         targets = list(range(cut, cut + test_days))
         fs = F.build(recs, len(skus), cat_of, targets=targets, profile=fc.profile, seed=seed + 100 + k)
         pred = fc.predict_rows(fs.X)
-        ys.append(fs.y)
+        # demand is censored where an item was 86'd: score every method on the uncensored item-slots only
+        keep = (fs.hidden == 0) if fs.hidden is not None else np.ones(len(fs.y), dtype=bool)
+        ys.append(fs.y[keep])
         keys.append(
-            ((fs.day * 100 + fs.slot // 4) * 64 + fs.sku_i) * 2 + fs.fg  # (day, hour, sku, group) cell id
+            (((fs.day * 100 + fs.slot // 4) * 64 + fs.sku_i) * 2 + fs.fg)[keep]  # (day, hour, sku, group) cell id
         )
-        p50s.append(pred["p50"])
-        p10s.append(pred["p10"])
-        p90s.append(pred["p90"])
-        means.append(pred["mean"])
-        naive.append(seasonal_naive(fs))
-        ma.append(moving_average(fs))
+        p50s.append(pred["p50"][keep])
+        p10s.append(pred["p10"][keep])
+        p90s.append(pred["p90"][keep])
+        means.append(pred["mean"][keep])
+        naive.append(seasonal_naive(fs)[keep])
+        ma.append(moving_average(fs)[keep])
     y = np.concatenate(ys)
     p10, p50, p90 = np.concatenate(p10s), np.concatenate(p50s), np.concatenate(p90s)
     mean = np.concatenate(means)

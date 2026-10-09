@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 
 from brew.opt.capacity_lp import solve_capacity_lp
-from brew.opt.newsvendor import critical_ratio, demand_quantile, perishable_order_up_to
+from brew.opt.newsvendor import critical_ratio, demand_quantile, expected_overage, perishable_order_up_to
 from brew.opt.pricing import PriceItem, ladder_search
 from brew.opt.scheduler import SchedStaff, SchedTask, schedule
 from brew.policies.base import (
@@ -52,7 +52,7 @@ DEFAULTS: dict[str, Any] = {
     "batch_window_s": 45,
     "register_first": True,
     "forecast": {"dispersion": 1.8, "horizon_slots": 24},
-    "prep": {"cover_h": 2.0, "service_level_cap": 0.9, "max_batches_per_tick": 2},
+    "prep": {"max_batches_per_tick": 2, "underage_floor": 0.4, "waste_penalty_inr": 0.0},
     "premake": {"enabled": True, "window_min": 60, "speed_value_inr": 40, "kitchen_load_max": 0.8, "max_units": 6,
                 "start_h": 10.0, "stop_h": 20.5, "waste_penalty_inr": 8, "min_window_demand": 2.0},
     "replate": {"custom": True, "levels_pct": [0, 20, 30, 40, 50, 60, 70], "waste_value_inr": 12, "recovery_prior": 0.3},
@@ -173,6 +173,13 @@ class PolicyC:
 
     # ------------------------------------------------------------------- prep
     def _prep(self, view: WorldView, act: ManagerAction) -> None:
+        """Start prep batches by marginal newsvendor analysis over the item's hold window.
+
+        For a batch of size B on top of the usable stock S0: demand D over the hold horizon H (negative
+        binomial, count units of the items that consume the prep item).  Starting ``b`` batches is worth
+        ``c_u * E[sales] - c_o * E[leftover]`` with S = S0 + b*B; pick the best ``b``.  ``c_u`` is the lost
+        margin during a stock-out (as long as re-prep takes), ``c_o`` the ingredient cost of an unused unit.
+        """
         d = self.demand
         assert d is not None
         cfg = view.config
@@ -185,39 +192,49 @@ class PolicyC:
         for sku in d.skus:
             for k, q, _p in view.bom(sku, False):
                 users[k].append((sku, q))
+        close_in = max(0.0, now - tod + CLOSE_S - now)
+        nxt_day = d.next_day_units(view)
         for p in cfg.prep_items:
             key = p.key
-            lead_s, hold_s = p.lead_time_min * 60.0, p.hold_time_min * 60.0
-            cover_s = P["cover_h"] * 3600.0
-            window_s = min(hold_s, lead_s + cover_s)
-            until = min(now + window_s, now - tod + CLOSE_S)
-            if until - now < 600 or not users.get(key):
+            if not users.get(key):
                 continue
-            need_mean = 0.0
+            lead_s, hold_s = p.lead_time_min * 60.0, p.hold_time_min * 60.0
+            horizon_s = min(hold_s, close_in + 3 * 3600.0)
+            if close_in < 900 or horizon_s < 600:
+                continue
+            until = now + min(horizon_s, close_in)
+            extra_days = max(0.0, (min(hold_s, 36 * 3600.0) - close_in - 10 * 3600.0) / (14 * 3600.0))
+            mean_units = 0.0
+            qty_w = 0.0
             margin_w = 0.0
             for sku, q in users[key]:
                 u = d.units_until(sku, until, now)
-                need_mean += u * q
-                margin_w += u * q * self._margin(view, sku)
-            if need_mean <= 0:
+                if extra_days > 0:
+                    u += extra_days * float(nxt_day[d.idx[sku]])
+                mean_units += u
+                qty_w += u * q
+                margin_w += u * self._margin(view, sku)
+            if mean_units < 0.3:
                 continue
-            # per-unit economics of this prep item: lost margin per base unit vs. cost of an unused unit
-            # underage lasts as long as it takes to re-prep (the lead time), not the whole window
-            c_u = margin_w / need_mean * min(1.0, max(0.15, lead_s / max(window_s, 1.0)))
-            c_o = max(1e-6, self._prep_cost(view, key))
-            cr = min(P["service_level_cap"], critical_ratio(c_u, c_o))
-            avg_q = need_mean / max(1e-9, sum(d.units_until(s, until, now) for s, _q in users[key]))
-            n_units = need_mean / max(avg_q, 1e-9)
-            need = demand_quantile(n_units, cr, phi) * avg_q
-            have = view.usable(key) + view.prep_inflight(key)
-            short = need - have
-            if short > 0.35 * p.batch_size:
-                batches = min(int(P["max_batches_per_tick"]), max(1, math.ceil(short / p.batch_size - 0.35)))
-                act.prep_now[key] = batches * p.batch_size
-                started.append(f"{key} x{batches}")
+            avg_q = qty_w / mean_units
+            margin = margin_w / mean_units
+            c_u = margin * min(1.0, max(P["underage_floor"], 2.0 * lead_s / 3600.0 / max(horizon_s / 3600.0, 0.5)))
+            c_o = max(1e-6, avg_q * self._prep_cost(view, key)) + P["waste_penalty_inr"] * avg_q / max(avg_q, 1e-9) * 0.0
+            s0 = (view.usable(key) + view.prep_inflight(key)) / avg_q
+            batch = p.batch_size / avg_q
+            best_b, best_v = 0, -1e18
+            for b in range(0, int(P["max_batches_per_tick"]) + 1):
+                sales, left = expected_overage(mean_units, s0 + b * batch, phi)
+                v = c_u * sales - c_o * left
+                if v > best_v + 1e-9:
+                    best_b, best_v = b, v
+            if best_b > 0:
+                act.prep_now[key] = best_b * p.batch_size
+                started.append(f"{key} x{best_b}")
                 self._note(
-                    act, view, f"prep {key}", need=need, have=have, service_level=cr, window_h=(until - now) / 3600.0
-                )
+                    act, view, f"prep {key}", expected_demand_units=mean_units, stock_units=s0, horizon_h=horizon_s / 3600.0,
+                    underage=c_u, overage=c_o,
+                )  # fmt: skip
         if started:
             act.reason = "newsvendor prep: " + ", ".join(started)
 
@@ -595,6 +612,8 @@ class PolicyC:
         return tot / self.OPEN_LEN
 
     def on_day_end(self, view: WorldView) -> DayEndAction:
+        assert self.demand is not None
+        self.demand.end_day(view)
         act = DayEndAction(donate=True)
         by_sup, bakery = self._po_plan(view, view.day * 86400 + CLOSE_S, intraday=False)
         for sup, lines in sorted(by_sup.items()):

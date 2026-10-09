@@ -13,7 +13,16 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
-from brew.policies.base import AcceptDecision, DayEndAction, Explanation, ManagerAction, TaskChoice
+from brew.policies.B_heuristic import PolicyB
+from brew.policies.base import (
+    AcceptDecision,
+    DayEndAction,
+    Explanation,
+    ManagerAction,
+    POLine,
+    PurchaseOrder,
+    TaskChoice,
+)
 from brew.policies.registry import make_policy
 from brew.sim.telemetry import write_run
 from brew.sim.world import World
@@ -26,6 +35,38 @@ if TYPE_CHECKING:
     from brew.sim.views import OrderView, WorldView
 
 PLATES = ("sandwich", "cheesetoast", "pasta", "avotoast", "coldbrew")
+
+
+class StockedB(PolicyB):
+    """Policy B with generous purchasing and prep so history is (almost) free of stock-outs.
+
+    Demand history must not be censored by 86'd items - otherwise visible items look busier than they
+    are.  Waste does not matter for history generation."""
+
+    def on_manager_tick(self, obs: Observation, view: WorldView) -> ManagerAction:
+        act = super().on_manager_tick(obs, view)
+        for key in ("coldbrew_concentrate", "chai_base", "croissant_baked", "paneer_marinade", "fries_cut"):
+            p = view.config_prep(key)
+            have = view.usable(key) + view.prep_inflight(key)
+            if have < 0.8 * p.batch_size and view.hour < 19.5:
+                act.prep_now[key] = max(act.prep_now.get(key, 0.0), p.batch_size)
+        return act
+
+    def on_day_end(self, view: WorldView) -> DayEndAction:
+        act = super().on_day_end(view)
+        have = {ln.ingredient for po in act.pos for ln in po.lines}
+        extra: dict[str, list[POLine]] = {}
+        for ing in view.config.ingredients:
+            if ing.key in have:
+                continue
+            use = view.usage_per_day(ing.key)
+            target = max(ing.par * 1.5, use * 4.0)
+            pos = view.onhand(ing.key) + view.on_order(ing.key)
+            if pos < 0.75 * target and not ing.finished_good:
+                extra.setdefault(view.supplier_for(ing.key), []).append(POLine(ing.key, target - pos))
+        for sup, lines in sorted(extra.items()):
+            act.pos.append(PurchaseOrder(sup, lines))
+        return act
 
 
 class ExplorationPolicy:
@@ -196,7 +237,7 @@ def generate_price_experiment(pcfg: Any, scenario: str, out: Path) -> dict[str, 
                 hi = 1.0 if m.staple else 1.10
                 grid = [round(m.base_price * r / 5.0) * 5.0 for r in np.arange(0.90, hi + 1e-9, 0.025)]
                 prices[m.sku] = float(rng.choice(grid))
-            pol = PriceDayPolicy(make_policy(pcfg.policy), prices)
+            pol = PriceDayPolicy(StockedB() if pcfg.policy == "B" else make_policy(pcfg.policy), prices)
             w = World(policy=pol, scenario=scenario, seed=seed, days=1, replate="off")
             w.run(1)
             df = w.dlog.dense_frame({m.sku: m.cat for m in cfg.menu})
@@ -212,7 +253,7 @@ def generate_price_experiment(pcfg: Any, scenario: str, out: Path) -> dict[str, 
 
 def generate_one(spec: RunSpec, hcfg: HistoryCfg, out: Path, name: str) -> dict[str, Any]:
     """Run one exploration world and write its telemetry; returns a manifest row."""
-    base = make_policy(spec.policy)
+    base = StockedB() if spec.policy == "B" else make_policy(spec.policy)
     pol = ExplorationPolicy(
         base, spec.seed, hcfg.price_explore_prob, hcfg.premake_explore, hcfg.ladder_explore
     )

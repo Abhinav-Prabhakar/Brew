@@ -41,6 +41,7 @@ class PolicyE(PolicyC):
         self._oracle_stamp = (-1, -1)
         assert self.demand is not None
         self.demand.dispersion = 1.15  # almost no uncertainty left
+        self.demand.calibrate = False
 
     def on_manager_tick(self, obs: Observation, view: WorldView) -> ManagerAction:
         self._refresh_oracle(view)

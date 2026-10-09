@@ -39,6 +39,7 @@ class FeatureSet:
     lag7: np.ndarray  # raw lag columns (NaN when missing) for baselines
     lag1: np.ndarray
     roll7: np.ndarray
+    hidden: np.ndarray | None = None  # 1 where the item was 86'd (demand censored)
 
 
 def _prior_arrays(
@@ -68,8 +69,9 @@ def _prior_arrays(
     return lag1.astype(np.float32), lag7.astype(np.float32), roll7.astype(np.float32)
 
 
-def day_profile(recs: list[DayRec], n_sku: int) -> np.ndarray:
-    """Mean counts per ``(weekday, slot, sku, fg)`` over a history - the prior used when a world is new."""
+def day_profile(recs: list[DayRec], n_sku: int) -> tuple[np.ndarray, np.ndarray]:
+    """``(profile, n)``: mean counts per ``(weekday, slot, sku, fg)`` over a history (the prior used when a
+    world is new) and the number of days behind each weekday."""
     out = np.zeros((7, 96, n_sku, 2), dtype=np.float32)
     n = np.zeros(7)
     for r in recs:
@@ -78,7 +80,7 @@ def day_profile(recs: list[DayRec], n_sku: int) -> np.ndarray:
     gmean = np.mean([r.counts for r in recs], axis=0) if recs else out[0]
     for d in range(7):
         out[d] = out[d] / n[d] if n[d] > 0 else gmean
-    return out
+    return out, n
 
 
 def _cum_ratio_inputs(r: DayRec, roll7: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -103,8 +105,14 @@ def build(
     min_history: int = 7,
     profile: np.ndarray | None = None,
     seed: int = 0,
+    profile_n: np.ndarray | None = None,
+    loo: bool = False,
 ) -> FeatureSet:
-    """Training/backtest rows for the days at positions ``targets`` (default: all with enough history)."""
+    """Training/backtest rows for the days at positions ``targets`` (default: all with enough history).
+
+    With ``loo`` the days that lack ``min_history`` days of real lags use a leave-one-out profile (the
+    day itself removed) so that training sees the same "young world" lag features inference will use.
+    """
     recs = log_days
     rng = np.random.default_rng(seed)
     pos = targets if targets is not None else [p for p in range(len(recs)) if p >= min_history]
@@ -119,7 +127,12 @@ def build(
     cat_arr = np.array(cat_of)
     for p in pos:
         r = recs[p]
-        lag1, lag7, roll7 = _prior_arrays(recs, p, profile)
+        prof_p = profile
+        if loo and profile is not None and profile_n is not None and p < min_history and profile_n[r.weekday] > 1:
+            prof_p = profile.copy()
+            nwd = profile_n[r.weekday]
+            prof_p[r.weekday] = (profile[r.weekday] * nwd - r.counts) / (nwd - 1.0)
+        lag1, lag7, roll7 = _prior_arrays(recs, p, prof_p)
         obs_cum, base_cum = _cum_ratio_inputs(r, roll7)
         h = rng.integers(1, 17, size=n)
         origin = np.maximum(slot_g - h, 31)
@@ -150,15 +163,16 @@ def build(
             (
                 r.counts[slot_g, sku_g, fg_g], np.full(n, r.day), slot_g, sku_g, fg_g,
                 lag7[slot_g, sku_g, fg_g], lag1[slot_g, sku_g, fg_g], roll7[slot_g, sku_g, fg_g],
+                r.hidden[slot_g, sku_g],
             )
         )  # fmt: skip
     if not parts:
         z = np.zeros((0, len(FEATURES)), dtype=np.float32)
         e = np.zeros(0)
-        return FeatureSet(z, e, e, e, e, e, e, e, e)
+        return FeatureSet(z, e, e, e, e, e, e, e, e, e)
     X = np.concatenate(parts)
-    cols = [np.concatenate([m[i] for m in meta]) for i in range(8)]
-    return FeatureSet(X, cols[0], cols[1], cols[2], cols[3], cols[4], cols[5], cols[6], cols[7])
+    cols = [np.concatenate([m[i] for m in meta]) for i in range(9)]
+    return FeatureSet(X, cols[0], cols[1], cols[2], cols[3], cols[4], cols[5], cols[6], cols[7], cols[8])
 
 
 def build_future(
