@@ -54,7 +54,10 @@ class Delivery:
 
     def new_order(self, o: Order) -> None:
         """An aggregator order has arrived; start the acceptance window."""
+        w = self.w
         lvl = self.throttle[o.channel]
+        o.promised_s = w.orders.estimate_promise(o, THROTTLE_EXTRA.get(lvl, 0.0))
+        w.orders.announce_placed(o)
         if lvl == "pause":
             self.reject(o, "paused")
             return
@@ -68,10 +71,11 @@ class Delivery:
         if d.kind == "reject":
             self.reject(o, d.reason or "rejected")
         elif d.kind == "delay":
-            if w.now - o.placed_s + RETRY_S >= timeout:
+            if w.now - o.placed_s >= timeout - 1e-9:
                 self.reject(o, "timeout")
             else:
-                o.accept_handle = w.engine.schedule(w.now + RETRY_S, "ACCEPT_RETRY", o.order_no, P_TIMEOUT)
+                nxt = min(w.now + RETRY_S, o.placed_s + timeout)
+                o.accept_handle = w.engine.schedule(nxt, "ACCEPT_RETRY", o.order_no, P_TIMEOUT)
         else:
             self.accept(o, d.extra_promise_s)
 
@@ -83,7 +87,7 @@ class Delivery:
     def accept(self, o: Order, extra: float = 0.0) -> None:
         w = self.w
         extra += THROTTLE_EXTRA[self.throttle[o.channel]]
-        if not w.orders.commit(o, extra):
+        if not w.orders.commit(o, extra, announce=False):
             self.reject(o, "sold_out", announce=True)
             return
         w.fin.collect(o, 0.0)  # prepaid via platform
@@ -93,8 +97,6 @@ class Delivery:
         w = self.w
         o.state = "rejected"
         w.engine.cancel(o.accept_handle)
-        if announce:
-            w.orders.announce_placed(o)
         w.emit("order.rejected", order_no=o.order_no, reason=reason)
         w.kpi.on_reject(o, reason)
         self.rank[o.channel] = max(0.5, self.rank[o.channel] - 0.002)

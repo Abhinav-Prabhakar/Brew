@@ -43,13 +43,17 @@ DECISION_COLS = ["sim_s", "decision_id", "type", "policy", "summary"]
 KPI_COLS = ["day", "revenue", "net_profit", "orders", "rating", "cash"]
 
 
+def _new_demand() -> list:
+    return [0.0, 0.0, 0.0, 0.0, "", 0.0]
+
+
 class TeleBuf:
     """In-memory telemetry rows (cheap appends)."""
 
     def __init__(self) -> None:
         self.orders: list[tuple] = []
         self.tasks: list[tuple] = []
-        self.demand: dict[tuple, list[float]] = defaultdict(lambda: [0.0, 0.0, 0.0, 0.0, "", 0.0])
+        self.demand: dict[tuple, list[float]] = defaultdict(_new_demand)
         self.deliveries: list[tuple] = []
         self.decisions: list[tuple] = []
         self.kpis: list[dict[str, Any]] = []

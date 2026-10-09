@@ -96,6 +96,7 @@ class World:
         self.max_days = days
         self.continuous = continuous
         self.day = 0
+        self.done = False
         self.speed = 1.0
         self.charter = Charter(self.pol_cfg.charter)
         self.profiles = weather_profiles()
@@ -258,10 +259,13 @@ class World:
     def run(self, days: int | None = None) -> None:
         """Headless: process events until the queue is empty (``days`` overrides ``max_days``)."""
         if days is not None:
+            if self.done and days > self.max_days:
+                self.done = False
+                self.engine.schedule(self.day_start_t(self.max_days), "DAY_START", self.max_days, P_CLOCK)
             self.max_days = days
         eng = self.engine
         d = self._dispatch
-        while eng.step(d):
+        while not self.done and eng.step(d):
             pass
 
     def advance_to(self, t: float, should_stop: Any = None) -> bool:
@@ -1042,6 +1046,8 @@ class World:
         del w
         if self.continuous or day + 1 < self.max_days:
             self.engine.schedule(self.day_start_t(day + 1), "DAY_START", day + 1, P_CLOCK)
+        else:
+            self.done = True
 
     # ------------------------------------------------------------------ chaos
     def trigger_chaos(
