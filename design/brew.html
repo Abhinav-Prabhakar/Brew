@@ -12,6 +12,7 @@
     --ink:#1d1a1c; --paper:#fbf7f1; --ground:#efe6dc;
     --pink:#f7c3a3; --pink-d:#e07e52; --pink-l:#fdeee4;
     --sage:#8fa585; --olive:#6f7a4c; --terra:#c0634f; --mustard:#e3b25a; --navy:#3d4556; --kraft:#c9a27a;
+    --terra-ink:#a3452f;  /* terra for text on paper: 5.4:1 */
     /* one motion vocabulary: in (leaving), out (arriving), spring (stamps, chips, cards), move (things that travel), cam (the room track) */
     --ease-in:cubic-bezier(.6,0,.75,.4); --ease-out:cubic-bezier(.2,.9,.3,1); --ease-spring:cubic-bezier(.3,1.6,.5,1);
     --ease-move:cubic-bezier(.45,.05,.3,1); --ease-cam:cubic-bezier(.7,0,.2,1.06);  /* cam: a hair of overshoot, like a dolly settling */
@@ -71,7 +72,7 @@
   .money{cursor:pointer;transition:transform .25s ease}
   .money:hover{transform:translateY(-2px) rotate(-.4deg)}
   .money .amt{font-variant-numeric:tabular-nums;min-width:150px}
-  .money .amt.neg{color:var(--terra)}
+  .money .amt.neg{color:var(--terra-ink)}
   .money .up.down{background:#fbe1d9}
   .bgm{display:flex;flex-direction:column;align-items:center;gap:0;font:13px var(--body,'Patrick Hand');opacity:.8;background:none;border:0;cursor:pointer;color:var(--ink)}
   .bgm.off svg path:last-child{opacity:.15} .bgm.off{opacity:.55}
@@ -89,7 +90,7 @@
   .cmp .note{font-family:'Caveat',cursive;font-size:18px;opacity:.8;margin-top:2px}
   .cmp svg{display:block;margin-top:4px;overflow:visible}
   .toast{position:absolute;left:50%;top:104px;translate:-50% 0;z-index:60;font-family:var(--hand);font-size:20px;background:#fffdf9;border:3px solid var(--ink);border-radius:14px 18px 12px 16px;box-shadow:4px 5px 0 var(--ink);padding:4px 16px;animation:toastIn 3.2s ease forwards;pointer-events:none}
-  .toast.bad{background:#fbe1d9;color:var(--terra)}
+  .toast.bad{background:#fbe1d9;color:var(--terra-ink)}
   @keyframes toastIn{0%{opacity:0;transform:translateY(-10px)}10%,85%{opacity:1;transform:none}100%{opacity:0}}
   .btn[disabled],.btn[aria-disabled="true"]{opacity:.5;cursor:not-allowed;box-shadow:1px 1px 0 var(--ink)}
   .btn:not([disabled]):not([aria-disabled="true"]):hover{transform:translateY(-1px)}
@@ -150,7 +151,7 @@
   .bn .r{display:grid;grid-template-columns:150px 1fr 112px;gap:10px;align-items:center;font-size:15px;line-height:21px}
   .bar2{height:11px;border:2px solid var(--ink);border-radius:6px;position:relative;overflow:hidden;background:#fff}
   .bar2 i{position:absolute;inset:0 auto 0 0;transition:width .6s ease, background-color .6s ease}
-  .hot{color:var(--terra);font-weight:700}
+  .hot{color:var(--terra-ink);font-weight:700}
   .good{color:#4f7a45;font-weight:700}
   .foot{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:6px;border-top:2px dashed rgba(29,26,28,.35);padding-top:6px;font-size:15px;line-height:18px}
 
@@ -175,8 +176,8 @@
   .cell span{display:flex;align-items:center;gap:3px}
   .led{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--ink);display:inline-block;flex:none}
   .led.g{background:var(--ok);box-shadow:0 0 6px var(--ok)}
-  .led.a{background:var(--warn);box-shadow:0 0 6px var(--warn)}
-  .led.r{background:var(--bad);box-shadow:0 0 7px var(--bad);animation:blink 1s steps(2) infinite}
+  .led.a{background:var(--warn);box-shadow:0 0 6px var(--warn);border-radius:1px;transform:rotate(45deg) scale(.86)}
+  .led.r{background:var(--bad);box-shadow:0 0 7px var(--bad);border-radius:1px;animation:blink 1s steps(2) infinite}
   @keyframes blink{50%{opacity:.35}}
 
   .chaos{left:1058px;top:808px;width:516px;padding:8px 16px 10px}
@@ -261,7 +262,7 @@
   .lots{margin-top:7px;display:grid;gap:4px}
   .lot{display:grid;grid-template-columns:70px 1fr 34px 50px;gap:6px;align-items:center;font-size:13px;line-height:18px;font-variant-numeric:tabular-nums}
   .lot .lq{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .lot .fefo{color:var(--terra);margin-right:2px}
+  .lot .fefo{color:var(--terra-ink);margin-right:2px}
   .lot.first .lq{font-weight:700}
   .tl{display:grid;grid-template-columns:auto 1fr auto;gap:4px;align-items:center}
   .tl small{font-size:10.5px;opacity:.6;white-space:nowrap}
@@ -277,7 +278,7 @@
   .bul b{position:absolute;top:-6px;bottom:-6px;width:3px;background:var(--ink);transform:translateX(-50%);border-radius:2px}
   .bul b.p90{background:var(--terra)}
   .bul b small{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);font-size:10.5px;white-space:nowrap;font-weight:400;line-height:12px}
-  .bul b.p90 small{color:var(--terra)}
+  .bul b.p90 small{color:var(--terra-ink)}
   .meta{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
   .cov{display:inline-flex;align-items:center;gap:2px}
   .cov i{width:10px;height:14px;border:1.6px solid var(--ink);border-radius:3px;display:inline-block}
@@ -367,7 +368,7 @@
   .nm b{font-family:var(--hand);font-weight:400;font-size:23px;line-height:24px;display:flex;align-items:center;gap:6px}
   .nm small{font-size:13.5px;line-height:16px;opacity:.68;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .nm .why{font-style:normal;font-family:'Caveat',cursive;font-weight:700;font-size:17px;line-height:17px;min-height:0;color:#4f7a45}
-  .row.up .why{color:var(--terra)}
+  .row.up .why{color:var(--terra-ink)}
   .row .why:empty{display:none}
   .row.up .nm small,.row.down .nm small{display:none} /* the live reason replaces the description: constant row height */
   .leaf{width:15px;height:15px}
@@ -384,7 +385,7 @@
   @keyframes ink{to{stroke-dashoffset:0}}
   @keyframes write{from{clip-path:inset(0 100% 0 0);transform:translateY(-2px) rotate(-3deg)}to{clip-path:inset(0 0 0 0);transform:none}}
   @keyframes fadeOld{to{opacity:0;width:0;margin-right:-8px}}
-  .row.up .now{color:var(--terra)} .row.down .now{color:#4f7a45}
+  .row.up .now{color:var(--terra-ink)} .row.down .now{color:#4f7a45}
   .row .ribbon{display:none}
   .row.hidden86 > :not(.ribbon){opacity:.45}
   .row.hidden86 .ribbon{display:block;position:absolute;right:18px;top:50%;z-index:2;translate:0 -50%;rotate:-7deg;font-family:var(--hand);font-size:20px;color:#fff;background:var(--terra);border:2.5px solid var(--ink);border-radius:6px;padding:0 12px;box-shadow:2px 2px 0 var(--ink)}
@@ -396,12 +397,12 @@
   .card-c .why{color:var(--olive)}
   .cp{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
   .save{font-size:13px;border:2px solid var(--ink);border-radius:999px;padding:0 8px;line-height:19px;background:#e4efd9;white-space:nowrap}
-  .card-c.up .now{color:var(--terra)} .card-c.down .now{color:#4f7a45}
+  .card-c.up .now{color:var(--terra-ink)} .card-c.down .now{color:#4f7a45}
 
   .rescue h2{color:var(--sage)}
   .rrow{position:relative;display:grid;grid-template-columns:50px 1fr auto auto;align-items:center;gap:12px;padding:7px 10px;border:2.5px dashed var(--ink);border-radius:14px;background:#fbfaf3;transition:opacity .9s ease, transform .9s ease}
   .rrow .units{align-self:flex-start;margin-top:2px;font-size:12.5px;border:1.8px solid var(--ink);border-radius:999px;padding:0 7px;line-height:17px;background:var(--pink-l)}
-  .stamp{font-family:var(--hand);font-size:21px;color:var(--terra);border:3px solid var(--terra);border-radius:9px;padding:0 7px;transform:rotate(-9deg);background:rgba(255,253,248,.8)}
+  .stamp{font-family:var(--hand);font-size:21px;color:var(--terra-ink);border:3px solid var(--terra);border-radius:9px;padding:0 7px;transform:rotate(-9deg);background:rgba(255,253,248,.8)}
   .was{font-size:13.5px;opacity:.55;text-decoration-color:var(--terra)}
   .rrow .gone{position:absolute;right:16px;top:50%;transform:translateY(-50%) rotate(-6deg);font-family:var(--hand);font-size:22px;color:var(--olive);opacity:0;transition:opacity .4s ease}
   .rrow.out{opacity:.35;transform:translateX(30px)}
@@ -473,10 +474,11 @@
   /* dev overlay: ?fps */
   #fps{position:fixed;left:10px;bottom:10px;z-index:99;font:15px 'Patrick Hand',sans-serif;background:var(--paper);border:2px solid var(--ink);border-radius:10px 4px 10px 4px;box-shadow:3px 3px 0 var(--ink);padding:3px 10px;pointer-events:none}
   #fps b{font-family:'Gochi Hand',cursive;font-weight:400}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 </style>
 </head>
 <body>
-<div id="frame"><div id="wrap"><div id="viewport">
+<div id="frame"><div id="wrap"><div id="viewport" role="main" aria-label="brew café">
   <div id="track">
 
     <!-- ================= LOBBY ================= -->
@@ -564,6 +566,7 @@
 <script src="hud.js"></script>
 <script src="camera.js"></script>
 <script src="audio.js"></script>
+<script src="a11y.js"></script>
 <script>/* ?fps: frames per second + p95 frame time over the last 2 s (dev) */
   if (/[?&]fps\b/.test(location.search)) { const el = document.createElement('div'); el.id = 'fps'; document.body.appendChild(el);
     const d = []; let last = 0, shown = 0;

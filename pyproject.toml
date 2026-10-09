@@ -98,6 +98,7 @@ dev = [
     "pytest-playwright>=0.9.0",
     "pytest-timeout>=2.4.0",
     "ruff>=0.16.10",
+    "axe-playwright-python>=0.1.8",
 ]
 
 # Linux (training desktop, NVIDIA driver 572 = CUDA 12.8): use the CUDA 12.6 torch build; macOS keeps PyPI.

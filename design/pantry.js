@@ -387,7 +387,7 @@ function renderShelves(s, now){
       tags += `<g class="${f === 'bad' ? 'p-pulse ' : ''}lt ${KL[f]}" data-lot="${esc(l.lot_id)}"><path d="M${it.x} ${b + 22}L${x + 13} ${y}" ${st(1)} opacity=".35"/>
       <rect x="${x}" y="${y}" width="27" height="17" rx="4" fill="${FR[f]}" stroke="${I}" stroke-width="${i === 0 ? 2.6 : 1.6}"/>
       ${l.status === 'opened' ? `<path d="M${x + 19} ${y}h8v8z" fill="#fff" ${st(1.2)}/>` : ''}
-      <text x="${x + 12}" y="${y + 13}" text-anchor="middle" font-family="Patrick Hand" font-size="11.5" fill="${I}">${fmtLeft(l.expires_s - now)}</text></g>`; });
+      <text x="${x + 12}" y="${y + 13}" text-anchor="middle" font-family="Patrick Hand" font-size="11.5" fill="${I}">${f === 'bad' ? '✕' : f === 'mid' ? '!' : ''}${fmtLeft(l.expires_s - now)}</text><title>${KL[f]} · ${fmtLeft(l.expires_s - now)} left</title></g>`; });
   }
   if (tags !== tagSig) { tagSig = tags; $('p-tags').innerHTML = tags; }
   // header readouts: things the sim really knows (no fake sensors)

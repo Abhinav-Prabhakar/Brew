@@ -116,7 +116,7 @@ function drawCmp(s){
   const D = cmp.get(me), A = cmp.get('A'), Cc = cmp.get('C');
   const note = D && A ? `policy ${me} makes ${money(D.mean_profit - A.mean_profit)} more a day than running it naive${Cc && me !== 'C' ? `, ${money(D.mean_profit - Cc.mean_profit)} more than the optimiser` : ''}` : '';
   box.innerHTML = `<h3>what you’d otherwise make <small>profit per day · ${(cmp.c.seeds || []).length || 10} seeds × ${cmp.c.days || 7} days · same customers (CRN)</small></h3>
-    <svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="profit per day by policy">${g}</svg>
+    <svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc('profit per day by policy: ' + rows.map((r) => `${r.k} ${POL[r.k]} ${money(r.p.mean_profit)}${r.k === me ? ' (running now)' : ''}`).join(', '))}">${g}</svg>
     <div class="note">${note}${note ? ' · ' : ''}today so far: ${money(s.kpis?.profit_today ?? 0)}</div>
     <div style="font-size:12.5px;opacity:.6;margin-top:2px">dots = one simulated week each · bar = 95% CI of the mean · tick = mean</div>`;
 }
