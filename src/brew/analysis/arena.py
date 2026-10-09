@@ -11,6 +11,8 @@ from typing import Any
 
 import numpy as np
 
+from brew.parallel import pool_context
+
 from .stats import compare, cvar
 
 KPI_KEYS = (
@@ -138,7 +140,7 @@ def run_arena(
     ]  # fmt: skip
     rows: list[dict[str, Any]] = []
     if workers and workers > 1:
-        with ProcessPoolExecutor(max_workers=workers) as ex:
+        with ProcessPoolExecutor(max_workers=workers, mp_context=pool_context()) as ex:
             for i, r in enumerate(ex.map(run_one, specs)):
                 rows.extend(r)
                 if progress:

@@ -130,9 +130,16 @@ cmd_start() {
   [ -f "$CONFIG" ] || { say "config not found: $CONFIG"; exit 1; }
   if [ -f "$STATE_DIR/run.pid" ] && kill -0 "$(cat "$STATE_DIR/run.pid")" 2>/dev/null; then say "a run is already active (pid $(cat "$STATE_DIR/run.pid"))"; exit 1; fi
   ensure_logs_wt
-  local stamp; stamp="$(date '+%Y%m%d_%H%M%S')_$(git rev-parse --short HEAD)"
-  local log="$STATE_DIR/runs/$stamp"; mkdir -p "$log"
-  ln -sfn "$log" "$LATEST"
+  local log stamp
+  if [ -n "$resume" ] && [ -e "$LATEST" ]; then   # continue the latest run in place (same run dir => stage markers + checkpoints)
+    log="$(readlink -f "$LATEST")"; stamp="$(basename "$log")"
+    CONFIG="$(sed -n 's/.*"config":"\([^"]*\)".*/\1/p' "$log/status.json" 2>/dev/null || echo "$CONFIG")"
+    [ -n "$CONFIG" ] || CONFIG="configs/train/full.yaml"
+  else
+    stamp="$(date '+%Y%m%d_%H%M%S')_$(git rev-parse --short HEAD)"
+    log="$STATE_DIR/runs/$stamp"; mkdir -p "$log"
+    ln -sfn "$log" "$LATEST"
+  fi
   export CONFIG
   setsid nohup bash "$0" _run "$log" "$CONFIG" "$resume" > "$log/supervisor.log" 2>&1 < /dev/null &
   echo $! > "$STATE_DIR/run.pid"
@@ -181,6 +188,9 @@ cmd_status() {
   echo "run:     $(basename "$log")"
   echo "process: $([ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && echo "running (pid $pid)" || echo "not running")"
   echo "status:  $(cat "$log/status.json" 2>/dev/null)"
+  if ! { [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; } && grep -q '"state":"\(training\|preparing\)"' "$log/status.json" 2>/dev/null; then
+    echo "NOTE:    the run was INTERRUPTED (reboot/sleep/kill). Continue it with: bash scripts/desktop/overnight.sh start --resume"
+  fi
   local prog; prog="$(find "$REPO/runs/overnight/$(basename "$log")" -name progress.json 2>/dev/null | head -1)"
   [ -n "$prog" ] && echo "progress: $(cat "$prog")"
   echo "--- last 25 log lines"; tail -n 25 "$log/train.log" 2>/dev/null

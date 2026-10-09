@@ -21,6 +21,7 @@ import numpy as np
 from gymnasium import spaces
 
 from brew.config.loader import load_scenario
+from brew.parallel import pool_context
 from brew.policies.C_solver import PolicyC
 from brew.sim.world import World
 
@@ -120,7 +121,7 @@ def collect_teacher(
         for i in range(n_ep)
     ]  # fmt: skip
     if workers > 1 and n_ep > 1:
-        with ProcessPoolExecutor(max_workers=workers) as ex:
+        with ProcessPoolExecutor(max_workers=workers, mp_context=pool_context()) as ex:
             res = []
             for i, r in enumerate(ex.map(collect_episode, specs)):
                 res.append(r)
