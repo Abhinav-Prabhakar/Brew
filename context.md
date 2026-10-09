@@ -126,3 +126,13 @@
 ## Update (2026-10-06 05:00 UTC)
 - The desktop was shut down overnight. The run was resumed from checkpoint 1,101,824 (curriculum stage 2, the 7-day episodes). It runs at about 56 steps/s, ETA ≈ 6–6.5 h in total (PPO about 4.4 h, then RARL, export and arena). It should finish around 11:30 UTC (≈ 17:00 IST).
 - **Watch:** eval profit/day peaked at ₹105.3k at 205k steps, then drifted down to ~₹99k by 1.1M during the 7-day curriculum stage. The champion is picked from the best checkpoints, so check whether the late PPO or RARL checkpoints beat the 205k one. Consider a lower LR or `ent_coef` for future runs.
+
+## DONE (2026-10-06): full training complete, champion committed (`5fc9951`)
+- **How the run ended:** PPO was stopped at 1.6M steps. Eval profit peaked at 205k steps (₹105.3k/day), then plateaued around ₹98–99k. RARL was skipped. Both are recorded as `skipped` markers in the run.
+- **Champion:** `ppo_best` @205k, now `models/rl_policy/D/full-5033b06`. Calm profit ₹105.2k/day, chaos ₹96.8k/day. ONNX parity 5.7e-6; surrogate fidelity 0.977.
+- **Final arena (10 seeds × 7 days):** A ₹62.1k | B ₹73.5k | C ₹96.9k | **D ₹104.9k** per day. D beats C by 8%.
+- All full-run M2 models (`*/full`) are committed and are the registry champions.
+- **Next ideas:**
+  - Lower LR / `ent_coef` for the 7- and 28-day curriculum stages (they didn't improve on the 205k peak).
+  - Run RARL starting from the champion.
+  - Wire the backend to the `kitchen/` frontend (not started; the user will ask).
