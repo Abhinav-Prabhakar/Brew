@@ -41,6 +41,11 @@ class DemandService:
         self._day = -1
         self._day_exp = 0.0
         self._seen_slot = -1
+        # raw LightGBM forecast is re-predicted at most every ``raw_every`` slots (1 h) and sliced in between:
+        # predict() dominates the env step (~2/3) and 10 parallel workers otherwise thrash the CPU cache.
+        self.raw_every = 1  # 1 = every tick (policies, arena); the RL training env raises it (EnvConfig.forecast_refresh_slots)
+        self._raw: ForecastArrays | None = None
+        self._raw_day = -1
 
     # ------------------------------------------------------------------ refresh
     def refresh(self, view: WorldView, horizon: int = 24) -> ForecastArrays:
@@ -55,9 +60,7 @@ class DemandService:
             fa = self._from_array(self.oracle, start, horizon)
         elif self.forecaster is not None:
             try:
-                fa = self.forecaster.predict_arrays(view.demand_log(), start, horizon)
-                if len(fa.slots) == 0 or fa.slots[0] != start:
-                    fa = self._shift(fa, start, horizon)
+                fa = self._raw_slice(view, start, horizon)
             except Exception:
                 fa = self._fallback(view, start, horizon)
         else:
@@ -101,6 +104,23 @@ class DemandService:
             ratio = float(np.clip(act / exp, 0.5, 1.5))
             # `exp` is the raw (uncalibrated) forecast, so the bias is a direct estimate of act/raw
             self.bias = 0.5 * self.bias + 0.5 * ratio if self.bias != 1.0 or self.now.a != self.now.a0 else ratio
+
+    def _raw_slice(self, view: WorldView, start: int, horizon: int) -> ForecastArrays:
+        """Raw forecast for ``start..start+horizon``, re-predicted at most hourly and sliced in between."""
+        raw = self._raw
+        if raw is not None and self._raw_day == view.day and len(raw.slots) and raw.slots[0] <= start:
+            k = int(start - raw.slots[0])
+            end_needed = min(start + horizon, CLOSE_SLOT)
+            if k < self.raw_every and (len(raw.slots) and raw.slots[-1] + 1 >= end_needed):
+                n = end_needed - start
+                return ForecastArrays(raw.slots[k : k + n], raw.p10[k : k + n], raw.p50[k : k + n], raw.p90[k : k + n], raw.mean[k : k + n])
+        assert self.forecaster is not None
+        fa = self.forecaster.predict_arrays(view.demand_log(), start, horizon + self.raw_every)
+        if len(fa.slots) == 0 or fa.slots[0] != start:
+            fa = self._shift(fa, start, horizon + self.raw_every)
+        self._raw, self._raw_day = fa, view.day
+        n = max(0, min(start + horizon, CLOSE_SLOT) - start)
+        return ForecastArrays(fa.slots[:n], fa.p10[:n], fa.p50[:n], fa.p90[:n], fa.mean[:n])
 
     def _shift(self, fa: ForecastArrays, start: int, horizon: int) -> ForecastArrays:
         """Pad the forecast with zero slots when the forecaster starts later than ``start``."""

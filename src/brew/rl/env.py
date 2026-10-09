@@ -53,6 +53,9 @@ class EnvConfig:
     use_models: bool = True
     adversary_dir: str | None = None  # frozen adversary used in 'adversary' episodes
     reward: RewardConfig = field(default_factory=RewardConfig)
+    # Re-predict the executor's LightGBM forecast every N manager ticks (sliced in between). 4 = hourly: ~2x faster
+    # env steps and far less cache thrash across parallel workers; Policy C/D outside training keep 1 (every tick).
+    forecast_refresh_slots: int = 4
 
     def replace(self, **kw: Any) -> EnvConfig:
         d = dict(self.__dict__)
@@ -178,6 +181,8 @@ class BrewManagerEnv(gym.Env):  # type: ignore[type-arg]
         days = int(options.get("days", self.cfg.days))
         scn, start = self._build_scenario(name, options)
         self.executor = ManagerExecutor(models_dir=self.cfg.models_dir, use_models=self.cfg.use_models)
+        if self.executor.demand is not None:
+            self.executor.demand.raw_every = max(1, int(self.cfg.forecast_refresh_slots))
         self.world = World(scenario=scn, policy=self.executor, seed=int(seed), days=days, start_date=start)
         self.tracker = RewardTracker(self.world, self.cfg.reward)
         self.tracker.cfg.shaping_scale = self.shaping_scale
