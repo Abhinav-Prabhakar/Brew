@@ -56,7 +56,7 @@ filterwarnings = ["ignore::DeprecationWarning"]
 [tool.ruff]
 line-length = 110
 target-version = "py312"
-extend-exclude = ["lobby", ".claude"]
+extend-exclude = ["lobby", ".claude", "*.md", "plan.md", "technical.md", "backend.md"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
