@@ -120,17 +120,34 @@
         if ((d.kind !== 'staff_absent' && d.kind !== 'staff_late') || !d.target || !s.staff[d.target]) return null;
         return { staff: U.upd(s.staff, d.target, (st) => withState({ ...st, absent: false, late: false })) };
       }],
-      // every 60 sim-s, fatigue + the break schedule
+      // every 60 sim-s, fatigue + the break schedule. The task stream is the truth for who is doing what: the row's
+      // station/task/state are only taken as given while the stream knows no task for that person (a snapshot that
+      // was taken mid-task); a person the sim reports as not working (idle / off / break / absent) cannot have a task
+      // in flight, so a task left behind by a lost task.finished is dropped here instead of pinning them to a station.
       'staff.status': ['staff', (s, ev) => {
         let staff = s.staff;
+        let tasks = s.tasks;
         for (const r of ev.data.staff) {
-          staff = U.upd(staff, r.staff_id, (st) => ({
-            ...st, fatigue: r.fatigue, break_due_s: r.break_due_s, break_end_s: r.break_end_s,
-            ...(r.station !== undefined ? { station: r.station, task: r.task } : {}),
-            ...(r.state ? { state: r.state } : {}),
-          }));
+          const mine = Object.values(tasks).some((t) => t.staff_id === r.staff_id);
+          if (mine && r.state && r.state !== 'working') {
+            tasks = Object.fromEntries(Object.entries(tasks).filter(([, t]) => t.staff_id !== r.staff_id));
+          }
+          const known = Object.values(tasks).some((t) => t.staff_id === r.staff_id);
+          staff = U.upd(staff, r.staff_id, (st) => {
+            const next = { ...st, fatigue: r.fatigue, break_due_s: r.break_due_s, break_end_s: r.break_end_s };
+            // the sim's own verdict on presence (it derives state from absent > present > on_break > active)
+            if (r.state === 'absent') next.absent = true;
+            else if (r.state === 'off') { next.absent = false; next.present = false; }
+            else if (r.state === 'break') { next.absent = false; next.present = true; next.on_break = true; }
+            else if (r.state === 'working' || r.state === 'idle') { next.absent = false; next.present = true; next.on_break = false; }
+            if (!known) {
+              if (r.station !== undefined) { next.station = r.station; next.task = r.task; }
+              return withState(next);
+            }
+            return withState({ ...next, ...activity(tasks, r.staff_id) });
+          });
         }
-        return { staff };
+        return tasks === s.tasks ? { staff } : { staff, tasks };
       }],
 
       'prep.started': ['prep', (s, ev) => ({ prep: { ...s.prep, [ev.data.prep_key]: { prep_key: ev.data.prep_key, qty: ev.data.qty, state: 'cooking', s: ev.sim_s } } })],

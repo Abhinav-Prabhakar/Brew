@@ -714,14 +714,22 @@ function renderKDS(s, t){
   for (const b of s.rail?.batches || []) { const os = orders.filter((o) => b.order_nos.includes(o.order_no)); if (os.length < 2) continue;
     os.forEach((o) => used.add(o.order_no)); rows.push(os); }
   for (const o of orders) if (!used.has(o.order_no)) rows.push([o]);
+  // who is really on each ticket: the active tasks (staff_id <-> order_no) of the kitchen slice. Only when nobody is on any
+  // of the tickets shown yet does the header fall back to the baristas on shift (it used to be the only "who" there was).
+  const workers = {};
+  for (const tk of Object.values(s.tasks || {})) if (tk.order_no != null && tk.staff_id) (workers[tk.order_no] = workers[tk.order_no] || new Set()).add(tk.staff_id);
+  const who = (os) => { const ids = new Set(); for (const o of os) for (const id of workers[o.order_no] || []) ids.add(id);
+    return [...ids].map((id) => String(s.staff?.[id]?.name || R.human(id)).toLowerCase()); };
+  const shown = rows.slice(0, 2), assigned = shown.map(who), anyOn = assigned.some((n) => n.length);
   const staff = Object.values(s.staff || {}).filter((x) => x.role === 'barista');
   const on = staff.filter((x) => x.present && !x.on_break).map((x) => x.name.toLowerCase()), off = staff.filter((x) => !x.present || x.on_break).map((x) => x.name.toLowerCase());
-  const head = `now brewing <small>${on.join(' · ') || 'no barista on'}${off.length ? ` · (${off.join(', ')} off)` : ''}</small>`;
-  const body = rows.slice(0, 2).map((os) => {
+  const head = `now brewing <small>${anyOn ? `${new Set(assigned.flat()).size} on it` : `${on.join(' · ') || 'no barista on'}${off.length ? ` · (${off.join(', ')} off)` : ''}`}</small>`;
+  const body = shown.map((os, i) => {
     const skus = {}; os.forEach((o) => (o.items || []).forEach((it) => skus[it.sku] = (skus[it.sku] || 0) + it.qty));
     const what = Object.entries(skus).slice(0, 2).map(([k, q]) => `${nm(k, s)}${q > 1 ? ' ×' + q : ''}`).join(' + ');
     const prog = os.reduce((a, o) => a + (o.progress || 0), 0) / os.length, eta = Math.max(...os.map((o) => (o.promised_s || t) - t));
-    return `<div class="row" data-kds="${os.map((o) => o.order_no).join(',')}"><span>${os.map((o) => '#' + o.order_no).join(' ')} · ${esc(what)}</span><span class="bar"><i style="width:${Math.round(prog * 100)}%"></i></span><span>${eta > 0 ? R.mmss(eta) : 'late'}</span></div>`; }).join('');
+    const names = assigned[i].slice(0, 2).join(' + ');
+    return `<div class="row" data-kds="${os.map((o) => o.order_no).join(',')}"${names ? ` data-on="${esc(assigned[i].join(','))}"` : ''}><span style="display:flex;gap:6px;min-width:0"><span style="overflow:hidden;text-overflow:ellipsis">${os.map((o) => '#' + o.order_no).join(' ')} · ${esc(what)}</span>${names ? `<small class="on" style="flex:none;opacity:.75">· ${esc(names)}</small>` : ''}</span><span class="bar"><i style="width:${Math.round(prog * 100)}%"></i></span><span>${eta > 0 ? R.mmss(eta) : 'late'}</span></div>`; }).join('');
   const html = `<h4>${head}</h4>${body || `<div class="row"><span>${s.clock?.is_open ? 'nothing on the machine' : 'machines off · closed'}</span><span></span><span></span></div>`}${rows.length > 2 ? `<div class="more">+${rows.length - 2} more queued</div>` : ''}`;
   if (html !== kdsSig) { kdsSig = html; el.innerHTML = html; }
 }

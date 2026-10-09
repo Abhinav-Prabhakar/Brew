@@ -310,7 +310,14 @@ const lCrew = R.layer($('k-crew'), {
   },
   exit: (r) => { r.el.style.transition = 'opacity .6s'; r.el.style.opacity = '0'; return 600; },
 });
-function tasksBy(s){ const by = {}; for (const tk of Object.values(s.tasks || {})) (by[tk.staff_id] = by[tk.staff_id] || []).push(tk); return by; }
+/* who is doing what: the active tasks per person, newest first. The newest task is the one their hands are on, and it is
+   the same pick the reducer uses for staff.station / staff.task, so the figure, the crew card and the state agree. */
+function tasksBy(s){
+  const by = {};
+  for (const tk of Object.values(s.tasks || {})) (by[tk.staff_id] = by[tk.staff_id] || []).push(tk);
+  for (const k in by) by[k].sort((a, b) => (b.started_s || 0) - (a.started_s || 0) || (String(b.task_id) < String(a.task_id) ? -1 : 1));
+  return by;
+}
 function breakLeft(sf, t){ return sf.break_end_s ? Math.max(0, sf.break_end_s - t) : null; }
 function renderCrew(s, t){
   const by = tasksBy(s), items = [];
@@ -320,14 +327,15 @@ function renderCrew(s, t){
   const usedX = {};
   for (const sf of staff) {
     if (sf.on_break || sf.state === 'break') { items.push({sf, mode: 'break', spot: spot++ % 2, mood: 'happy'}); continue; }
-    const tk = (by[sf.id] || []).sort((a, b) => (a.started_s || 0) - (b.started_s || 0))[0];
+    const tk = (by[sf.id] || [])[0];
+    const working = !!tk || sf.state === 'working';   // a snapshot taken mid-task: working before the first task event
     const stn = tk?.station || sf.station || (sf.role === 'dishwasher' ? 'dishpit' : sf.role === 'cashier' ? 'pass' : sf.role === 'cook' ? 'prep' : 'espresso');
     let x = STATION_X[stn] ?? 640;
-    if (!tk && s.stations?.[stn]?.status === 'down') x += (MACHINE[stn]?.[2] || 100) / 2 + 60;   // stand clear of a broken machine
+    if (!working && s.stations?.[stn]?.status === 'down') x += (MACHINE[stn]?.[2] || 100) / 2 + 60;   // stand clear of a broken machine
     const n = usedX[stn] = (usedX[stn] || 0) + 1; if (n > 1) x += (n % 2 ? -1 : 1) * 64 * Math.ceil((n - 1) / 2);
     const due = sf.break_due_s != null ? sf.break_due_s - t : null;
     const bub = due != null && due > 0 && due < 900 ? `break due · ${Math.ceil(due / 60)} min` : (sf.fatigue || 0) > .85 ? 'need a breather…' : null;
-    items.push({sf, mode: tk ? 'work' : 'idle', x, mood: (sf.fatigue || 0) > .75 ? 'tired' : tk ? 'neutral' : 'happy', bubble: bub});
+    items.push({sf, mode: working ? 'work' : 'idle', x, mood: (sf.fatigue || 0) > .75 ? 'tired' : working ? 'neutral' : 'happy', bubble: bub});
   }
   lCrew.sync(items);
   for (const it of items) if (it.mode === 'break') { const r = lCrew.map.get(it.sf.id), b = r?.el.querySelector('.brk');
@@ -560,9 +568,12 @@ function renderCrewCard(s, t){
   const nextBreak = staff.filter((x) => x.break_rule && x.present && !x.absent && x.break_due_s != null).sort((a, b) => a.break_due_s - b.break_due_s)[0];
   const rule = nextBreak ? `${nextBreak.name.toLowerCase()}: ${nextBreak.break_rule}` : staff.find((x) => x.break_rule)?.break_rule;
   const rows = staff.slice(0, 5).map((sf) => {
-    const tk = (by[sf.id] || [])[0], stn = tk?.station || sf.station, f = sf.fatigue || 0;
+    const mine = by[sf.id] || [], tk = mine[0], f = sf.fatigue || 0;
+    const stn = tk?.station || (sf.state === 'working' ? sf.station : null);
     const due = sf.break_due_s != null ? sf.break_due_s - t : null, left = breakLeft(sf, t);
-    let tag = `<span class="tag">${tk ? esc(R.human(tk.step)) : 'ready'}</span>`;
+    // what they are really on: the step, the ticket it is for and how many things they are juggling
+    const doing = tk ? `${R.human(tk.step)}${tk.order_no != null ? ' #' + tk.order_no : ''}${mine.length > 1 ? ' ×' + mine.length : ''}` : (sf.state === 'working' && sf.task ? R.human(sf.task) : null);
+    let tag = `<span class="tag" ${doing ? `title="${esc(mine.map((x) => R.human(x.step) + (x.order_no != null ? ' for #' + x.order_no : '')).join(', ') || doing)}"` : ''}>${doing ? esc(doing) : 'ready'}</span>`;
     if (sf.absent || sf.state === 'absent') tag = `<span class="tag warn">absent · sick</span>`;
     else if (!sf.present) tag = `<span class="tag rest">off shift${sf.shift ? ' · ' + R.hm(sf.shift[0]) : ''}</span>`;
     else if (sf.on_break || sf.state === 'break') tag = `<span class="tag rest"><svg><use href="#k-lock"/></svg>${left != null ? R.mmss(left) + ' left' : 'on break'}</span>`;
