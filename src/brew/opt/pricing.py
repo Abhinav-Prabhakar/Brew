@@ -196,14 +196,14 @@ def milp_prices(
             if p is not None and p not in ps:
                 ps.append(p)
         cand[it.sku] = ps[:price_levels]
-        vars_ = [model.NewBoolVar(f"{it.sku}_{k}") for k in range(len(cand[it.sku]))]
+        vars_ = [model.new_bool_var(f"{it.sku}_{k}") for k in range(len(cand[it.sku]))]
         for k, v in enumerate(vars_):
             choice[(it.sku, k)] = v
-        model.AddExactlyOne(vars_)
+        model.add_exactly_one(vars_)
     obj = []
     for it in items:
         for k, p in enumerate(cand[it.sku]):
-            obj.append(int(round((p - it.cost) * demand_at(it, p) * scale)) * choice[(it.sku, k)])
+            obj.append(round((p - it.cost) * demand_at(it, p) * scale) * choice[(it.sku, k)])
     if station_cap_min:
         for s, cap in station_cap_min.items():
             use = []
@@ -211,10 +211,10 @@ def milp_prices(
                 m = it.station_min.get(s, 0.0)
                 if m:
                     for k, p in enumerate(cand[it.sku]):
-                        use.append(int(round(m * demand_at(it, p) * scale)) * choice[(it.sku, k)])
+                        use.append(round(m * demand_at(it, p) * scale) * choice[(it.sku, k)])
             if use:
-                model.Add(sum(use) <= int(cap * scale))
-    model.Maximize(sum(obj))
+                model.add(sum(use) <= int(cap * scale))
+    model.maximize(sum(obj))
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = 0.5
     solver.parameters.num_workers = 1

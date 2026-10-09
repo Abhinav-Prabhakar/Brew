@@ -113,7 +113,7 @@ class ReviewCauseTagger:
 def train_test_split_rows(rows: list[dict[str, Any]], test_size: float, seed: int) -> tuple[list, list]:
     """Deterministic shuffle split."""
     idx = np.random.default_rng(seed).permutation(len(rows))
-    n_test = max(1, int(round(len(rows) * test_size)))
+    n_test = max(1, round(len(rows) * test_size))
     test = [rows[i] for i in idx[:n_test]]
     train = [rows[i] for i in idx[n_test:]]
     return train, test

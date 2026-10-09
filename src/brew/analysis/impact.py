@@ -20,7 +20,7 @@ def scoreboard(world: Any, baseline: dict[str, Any] | None = None) -> dict[str, 
 
     profits = [d["net_profit"] for d in ds]
     off = [max(d["p95_wait_s"].get("dine_in", 0), d["p95_wait_s"].get("takeaway", 0)) for d in ds]
-    out = {
+    out: dict[str, Any] = {
         "economic": {
             "net_profit_per_day": avg("net_profit"), "cvar10_daily_profit": cvar(profits) if profits else 0.0,
             "revenue_per_labour_hour": avg("revenue_per_labour_hour"),

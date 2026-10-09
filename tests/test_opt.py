@@ -19,8 +19,22 @@ from brew.opt.newsvendor import (
     quantile_from_bands,
     replate_adjusted_overage,
 )
-from brew.opt.pricing import PriceItem, candidate_price, demand_at, ladder_search, milp_prices, optimal_price_constant_elasticity
-from brew.opt.scheduler import SchedStaff, SchedTask, brute_force_optimal, cpsat_schedule, greedy_schedule, schedule
+from brew.opt.pricing import (
+    PriceItem,
+    candidate_price,
+    demand_at,
+    ladder_search,
+    milp_prices,
+    optimal_price_constant_elasticity,
+)
+from brew.opt.scheduler import (
+    SchedStaff,
+    SchedTask,
+    brute_force_optimal,
+    cpsat_schedule,
+    greedy_schedule,
+    schedule,
+)
 
 
 # ------------------------------------------------------------------ newsvendor

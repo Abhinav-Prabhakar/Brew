@@ -14,8 +14,8 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 
 from brew.domain.timeutil import tod_s
-from brew.policies.C_solver import PolicyC
 from brew.policies.base import ManagerAction
+from brew.policies.C_solver import PolicyC
 from brew.sim.demandlog import fg_index
 
 if TYPE_CHECKING:

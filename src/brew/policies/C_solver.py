@@ -34,7 +34,7 @@ from brew.policies.base import (
     TaskChoice,
 )
 from brew.policies.bundle import ModelBundle, load_bundle
-from brew.policies.demand import CLOSE_SLOT, DemandService
+from brew.policies.demand import DemandService
 from brew.policies.strategies import priority
 
 if TYPE_CHECKING:
@@ -740,7 +740,7 @@ class PolicyC:
             if wd_of(t2) in dd:
                 break
             t2 += 86400
-        gap = max(1.0, self._open_frac(first, t2) + (0.0 if t2 - first <= 86400 else 0.0))
+        gap = max(1.0, self._open_frac(first, t2))
         return first, gap
 
     def explain(self, decision_id: str) -> Explanation | None:

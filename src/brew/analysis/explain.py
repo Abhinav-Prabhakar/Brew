@@ -55,8 +55,8 @@ class Explainer:
         """Slot values available for a decision record."""
         ctx = rec.get("context", {})
         s: dict[str, Any] = {
-            "hour": f"{int(ctx.get('hour', 0)):02d}", "load_pct": int(round(ctx.get("load_pct", 0))),
-            "load": int(round(ctx.get("load_pct", 0))), "queue": ctx.get("queue", 0), "orders": ctx.get("orders", 0),
+            "hour": f"{int(ctx.get('hour', 0)):02d}", "load_pct": round(ctx.get("load_pct", 0)),
+            "load": round(ctx.get("load_pct", 0)), "queue": ctx.get("queue", 0), "orders": ctx.get("orders", 0),
             "temp": ctx.get("temp", 0), "rain": ctx.get("rain", 0), "strategy": ctx.get("strategy", ""),
             "wait_min": round(max(0.0, ctx.get("queue", 0) * 0.6), 1), "channel": "delivery",
         }  # fmt: skip
@@ -64,7 +64,7 @@ class Explainer:
             n = f.get("name", "")
             v = f.get("value")
             if n in ("kitchen_load_pct", "load_pct"):
-                s["load_pct"] = s["load"] = int(round(v))
+                s["load_pct"] = s["load"] = round(v)
             elif n in ("stock", "stock_units", "have", "units"):
                 s["stock"] = round(v, 1)
             elif n in ("forecast_delta", "expected_demand_units", "demand"):
@@ -82,7 +82,7 @@ class Explainer:
             if ch.get("kind") == "replate":
                 s["pct"] = int(ch.get("pct", 0))
             if "qty" in ch:
-                s["qty"] = int(round(ch["qty"]))
+                s["qty"] = round(ch["qty"])
         s.setdefault("stock", "enough")
         s.setdefault("forecast_delta", "+0")
         s.setdefault("p90", "-")

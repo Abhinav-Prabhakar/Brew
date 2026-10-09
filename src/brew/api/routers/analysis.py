@@ -50,7 +50,7 @@ def forecast(
         cfg = w.cfg
         bundle = load_bundle(_models_dir(request))
         skus = [m.sku for m in cfg.menu]
-        cats = [m.cat for m in cfg.menu]
+        cats: list[str] = [str(m.cat) for m in cfg.menu]
         if key is not None and key not in skus and key not in set(cats):
             raise UnknownTarget(f"unknown sku or category {key!r}")
         sel = [i for i, (s, c) in enumerate(zip(skus, cats, strict=True)) if key is None or key in (s, c)]
@@ -137,7 +137,7 @@ def advisor(
 
         job = jobs.submit("advisor", {"world": mw.world.world_id, "seeds": seeds, "days": days}, fn, run_inline=wait)
         st["job"], st["day"] = job, mw.world.day
-    elif wait and job.future is not None:
+    elif wait and job is not None and job.future is not None:
         job.future.result(timeout=600)
     assert job is not None
     return _wrap(mw, {"job": job.json(with_result=False), "status": job.status, "recommendations": job.result if job.status == "done" else []})

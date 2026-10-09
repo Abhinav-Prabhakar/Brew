@@ -103,7 +103,7 @@ class Forecaster:
             models[name] = cls._train_one({**base, "objective": "quantile", "alpha": alpha}, X, y, is_val)
         models["mean"] = cls._train_one({**base, "objective": "poisson"}, X, y, is_val)
         meta = {
-            "n_rows": int(len(y)), "n_estimators": n_estimators, "features": F.FEATURES, "seed": seed,
+            "n_rows": len(y), "n_estimators": n_estimators, "features": F.FEATURES, "seed": seed,
             "n_days": len(all_days),
         }  # fmt: skip
         return cls(skus, cats, models, profile, meta)
@@ -115,7 +115,7 @@ class Forecaster:
         tr = lgb.Dataset(
             X[~is_val], y[~is_val], categorical_feature=F.CAT_IDX, feature_name=F.FEATURES, free_raw_data=False
         )
-        callbacks = []
+        callbacks: list[Any] = []
         valid_sets = []
         if is_val.any() and (~is_val).sum() > 50:
             va = lgb.Dataset(X[is_val], y[is_val], reference=tr)
@@ -153,7 +153,6 @@ class Forecaster:
 
     def predict(self, view: Any, horizon_slots: int = 16) -> Any:
         """``DataFrame[sku, channel_group, slot, p10, p50, p90, mean]`` for a world view."""
-        import polars as pl
 
         log = view.demand_log()
         now_slot = int(view.tod_s // 900)

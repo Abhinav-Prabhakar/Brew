@@ -95,7 +95,7 @@ class QuantileGBM:
         d = Path(path)
         d.mkdir(parents=True, exist_ok=True)
         for a, b in self.boosters.items():
-            b.save_model(str(d / f"q{int(round(a * 100)):02d}.txt"))
+            b.save_model(str(d / f"q{round(a * 100):02d}.txt"))
         (d / "space.json").write_text(json.dumps({"space": self.space.to_json(), "alphas": list(self.alphas)}))
         return d
 
@@ -105,5 +105,5 @@ class QuantileGBM:
         j = json.loads((d / "space.json").read_text())
         m = cls(FeatureSpace.from_json(j["space"]), tuple(j["alphas"]))
         for a in m.alphas:
-            m.boosters[a] = lgb.Booster(model_file=str(d / f"q{int(round(a * 100)):02d}.txt"))
+            m.boosters[a] = lgb.Booster(model_file=str(d / f"q{round(a * 100):02d}.txt"))
         return m

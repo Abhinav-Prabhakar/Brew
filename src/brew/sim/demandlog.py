@@ -7,6 +7,7 @@ time; ``dense_frame`` turns it into the Parquet training table, so both paths us
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -122,7 +123,7 @@ class DemandLog:
         cur = self.cur
         return float(cur.counts[:upto_slot].sum()) if cur is not None else 0.0
 
-    def dense_frame(self, cats: dict[str, str], include_current: bool = True) -> Any:
+    def dense_frame(self, cats: Mapping[str, str], include_current: bool = True) -> Any:
         """Polars frame: one row per (day, open slot, sku, channel group)."""
         import polars as pl
 

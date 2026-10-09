@@ -61,9 +61,9 @@ def _prior_arrays(
     lag7 = d7.counts if d7 is not None else fallback(7)
     prev = [by_day[d].counts for d in range(r.day - 7, r.day) if d in by_day]
     if len(prev) >= 3:
-        roll7 = np.mean(prev, axis=0)
+        roll7 = np.mean(prev, axis=0).astype(np.float32)
     elif profile is not None:
-        roll7 = profile.mean(axis=0)
+        roll7 = profile.mean(axis=0).astype(np.float32)
     else:
         roll7 = np.full(shape, np.nan, dtype=np.float32)
     return lag1.astype(np.float32), lag7.astype(np.float32), roll7.astype(np.float32)

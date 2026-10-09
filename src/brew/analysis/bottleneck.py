@@ -129,8 +129,8 @@ class BottleneckAnalyzer:
         # ingredients that are 86'd right now are hard constraints too
         for sku, m in w.menu.items():
             if m.hidden and m.hidden_kind == "stock":
-                for key, q in w.inv.sku_keys[sku]:
-                    if w.inv.usable(key, w.now) < q:
+                for key, need in w.inv.sku_keys[sku]:
+                    if w.inv.usable(key, w.now) < need:
                         rows.append(
                             {"resource": f"ingredient:{key}", "rho": 1.0, "avg_queue": 0.0, "wait_attribution": 0.0,
                              "active_share": 1.0, "shadow_price": 0.0, "score": 0.3, "blocks": sku}  # fmt: skip

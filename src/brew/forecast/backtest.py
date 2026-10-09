@@ -72,7 +72,7 @@ def backtest(
     mean = np.concatenate(means)
     sn, mv = np.concatenate(naive), np.concatenate(ma)
     res: dict[str, Any] = {
-        "folds": folds, "test_days": test_days, "rows": int(len(y)), "demand_units": float(y.sum()),
+        "folds": folds, "test_days": test_days, "rows": len(y), "demand_units": float(y.sum()),
         "wape_p50": wape(y, p50), "wape_mean": wape(y, mean), "wape_seasonal_naive": wape(y, sn),
         "wape_moving_average": wape(y, mv),
         "pinball_p10": pinball(y, p10, 0.1), "pinball_p50": pinball(y, p50, 0.5), "pinball_p90": pinball(y, p90, 0.9),

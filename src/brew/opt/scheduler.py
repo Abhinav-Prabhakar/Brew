@@ -12,6 +12,7 @@ from __future__ import annotations
 import itertools
 import time
 from dataclasses import dataclass, field
+from typing import Any
 
 CAP = 100  # attention capacity per staff member (x100)
 
@@ -155,55 +156,55 @@ def cpsat_schedule(
     per_slot: dict[str, list[cp_model.IntervalVar]] = {}
     tard = {}
     for t in tasks:
-        d = max(1, int(round(t.dur * sc)))
+        d = max(1, round(t.dur * sc))
         r = max(lo, int(t.ready))
-        s_var = m.NewIntVar(r, H, f"s{t.id}")
-        e_var = m.NewIntVar(r + d, H + d, f"e{t.id}")
-        m.Add(e_var == s_var + d)
+        s_var = m.new_int_var(r, H, f"s{t.id}")
+        e_var = m.new_int_var(r + d, H + d, f"e{t.id}")
+        m.add(e_var == s_var + d)
         start[t.id], end[t.id] = s_var, e_var
         elig = [k for k in (t.eligible or tuple(per_staff)) if k in per_staff]
         if not elig:
             elig = list(per_staff)
         lits = []
         for k in elig:
-            p = m.NewBoolVar(f"p{t.id}_{k}")
+            p = m.new_bool_var(f"p{t.id}_{k}")
             pres[(t.id, k)] = p
-            iv = m.NewOptionalIntervalVar(s_var, d, e_var, p, f"i{t.id}_{k}")
-            per_staff[k].append((iv, max(1, int(round(t.att * CAP)))))
+            iv = m.new_optional_interval_var(s_var, d, e_var, p, f"i{t.id}_{k}")
+            per_staff[k].append((iv, max(1, round(t.att * CAP))))
             lits.append(p)
-        m.AddExactlyOne(lits)
+        m.add_exactly_one(lits)
         if t.slot:
-            iv2 = m.NewIntervalVar(s_var, d, e_var, f"q{t.id}")
+            iv2 = m.new_interval_var(s_var, d, e_var, f"q{t.id}")
             per_slot.setdefault(t.slot, []).append(iv2)
-        tv = m.NewIntVar(0, H, f"t{t.id}")
-        m.Add(tv >= e_var - int(t.due))
+        tv = m.new_int_var(0, H, f"t{t.id}")
+        m.add(tv >= e_var - int(t.due))
         tard[t.id] = tv
     for s in staff:
-        ivs = per_staff[s.key]
+        ivs: list[tuple[Any, int]] = list(per_staff[s.key])
         if s.avail_at > now:
-            blk = m.NewIntervalVar(lo, int(s.avail_at) - lo, int(s.avail_at), f"blk_{s.key}")
+            blk = m.new_interval_var(lo, int(s.avail_at) - lo, int(s.avail_at), f"blk_{s.key}")
             ivs = [*ivs, (blk, CAP)]
         if ivs:
-            m.AddCumulative([iv for iv, _ in ivs], [dm for _, dm in ivs], CAP)
-    for key, ivs in per_slot.items():
+            m.add_cumulative([iv for iv, _ in ivs], [dm for _, dm in ivs], CAP)
+    for key, slot_ivs in per_slot.items():
         cap = (slots or {}).get(key, 0)
-        if cap > 0 and len(ivs) > cap:
-            m.AddCumulative(ivs, [1] * len(ivs), cap)
+        if cap > 0 and len(slot_ivs) > cap:
+            m.add_cumulative(slot_ivs, [1] * len(slot_ivs), cap)
     by_id = {t.id: t for t in tasks}
     for t in tasks:
-        for p in t.preds:
-            if p in by_id:
-                m.Add(start[t.id] >= end[p])
-    wsum = {t.id: max(1, int(round(t.weight * 10))) for t in tasks}
-    m.Minimize(sum(wsum[i] * 1000 * tard[i] for i in tard) + sum(end[i] for i in end))
+        for pred in t.preds:
+            if pred in by_id:
+                m.add(start[t.id] >= end[pred])
+    wsum = {t.id: max(1, round(t.weight * 10)) for t in tasks}
+    m.minimize(sum(wsum[i] * 1000 * tard[i] for i in tard) + sum(end[i] for i in end))
     if hint is not None:
         for i, v in hint.start.items():
             if i in start:
-                m.AddHint(start[i], int(min(H, max(lo, v))))
+                m.add_hint(start[i], int(min(H, max(lo, v))))
         for i, k in hint.staff.items():
             for (ti, sk), p in pres.items():
                 if ti == i:
-                    m.AddHint(p, 1 if sk == k else 0)
+                    m.add_hint(p, 1 if sk == k else 0)
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = max(0.001, time_limit_s)
     solver.parameters.num_workers = 1

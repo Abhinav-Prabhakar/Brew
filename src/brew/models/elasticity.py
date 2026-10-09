@@ -8,6 +8,7 @@ scikit-learn's ``PoissonRegressor``; ``beta`` is then shrunk toward the category
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -40,7 +41,7 @@ class ElasticityModel:
     def fit(
         cls,
         df: Any,
-        cats: dict[str, str],
+        cats: Mapping[str, str],
         *,
         alpha: float = 1e-6,
         shrink_k: float = 200.0,

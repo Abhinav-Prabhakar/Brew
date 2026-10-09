@@ -63,7 +63,7 @@ class JobRegistry:
             try:
                 job.result = fn(job)
                 job.status = "done"
-            except Exception as e:  # noqa: BLE001 - report to the poller
+            except Exception as e:
                 job.error = f"{type(e).__name__}: {e}"
                 job.status = "error"
                 job.result = traceback.format_exc(limit=3)

@@ -138,7 +138,7 @@ class ExplorationPolicy:
         act.price_steps.clear()
         if hour < 8.0:
             return act
-        tick = int(round((hour - 8.0) * 4))
+        tick = round((hour - 8.0) * 4)
         ups: dict[str, float] = {}
         for k, m in enumerate(view.config.menu):
             cur = view.price(m.sku)
