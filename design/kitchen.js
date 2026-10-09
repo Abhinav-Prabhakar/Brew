@@ -605,7 +605,9 @@ function renderChaos(s, t){
   const act = all.filter((d) => d.active), recent = all.filter((d) => !d.active && d.resolved_s && t - d.resolved_s < 1800).slice(0, 1);
   const pol = s.policy?.policy || s.world?.policy || 'D';
   const since = act.length ? Math.min(...act.map((d) => d.started_s ?? t)) : recent[0]?.started_s;
-  const reaction = since != null ? [...(s.decisions || [])].reverse().find((d) => (d.sim_s ?? 0) >= since - 1) : null;
+  const ids = new Set([...act, ...recent].map((d) => d.id));
+  const decs = [...(s.decisions || [])].reverse();
+  const reaction = since != null ? (decs.find((d) => d.trigger && ids.has(d.trigger)) || decs.find((d) => (d.sim_s ?? 0) >= since - 1)) : null;
   const cost = all.reduce((a, d) => a + (d.cost_inr || 0), 0);
   const nextB = s.bottleneck?.resource;
   let rows = act.slice(0, 2).map((d) => `<div class="cr" data-disruption="${esc(d.id)}"><svg><use href="#${KIND_ICON[d.kind] || 'k-bolt'}"/></svg><span>${esc((KIND_TEXT[d.kind] || ((x) => R.human(x.kind)))(d))} since ${R.hm(d.started_s ?? t)}</span><b class="hot">${d.until_s ? 'back ~' + R.hm(d.until_s) : 'ongoing'}</b></div>`).join('');
@@ -618,7 +620,7 @@ function renderChaos(s, t){
     <div class="cbtns">${btns}</div><div class="foot"><span>${cost > 0 ? `chaos has cost <b>${R.rs(cost)}</b> so far` : act.length ? 'counting the cost…' : 'cost is measured against a no-chaos twin'}</span></div>`;
   if (html !== chaosHTML) { chaosHTML = html; el.innerHTML = html; }
 }
-function rlText(d){ let x = String(d.summary || d.type).replace(/^RL manager:\s*/i, '').split(/\s*\(drivers:|;\s*/)[0].replace(/_/g, ' ');
+function rlText(d){ if (d.headline) return d.headline.length > 50 ? d.headline.slice(0, 48) + '…' : d.headline; let x = String(d.summary || d.type).replace(/^RL manager:\s*/i, '').split(/\s*\(drivers:|;\s*/)[0].replace(/_/g, ' ');
   return x.length > 46 ? x.slice(0, 44) + '…' : x; }
 room.querySelector('.chaos')?.addEventListener('click', async (e) => {
   const b = e.target.closest('[data-chaos]'); if (!b || b.disabled || !window.BrewApi) return;

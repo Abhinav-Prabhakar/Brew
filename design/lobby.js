@@ -675,6 +675,7 @@ function renderLectern(s){
 /* ================================================================ overlay cards */
 const card = (sel) => document.querySelector('#lobby ' + sel);
 function decisionText(d){
+  if (d.headline) return d.headline;
   let t = String(d.summary || d.type || '').replace(/^RL manager:\s*/i, '').replace(/^[A-Z][a-z]+ policy:\s*/, '');
   t = t.split(/\s*\(drivers:|;\s*/)[0];
   t = t.replace(/_concentrate/g, '').replace(/_baked|_fg|_slice/g, '').replace(/_/g, ' ').replace(/\bP(\d\d)\b/g, 'p$1');
