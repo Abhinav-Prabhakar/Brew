@@ -149,6 +149,10 @@ def test_prep_batch_creates_lot_after_lead_time():
 def test_donation_of_short_dated_bakery_goods():
     w = World(policy="B", seed=1, days=2)
     w.run()
-    donated = w.inv.mov["muffin_fg"]["donate"] + w.inv.mov["cheesecake_slice"]["donate"] + w.inv.mov["cinnamon_roll_fg"]["donate"]
+    donated = (
+        w.inv.mov["muffin_fg"]["donate"]
+        + w.inv.mov["cheesecake_slice"]["donate"]
+        + w.inv.mov["cinnamon_roll_fg"]["donate"]
+    )
     assert donated >= 0  # policy B donates; value tracked
     assert w.fin.ledger.total["donation_writeoff"] >= 0

@@ -6,7 +6,6 @@ import orjson
 
 from brew.events.bus import ListSink
 from brew.sim.engine import Engine
-from brew.sim.world import World
 
 
 def digest(sink: ListSink, start: int = 0) -> str:

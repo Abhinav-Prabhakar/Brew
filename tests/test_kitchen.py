@@ -36,9 +36,13 @@ def cfg():
 
 
 def _variant(cfg, slots: int, speed: float, error: float, drop_barista: bool):
-    equip = tuple(e.model_copy(update={"slots": max(1, min(e.slots, slots))} if e.slots else {}) for e in cfg.equipment)
+    equip = tuple(
+        e.model_copy(update={"slots": max(1, min(e.slots, slots))} if e.slots else {}) for e in cfg.equipment
+    )
     staff = tuple(
-        s.model_copy(update={"speed": speed, "error_rate": error}) for s in cfg.staff if not (drop_barista and s.key == "barista_b")
+        s.model_copy(update={"speed": speed, "error_rate": error})
+        for s in cfg.staff
+        if not (drop_barista and s.key == "barista_b")
     )
     return cfg.model_copy(update={"equipment": equip, "staff": staff})
 
@@ -116,7 +120,9 @@ def test_errors_cause_remakes_and_extra_consumption(cfg):
 
 
 def test_dish_pit_can_block(cfg):
-    tiny = cfg.model_copy(update={"cafe": cfg.cafe.model_copy(update={"dish_pool": {"cup_ceramic_m": 3, "plate": 2}})})
+    tiny = cfg.model_copy(
+        update={"cafe": cfg.cafe.model_copy(update={"dish_pool": {"cup_ceramic_m": 3, "plate": 2}})}
+    )
     w = World(cfg=tiny, policy="A", seed=5)
     w.run()
     assert w.kitchen.wait_by_reason.get("dishpit", 0) > 0

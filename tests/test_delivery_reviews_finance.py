@@ -20,7 +20,11 @@ def test_acceptance_timeout_rejects(small_world):
     w.run()
     rej = [e.data["reason"] for e in w.test_sink.of_type("order.rejected")]
     assert rej and set(rej) == {"timeout"}
-    placed = {e.data["order_no"]: e for e in w.test_sink.of_type("order.placed") if e.data["channel"] in ("zomato", "swiggy")}
+    placed = {
+        e.data["order_no"]: e
+        for e in w.test_sink.of_type("order.placed")
+        if e.data["channel"] in ("zomato", "swiggy")
+    }
     for e in w.test_sink.of_type("order.rejected"):
         # rejected exactly at the 90 s acceptance timeout (15 s retry granularity)
         assert 90 <= e.sim_s - placed[e.data["order_no"]].sim_s <= 105
@@ -98,7 +102,9 @@ def test_platform_score_moves_with_lateness(day_a):
 
 # ------------------------------------------------------------------- reviews
 def test_bayesian_reputation_math():
-    rep = Reputation({"offline": (4.6, 100), "zomato": (4.0, 0), "swiggy": (4.5, 10)}, prior_mean=4.3, prior_w=50)
+    rep = Reputation(
+        {"offline": (4.6, 100), "zomato": (4.0, 0), "swiggy": (4.5, 10)}, prior_mean=4.3, prior_w=50
+    )
     assert rep.rating("offline") == pytest.approx((50 * 4.3 + 460) / 150)
     assert rep.rating("zomato") == pytest.approx(4.3)  # no reviews -> prior
     rep.add("zomato", 1)
@@ -132,7 +138,17 @@ def test_causes_are_normalised():
     c = cause_weights(comp, 2, "zomato", errors=1, pack_short=False)
     assert abs(sum(c.values()) - 1) < 0.05
     assert c["wait"] == max(c.values())
-    assert set(c) <= {"wait", "cold_food", "price", "quality", "ambience", "staff", "accuracy", "packaging", "value"}
+    assert set(c) <= {
+        "wait",
+        "cold_food",
+        "price",
+        "quality",
+        "ambience",
+        "staff",
+        "accuracy",
+        "packaging",
+        "value",
+    }
     pos = cause_weights({**comp, "wait": 0.95}, 5, "dine_in", 0, False)
     assert abs(sum(pos.values()) - 1) < 0.05
 
@@ -156,7 +172,9 @@ def test_receipt_math_and_gst_split(day_a):
         assert d["cgst"] == pytest.approx(d["sgst"], abs=0.011)
         base = d["subtotal"] - d["discount"]
         assert d["cgst"] == pytest.approx(round(base * 0.025, 2), abs=0.011)
-        assert d["total"] == pytest.approx(d["subtotal"] - d["discount"] + d["cgst"] + d["sgst"] + d["round_off"], abs=0.02)
+        assert d["total"] == pytest.approx(
+            d["subtotal"] - d["discount"] + d["cgst"] + d["sgst"] + d["round_off"], abs=0.02
+        )
         assert d["total"] == int(d["total"])  # whole rupees
         assert abs(d["round_off"]) <= 0.5
 
@@ -164,7 +182,24 @@ def test_receipt_math_and_gst_split(day_a):
 def test_ledger_sums_to_daily_profit(day_a):
     k = day_a.daily_kpis[0]
     led = k["ledger"]
-    costs = sum(led[a] for a in ("discount", "cogs", "commission", "payment_fee", "packaging", "labour", "energy", "waste", "rent", "maintenance", "depreciation", "refund", "donation_writeoff"))
+    costs = sum(
+        led[a]
+        for a in (
+            "discount",
+            "cogs",
+            "commission",
+            "payment_fee",
+            "packaging",
+            "labour",
+            "energy",
+            "waste",
+            "rent",
+            "maintenance",
+            "depreciation",
+            "refund",
+            "donation_writeoff",
+        )
+    )
     assert k["net_profit"] == pytest.approx(led["revenue"] - costs, abs=0.05)
     # entries independently sum to the same figure
     entries = day_a.fin.ledger.entries

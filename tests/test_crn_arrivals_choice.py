@@ -16,7 +16,19 @@ def test_crn_identical_plan_across_policies():
     a, b = _start("A"), _start("B")
     assert a.plan is not None and b.plan is not None
     assert a.plan.fingerprint() == b.plan.fingerprint()
-    for f in ("t", "pidx", "u_thin", "chan", "size", "patience_z", "dwell_z", "seeds", "gumbel", "mod_u", "note_u"):
+    for f in (
+        "t",
+        "pidx",
+        "u_thin",
+        "chan",
+        "size",
+        "patience_z",
+        "dwell_z",
+        "seeds",
+        "gumbel",
+        "mod_u",
+        "note_u",
+    ):
         assert np.array_equal(getattr(a.plan, f), getattr(b.plan, f)), f
 
 
@@ -112,7 +124,9 @@ def _share(w, persona, sku, mult):
     j = w.choice.skus.index(sku)
     lnr = np.zeros(len(w.choice.skus))
     lnr[j] = np.log(mult)
-    w.choice.set_context(lnr, np.zeros_like(lnr), np.ones(len(lnr), dtype=bool), np.zeros_like(lnr), np.zeros_like(lnr))
+    w.choice.set_context(
+        lnr, np.zeros_like(lnr), np.ones(len(lnr), dtype=bool), np.zeros_like(lnr), np.zeros_like(lnr)
+    )
     return w.choice.probs(persona, "drink")[1][j]
 
 
