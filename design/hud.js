@@ -174,6 +174,26 @@ function confetti(from, n = 16, glyphs){
     c.style.cssText += `;left:${x0}px;top:${y0}px;--dx:${(Math.cos(a) * d).toFixed(0)}px;--dy:${(Math.sin(a) * d * .6 + 90).toFixed(0)}px;--rot:${(Math.random() * 720 - 360).toFixed(0)}deg;animation-delay:${(Math.random() * .12).toFixed(2)}s`;
     v.appendChild(c); setTimeout(() => c.remove(), 1700); }
 }
+/* ---------- ? = the keys card; m = the menu book ---------- */
+const keysCard = document.createElement('div');
+keysCard.id = 'keys'; keysCard.className = 'card'; keysCard.hidden = true; keysCard.setAttribute('role', 'dialog'); keysCard.setAttribute('aria-label', 'keyboard shortcuts');
+keysCard.innerHTML = `<h3>keys ♡</h3><dl>
+  <dt><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd></dt><dd>lobby · kitchen · pantry</dd>
+  <dt><kbd>←</kbd><kbd>→</kbd></dt><dd>walk between rooms (or turn the menu’s pages)</dd>
+  <dt><kbd>m</kbd></dt><dd>open the menu book</dd>
+  <dt><kbd>f</kbd></dt><dd>fast-forward (or tap the clock)</dd>
+  <dt><kbd>esc</kbd></dt><dd>close · zoom back out</dd>
+  <dt><kbd>?</kbd></dt><dd>this card</dd></dl>
+  <div class="psst">some keys aren’t on this card…</div>`;
+document.getElementById('viewport').appendChild(keysCard);
+const keysOpen = (on) => { keysCard.hidden = !on; };
+addEventListener('keydown', (e) => {
+  if (e.metaKey || e.ctrlKey || e.altKey || e.target.closest?.('input, textarea, select, [contenteditable]')) return;
+  if (e.key === '?') { e.preventDefault(); keysOpen(keysCard.hidden); return; }
+  if (e.key === 'Escape' && !keysCard.hidden) { keysOpen(false); return; }
+  if ((e.key === 'm' || e.key === 'M') && window.BREW_MENUBOOK && !BREW_MENUBOOK.isOpen) BREW_MENUBOOK.open();
+});
+document.addEventListener('click', (e) => { if (!keysCard.hidden && !e.target.closest('#keys')) keysOpen(false); });
 window.BrewHUD = {fastForward, confetti, floatMoney};
 
 /* ---------- policy comparison (click the profit card) ---------- */

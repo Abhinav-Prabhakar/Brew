@@ -79,8 +79,9 @@ statement.
 
 - **Measure, don't assert.** Every comparison is CRN-paired on held-out seeds, with bootstrap CIs, a Wilcoxon test
   and the worst-day CVaR, not just the mean.
-- **Live, not a playback.** The café runs on the wall clock (Asia/Kolkata). There are no 10× buttons; things happen
-  every few seconds, like a real morning.
+- **Live, not a playback.** The café runs on the wall clock (Asia/Kolkata); things happen every few seconds, like a
+  real morning. Tap the clock to fast-forward (5×, 20×, 60×) when you want to see a whole day; from then on that
+  café runs ahead of real time.
 - **Explainable by construction.** Every decision carries a headline and a trigger, and `/decisions/{id}/explain`
   says why.
 - **One hand drew it.** Wobbly ink, paper grain, one motion vocabulary; every sound is synthesised, with no samples.
@@ -167,6 +168,44 @@ uv run pytest -q                                   # backend + frontend (Playwri
 uv run ruff check . && uv run mypy src
 uv run python scripts/capture_readme_media.py      # regenerate everything in docs/images/
 ```
+
+## Keys
+
+<kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> lobby · kitchen · pantry · <kbd>←</kbd> <kbd>→</kbd> walk between rooms ·
+<kbd>m</kbd> menu book · <kbd>f</kbd> or a tap on the clock: fast-forward (1× → 5× → 20× → 60×; once it runs fast the
+café leaves the wall clock behind) · <kbd>esc</kbd> close / zoom out · <kbd>?</kbd> the keys card.
+
+## Easter eggs
+
+The café hides fifteen small things. Nothing is labelled, none of them touch the simulation, and you get a quiet
+"🥚 3 of 15" each time you find one (kept in your browser's `localStorage`, key `brew.eggs`). The list is behind the
+spoiler, so try finding them first.
+
+<details>
+<summary>spoilers ♡</summary>
+
+| # | where | how | what happens |
+|---|---|---|---|
+| 1 | lobby window sill | look on one day in four (seeded by the sim's date), or after closing; or type `biscuit` | **biscuit**, the café cat, naps there. Click her: she purrs, opens her eyes and stretches, and a few hearts float up |
+| 2 | lobby wall clock | click it three times quickly | a **cuckoo** pops out and calls the hour (sim time) |
+| 3 | lobby tip jar | click it | a coin drops in with a clink. The jar **remembers** your tips; 10, 50, 100 and 500 get a thank-you |
+| 4 | lobby radio | click it | static, then a **new station**: 92.7 brew fm (the house lo-fi), 98.3 monsoon fm (slow and minor), 104.8 chai-time fm (bright and swingy). The music bed really changes |
+| 5 | anywhere | the Konami code <kbd>↑</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd><kbd>←</kbd><kbd>→</kbd><kbd>b</kbd><kbd>a</kbd> | **barista mode**: a chiptune jingle, the logo wiggles, and coffee-and-hearts confetti |
+| 6 | anywhere | type `chai` | a kettle whistles and a clay **kulhad** of chai steams on the counter for a minute |
+| 7 | anywhere | type `upi` | toggles the **UPI soundbox voice**: like every Indian counter, it announces "₹415 received" after the payment chime |
+| 8 | kitchen, by the cold-brew tower | click the yellow thing | a **rubber duck** squeaks and hops. Every seventh squeak it reminds you who hears all the bugs |
+| 9 | pantry, the baseboard between the walk-in and the dry store | wait for it to peek out, then click | a **mouse** bolts back into its hole. You didn't see anything |
+| 10 | the ♡ in the logo | click it | it beats, and the tagline cycles ("made with ♡ and math", "MaskablePPO on espresso", …) |
+| 11 | the menu book | press <kbd>s</kbd> while it's open | a sticky note with the **secret menu** (dirty chai; "the biscuit") |
+| 12 | lobby window | be there at 11:11 (sim time, am or pm) | a **shooting star**: make a wish. Fast-forward helps |
+| 13 | anywhere | switch rooms six times in three seconds | the logo gets **dizzy** and spins |
+| 14 | the browser tab | leave it for a minute and a half | the tab title frets that your latte's getting cold, and the café **welcomes you back** |
+| 15 | lobby, on special sim dates | 1 Oct, Diwali, 24–25 Dec | **festive dressing**: coffee-day bunting, a marigold toran with flickering diyas, a Santa hat on the order bell |
+
+And for anyone who opens devtools, there's a hand-drawn cup and a hint in the console. Find all fifteen to be named
+head barista.
+
+</details>
 
 ## Repository layout
 
