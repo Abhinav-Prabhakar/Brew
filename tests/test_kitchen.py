@@ -104,6 +104,9 @@ def test_batch_time_formula(small_world):
     assert dur == pytest.approx(30.0 * (1 + 0.35 * 2), rel=1e-3)
     ev = [e for e in w.test_sink.events if e.type == "batch.started"]
     assert ev and ev[-1].data["size"] == 3
+    # saves_s: 3 solo runs (90 s) vs one batch (30 * 1.7 = 51 s) -> 39 s
+    assert ev[-1].data["saves_s"] == pytest.approx(2 * 0.65 * 30.0, abs=0.1)
+    assert [e for e in w.test_sink.events if e.type == "batch.formed"][-1].data["saves_s"] == ev[-1].data["saves_s"]
 
 
 def test_errors_cause_remakes_and_extra_consumption(cfg):

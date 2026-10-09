@@ -166,6 +166,7 @@ class BatchFormed(D):
     step: str
     order_nos: list[int]
     size: int
+    saves_s: float = 0.0  # sim-seconds saved vs running the tasks one by one
 
 
 class BatchStarted(D):
@@ -174,6 +175,7 @@ class BatchStarted(D):
     step: str
     order_nos: list[int]
     size: int
+    saves_s: float = 0.0  # sim-seconds saved vs running the tasks one by one
 
 
 class OrderReady(D):
