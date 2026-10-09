@@ -432,6 +432,11 @@
     #viewport *{animation:none!important}
     #track{transition:none}
   }
+  /* perf: CSS loops of the rooms off screen hold still (they are not painted anyway, but their style ticks) */
+  body[data-room="lobby"] :is(#kitchen,#pantry) *,body[data-room="kitchen"] :is(#lobby,#pantry) *,body[data-room="pantry"] :is(#lobby,#kitchen) *{animation-play-state:paused!important}
+  /* dev overlay: ?fps */
+  #fps{position:fixed;left:10px;bottom:10px;z-index:99;font:15px 'Patrick Hand',sans-serif;background:var(--paper);border:2px solid var(--ink);border-radius:10px 4px 10px 4px;box-shadow:3px 3px 0 var(--ink);padding:3px 10px;pointer-events:none}
+  #fps b{font-family:'Gochi Hand',cursive;font-weight:400}
 </style>
 </head>
 <body>
@@ -518,6 +523,17 @@
 <script src="pantry.js"></script>
 <script src="menu.js"></script>
 <script src="hud.js"></script>
+<script>/* ?fps: frames per second + p95 frame time over the last 2 s (dev) */
+  if (/[?&]fps\b/.test(location.search)) { const el = document.createElement('div'); el.id = 'fps'; document.body.appendChild(el);
+    const d = []; let last = 0, shown = 0;
+    const f = (t) => { if (last) d.push(t - last); last = t; if (d.length > 120) d.shift();
+      if (t - shown > 500 && d.length > 10) { shown = t; const s = [...d].sort((a, b) => a - b), p95 = s[Math.floor(s.length * .95)];
+        el.innerHTML = `<b>${Math.round(1000 / (d.reduce((a, b) => a + b, 0) / d.length))}</b> fps · p95 <b style="color:${p95 > 17 ? 'var(--bad)' : 'inherit'}">${p95.toFixed(1)}</b> ms`; }
+      requestAnimationFrame(f); }; requestAnimationFrame(f); }
+</script>
+<script>/* static hand-drawn groups → bitmaps once (perf); the visible room first */
+  window.BREW_BAKED = (async () => { const order = [(location.hash || '#lobby').slice(1), 'lobby', 'kitchen', 'pantry'];
+    for (const r of [...new Set(order)]) await R.bake(document.getElementById(r + '-scene')); })();</script>
 <script>
 (() => {
   const body = document.body, track = document.getElementById('track');

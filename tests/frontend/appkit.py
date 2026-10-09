@@ -92,6 +92,7 @@ def open_app(browser: Any, static_url: str) -> Iterator[Callable[..., App]]:
             page.route(FONTS_GLOB, lambda r: r.abort())
         page.goto(f"{static_url}/design/brew.html?source=replay&fixture={fixture}&speed=0&still{extra}")
         page.wait_for_function("window.BrewLive && BrewLive.state && BrewLive.source && BrewLive.source.stream", timeout=15000)
+        page.evaluate("window.BREW_BAKED")  # static backdrops are bitmaps from here on (R.bake): deterministic screenshots
         app = App(page, errors)
         apps.append(app)
         return app

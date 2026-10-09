@@ -63,6 +63,55 @@ const R = (() => {
     el._raf = requestAnimationFrame(step);
   }
 
+  /** Bake the static hand-drawn groups of a room into bitmaps (perf: the #wob turbulence filter on a big group is
+      re-run on every repaint of the SVG, ~150 ms/frame in the lobby). A static group = a `g[filter=url(#wob)]`
+      without an id, outside every live layer (`[id]` child of the scene). Drawn once to a canvas at device
+      resolution (filter included) and swapped for an <image> in place, so the z-order is unchanged. Children that
+      animate or are interactive (class / data-* / tabindex / role) stay live: the original group is kept but hidden,
+      those children stay visible and carry the wobble themselves (a small filter region is cheap).
+      Resolves when every group is swapped; sets `data-baked` on the scene. */
+  function bake(scene, {scale} = {}) {
+    if (!scene || /[?&]nobake\b/.test(location.search)) return Promise.resolve(0);
+    const s = scale || Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+    // live layers with a room-wide wobble: the filter moves onto each child (a person, a bag, a table), so one walking
+    // customer re-filters ~100×200 px instead of the whole layer. New children get it too.
+    for (const L of scene.querySelectorAll(':scope > [id][filter="url(#wob)"]')) {
+      L.removeAttribute('filter');
+      const fix = () => { for (const c of L.children) if (!c.hasAttribute('filter')) c.setAttribute('filter', 'url(#wob)'); };
+      fix(); new MutationObserver(fix).observe(L, {childList: true});
+    }
+    const groups = [...scene.querySelectorAll('g[filter="url(#wob)"]:not([id])')].filter((g) => g.parentNode.closest('[id]') === scene);
+    const keepLive = (e) => e.hasAttribute('class') || e.hasAttribute('tabindex') || e.hasAttribute('role') || Object.keys(e.dataset || {}).length;
+    const refs = (html, out) => { for (const m of html.matchAll(/(?:href="#|url\(#)([\w-]+)/g)) if (!out.has(m[1])) { const el = document.getElementById(m[1]); if (el) { out.set(m[1], el.outerHTML); refs(el.outerHTML, out); } } return out; };
+    const jobs = groups.map(async (g) => {
+      const b = g.getBBox(), pad = 8;
+      const x0 = Math.max(-10, Math.floor(b.x - pad)), y0 = Math.max(-10, Math.floor(b.y - pad));
+      const x1 = Math.min(1620, Math.ceil(b.x + b.width + pad)), y1 = Math.min(1010, Math.ceil(b.y + b.height + pad));
+      const w = x1 - x0, h = y1 - y0; if (w <= 0 || h <= 0) return;
+      const live = [...g.querySelectorAll('*')].filter(keepLive);
+      const clone = g.cloneNode(true); clone.removeAttribute('transform');
+      clone.querySelectorAll('*').forEach((e) => { if (keepLive(e)) e.setAttribute('visibility', 'hidden'); });
+      const body = clone.outerHTML, defs = [...refs(body, new Map()).values()].join('');
+      const svg = `<svg xmlns="${NS}" xmlns:xlink="http://www.w3.org/1999/xlink" width="${w * s}" height="${h * s}" viewBox="${x0} ${y0} ${w} ${h}"><defs>${defs}</defs>${body}</svg>`;
+      const img = new Image(); img.src = URL.createObjectURL(new Blob([svg], {type: 'image/svg+xml'}));
+      await img.decode();
+      const cv = document.createElement('canvas'); cv.width = w * s; cv.height = h * s;
+      cv.getContext('2d').drawImage(img, 0, 0, w * s, h * s); URL.revokeObjectURL(img.src);
+      const png = await new Promise((r) => cv.toBlob(r, 'image/png'));
+      const im = document.createElementNS(NS, 'image');
+      for (const [k, v] of Object.entries({x: x0, y: y0, width: w, height: h, preserveAspectRatio: 'none', href: URL.createObjectURL(png)})) im.setAttribute(k, v);
+      if (g.getAttribute('transform')) im.setAttribute('transform', g.getAttribute('transform'));
+      im.setAttribute('aria-hidden', 'true'); im.dataset.baked = '';
+      await im.decode?.().catch(() => {});
+      g.parentNode.insertBefore(im, g);
+      if (!live.length) { g.remove(); return; }
+      g.removeAttribute('filter'); g.setAttribute('visibility', 'hidden');
+      for (const e of live) { e.setAttribute('visibility', 'visible'); if (!e.closest('[filter]')) e.setAttribute('filter', 'url(#wob)'); }
+    });
+    return Promise.all(jobs).then(() => { scene.dataset.baked = String(jobs.length); return jobs.length; },
+      (e) => { console.warn('bake failed, keeping live groups', e); return 0; });
+  }
+
   const tod = (s) => ((s % DAY) + DAY) % DAY;
   const hm12 = (s) => { const t = tod(s), h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60);
     return `${String(h % 12 || 12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`; };
@@ -87,5 +136,5 @@ const R = (() => {
     bus.on('frame', (s) => fn(s || S(), false));
     if (S()) fn(S(), true);
   }
-  return {NS, reduced, layer, moveTo, xyOf, bump, roll, hm12, hm, mmss, dur, rs, rsk, human, hash, now, S, onState, tod, DAY};
+  return {NS, reduced, layer, bake, moveTo, xyOf, bump, roll, hm12, hm, mmss, dur, rs, rsk, human, hash, now, S, onState, tod, DAY};
 })();
