@@ -1,0 +1,173 @@
+# Recipes: BOM + step DAG. duration: [mean_s, sd_s] (lognormal). attention in (0,1].
+# depends_on: absent => previous step in the list; [] => no dependency (runs in parallel).
+# packaging: groups applied per-recipe via `pack`; `when` = dine_in | carry (takeaway + delivery).
+packaging:
+  hot_drink:
+    - {ingredient: cup_ceramic_m, qty: 1, returnable: true, when: dine_in}
+    - {ingredient: cup_paper_m, qty: 1, when: carry}
+    - {ingredient: lid, qty: 1, when: carry}
+    - {ingredient: sleeve, qty: 1, when: carry}
+  cold_drink:
+    - {ingredient: cup_ceramic_m, qty: 1, returnable: true, when: dine_in}
+    - {ingredient: cup_paper_m, qty: 1, when: carry}
+    - {ingredient: lid, qty: 1, when: carry}
+    - {ingredient: straw, qty: 1, when: carry}
+  food:
+    - {ingredient: plate, qty: 1, returnable: true, when: dine_in}
+    - {ingredient: food_box, qty: 1, when: carry}
+    - {ingredient: cutlery_set, qty: 1, when: carry}
+recipes:
+  espresso:
+    pack: hot_drink
+    components: [{ingredient: coffee_beans, qty: 18}]
+    steps:
+      - {name: grind, station: grinder, duration: [12, 3], attention: 1.0}
+      - {name: shot, station: espresso, duration: [28, 4], attention: 0.3, uses_slot: true}
+      - {name: hand, station: pass, duration: [8, 2], attention: 1.0}
+  cappuccino:
+    pack: hot_drink
+    components: [{ingredient: coffee_beans, qty: 18}, {ingredient: milk, qty: 150}]
+    steps: &milk_espresso
+      - {name: grind, station: grinder, duration: [12, 3], attention: 1.0}
+      - {name: shot, station: espresso, duration: [28, 4], attention: 0.3, uses_slot: true}
+      - {name: steam, station: espresso, duration: [35, 6], attention: 0.6, batchable: true, max_batch: 3, batch_factor: 0.35, depends_on: []}
+      - {name: pour, station: espresso, duration: [12, 3], attention: 1.0, depends_on: [shot, steam]}
+      - {name: hand, station: pass, duration: [8, 2], attention: 1.0}
+  flatwhite:
+    pack: hot_drink
+    components: [{ingredient: coffee_beans, qty: 18}, {ingredient: milk, qty: 120}]
+    steps: *milk_espresso
+  latte:
+    pack: hot_drink
+    components: [{ingredient: coffee_beans, qty: 18}, {ingredient: milk, qty: 200}]
+    steps: *milk_espresso
+  roselatte:
+    pack: hot_drink
+    components: [{ingredient: coffee_beans, qty: 18}, {ingredient: milk, qty: 200}, {ingredient: rose_syrup, qty: 15}]
+    steps:
+      - {name: grind, station: grinder, duration: [12, 3], attention: 1.0}
+      - {name: shot, station: espresso, duration: [28, 4], attention: 0.3, uses_slot: true}
+      - {name: steam, station: espresso, duration: [35, 6], attention: 0.6, batchable: true, max_batch: 3, batch_factor: 0.35, depends_on: []}
+      - {name: syrup, station: espresso, duration: [6, 1], attention: 1.0, depends_on: []}
+      - {name: pour, station: espresso, duration: [12, 3], attention: 1.0, depends_on: [shot, steam, syrup]}
+      - {name: hand, station: pass, duration: [8, 2], attention: 1.0}
+  icedlatte:
+    pack: cold_drink
+    components: [{ingredient: coffee_beans, qty: 18}, {ingredient: milk, qty: 150}, {ingredient: ice, qty: 150}]
+    steps:
+      - {name: grind, station: grinder, duration: [12, 3], attention: 1.0}
+      - {name: shot, station: espresso, duration: [28, 4], attention: 0.3, uses_slot: true}
+      - {name: build, station: cold, duration: [20, 4], attention: 1.0}
+      - {name: hand, station: pass, duration: [8, 2], attention: 1.0}
+  coldbrew:
+    pack: cold_drink
+    components: [{ingredient: coldbrew_concentrate, qty: 120}, {ingredient: ice, qty: 100}]
+    steps:
+      - {name: pour, station: cold, duration: [20, 4], attention: 1.0}
+      - {name: hand, station: pass, duration: [8, 2], attention: 1.0}
+  filtercoffee:
+    pack: hot_drink
+    components: [{ingredient: filter_coffee_powder, qty: 15}, {ingredient: milk, qty: 120}, {ingredient: sugar, qty: 8}]
+    steps:
+      - {name: pour, station: bar, duration: [25, 5], attention: 1.0}
+      - {name: hand, station: pass, duration: [8, 2], attention: 1.0}
+  chai:
+    pack: hot_drink
+    components: [{ingredient: chai_base, qty: 160}]
+    steps:
+      - {name: pour, station: bar, duration: [40, 7], attention: 1.0}
+      - {name: hand, station: pass, duration: [8, 2], attention: 1.0}
+  matcha:
+    pack: hot_drink
+    components: [{ingredient: matcha_powder, qty: 3}, {ingredient: milk, qty: 180}, {ingredient: sugar, qty: 8}]
+    steps:
+      - {name: whisk, station: bar, duration: [60, 10], attention: 1.0}
+      - {name: steam, station: espresso, duration: [35, 6], attention: 0.6, batchable: true, max_batch: 3, batch_factor: 0.35, depends_on: []}
+      - {name: pour, station: espresso, duration: [12, 3], attention: 1.0, depends_on: [whisk, steam]}
+      - {name: hand, station: pass, duration: [8, 2], attention: 1.0}
+  hotchoc:
+    pack: hot_drink
+    components: [{ingredient: dark_choc, qty: 35}, {ingredient: milk, qty: 200}, {ingredient: marshmallow, qty: 6}, {ingredient: sugar, qty: 6}]
+    steps:
+      - {name: melt, station: bar, duration: [45, 8], attention: 1.0}
+      - {name: steam, station: espresso, duration: [35, 6], attention: 0.6, batchable: true, max_batch: 3, batch_factor: 0.35, depends_on: []}
+      - {name: pour, station: espresso, duration: [12, 3], attention: 1.0, depends_on: [melt, steam]}
+      - {name: hand, station: pass, duration: [8, 2], attention: 1.0}
+  rosemilk:
+    pack: cold_drink
+    components: [{ingredient: milk, qty: 200}, {ingredient: rose_syrup, qty: 30}, {ingredient: sabja_seeds, qty: 4}, {ingredient: ice, qty: 80}, {ingredient: sugar, qty: 5}]
+    steps:
+      - {name: build, station: cold, duration: [35, 6], attention: 1.0}
+      - {name: hand, station: pass, duration: [8, 2], attention: 1.0}
+  strawberryshake:
+    pack: cold_drink
+    components: [{ingredient: strawberry_puree, qty: 80}, {ingredient: milk, qty: 150}, {ingredient: vanilla_icecream, qty: 60}, {ingredient: ice, qty: 80}, {ingredient: sugar, qty: 5}]
+    steps:
+      - {name: blend, station: blender, duration: [75, 10], attention: 0.3, uses_slot: true}
+      - {name: hand, station: pass, duration: [8, 2], attention: 1.0}
+  croissant:
+    pack: food
+    components: [{ingredient: croissant_baked, qty: 1}]
+    steps:
+      - {name: pick, station: display, duration: [15, 3], attention: 1.0}
+      - {name: warm, station: oven, duration: [150, 15], attention: 0.1, uses_slot: true, batchable: true, max_batch: 6, batch_factor: 0.1}
+      - {name: plate, station: pass, duration: [10, 2], attention: 1.0}
+  cinnamon:
+    pack: food
+    components: [{ingredient: cinnamon_roll_fg, qty: 1}]
+    steps:
+      - {name: pick, station: display, duration: [15, 3], attention: 1.0}
+      - {name: warm, station: oven, duration: [150, 15], attention: 0.1, uses_slot: true, batchable: true, max_batch: 6, batch_factor: 0.1}
+      - {name: plate, station: pass, duration: [10, 2], attention: 1.0}
+  muffin:
+    pack: food
+    components: [{ingredient: muffin_fg, qty: 1}]
+    steps:
+      - {name: pick, station: display, duration: [15, 3], attention: 1.0}
+      - {name: plate, station: pass, duration: [12, 3], attention: 1.0}
+  cheesecake:
+    pack: food
+    components: [{ingredient: cheesecake_slice, qty: 1}]
+    steps:
+      - {name: pick, station: display, duration: [15, 3], attention: 1.0}
+      - {name: plate, station: pass, duration: [12, 3], attention: 1.0}
+  waffle:
+    pack: food
+    components: [{ingredient: waffle_mix, qty: 150}, {ingredient: milk, qty: 100}, {ingredient: maple_syrup, qty: 25}, {ingredient: butter, qty: 10}, {ingredient: strawberry_puree, qty: 30}]
+    steps:
+      - {name: batter, station: prep, duration: [20, 4], attention: 1.0}
+      - {name: iron, station: griddle, duration: [240, 20], attention: 0.15, uses_slot: true}
+      - {name: plate, station: pass, duration: [25, 5], attention: 1.0}
+  avotoast:
+    pack: food
+    components: [{ingredient: sourdough, qty: 2}, {ingredient: avocado, qty: 1}, {ingredient: chilli_crunch, qty: 4}, {ingredient: microgreens, qty: 5}]
+    steps:
+      - {name: toast, station: press, duration: [120, 15], attention: 0.1, uses_slot: true, depends_on: []}
+      - {name: smash, station: prep, duration: [60, 10], attention: 1.0, depends_on: []}
+      - {name: assemble, station: prep, duration: [45, 8], attention: 1.0, depends_on: [toast, smash]}
+  sandwich:
+    pack: food
+    components: [{ingredient: sandwich_bread, qty: 2}, {ingredient: paneer_marinade, qty: 120}, {ingredient: mint_chutney, qty: 20}, {ingredient: pickled_onion, qty: 15}]
+    steps:
+      - {name: assemble, station: prep, duration: [60, 10], attention: 1.0}
+      - {name: press, station: press, duration: [300, 25], attention: 0.1, uses_slot: true}
+      - {name: cut, station: pass, duration: [20, 4], attention: 1.0}
+  cheesetoast:
+    pack: food
+    components: [{ingredient: sandwich_bread, qty: 2}, {ingredient: cheddar, qty: 40}, {ingredient: green_chilli, qty: 5}, {ingredient: butter, qty: 10}]
+    steps:
+      - {name: assemble, station: prep, duration: [40, 8], attention: 1.0}
+      - {name: bake, station: oven, duration: [240, 20], attention: 0.1, uses_slot: true, batchable: true, max_batch: 4, batch_factor: 0.12}
+      - {name: plate, station: pass, duration: [10, 2], attention: 1.0}
+  fries:
+    pack: food
+    components: [{ingredient: fries_cut, qty: 180}, {ingredient: oil, qty: 30}, {ingredient: seasoning, qty: 3}]
+    steps:
+      - {name: fry, station: fryer, duration: [210, 20], attention: 0.2, uses_slot: true, batchable: true, max_batch: 2, batch_factor: 0.2}
+      - {name: season, station: pass, duration: [15, 3], attention: 1.0}
+  pasta:
+    pack: food
+    components: [{ingredient: pasta_dry, qty: 100}, {ingredient: arrabbiata_sauce, qty: 120}, {ingredient: parmesan, qty: 8}]
+    steps:
+      - {name: boil, station: stove, duration: [480, 40], attention: 0.2, uses_slot: true}
+      - {name: plate, station: pass, duration: [30, 6], attention: 1.0}

@@ -1,0 +1,8 @@
+key: weekend_brunch
+name: Weekend brunch
+description: A sunny Saturday - leisurely brunchers, families and tourists fill the tables.
+start_date: "2026-10-10"
+weather: {profile: dry, initial: sunny, temp_offset: 1}
+demand: {global_mult: 1.0, persona_mult: {leisurely: 1.1, family: 1.1}}
+disruptions: []
+random_chaos: {rate_per_day: 0.0}

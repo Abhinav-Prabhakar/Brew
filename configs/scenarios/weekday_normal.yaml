@@ -1,0 +1,8 @@
+key: weekday_normal
+name: Weekday, normal
+description: An ordinary Monday in October. Calm weather, no disruptions beyond random equipment wear.
+start_date: "2026-10-05"
+weather: {profile: default, initial: partly, temp_offset: 0}
+demand: {global_mult: 1.0}
+disruptions: []
+random_chaos: {rate_per_day: 0.0}

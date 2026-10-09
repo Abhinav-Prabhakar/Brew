@@ -1,0 +1,11 @@
+key: heatwave
+name: Heatwave
+description: A dry, hot week. Cold drinks soar, ice and cold milk run down, hot drinks crawl.
+start_date: "2026-10-07"
+weather: {profile: dry, initial: sunny, temp_offset: 6}
+demand:
+  global_mult: 0.95
+  category_mult: {coffee: 1.0, notcoffee: 1.1}
+disruptions:
+  - {kind: supplier_short, target: dairy, start: "07:00", end: "22:00", severity: 0.7}
+random_chaos: {rate_per_day: 0.0}

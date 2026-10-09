@@ -1,0 +1,16 @@
+# The first 13 are the canonical stations (observation vector). prep + register are extra pseudo-stations.
+- {key: espresso, max_staff: 2, equipment: [espresso_machine], canonical: true}
+- {key: grinder, max_staff: 1, equipment: [grinder], canonical: true}
+- {key: bar, max_staff: 1, equipment: [bar_station], canonical: true}
+- {key: blender, max_staff: 1, equipment: [blender], canonical: true}
+- {key: cold, max_staff: 1, equipment: [cold_tower], canonical: true}
+- {key: oven, max_staff: 1, equipment: [oven], canonical: true}
+- {key: press, max_staff: 1, equipment: [panini_press], canonical: true}
+- {key: fryer, max_staff: 1, equipment: [fryer], canonical: true}
+- {key: stove, max_staff: 1, equipment: [stove], canonical: true}
+- {key: griddle, max_staff: 1, equipment: [waffle_iron], canonical: true}
+- {key: display, max_staff: 1, equipment: [pastry_fridge], canonical: true}
+- {key: pass, max_staff: 2, equipment: [pass_counter], canonical: true}
+- {key: dishpit, max_staff: 1, equipment: [dishwasher_machine], canonical: true}
+- {key: prep, max_staff: 1, equipment: [prep_board], canonical: false}
+- {key: register, max_staff: 2, equipment: [pos_terminal], canonical: false}
