@@ -38,8 +38,8 @@ bc:                            # BC on 200 days of Policy C (29 episodes of 7 da
   scenarios: [weekday_normal, weekend_brunch, rainy_delivery_surge, heatwave, exam_week, festival]
   domain_randomisation: true
 ppo:                           # technical.md 13.5
-  total_timesteps: 5000000
-  n_envs: auto                 # min(16, cpu - 2), SubprocVecEnv
+  total_timesteps: 2500000     # sized for < 12 h on the i5-11400 desktop (~85 steps/s); spec target was 5 M
+  n_envs: 6                    # measured: 6 workers 112 env-steps/s > 10 workers 98 (6 physical cores, shared cache)
   vec: subproc
   n_steps: 512
   batch_size: 4096
@@ -60,10 +60,10 @@ ppo:                           # technical.md 13.5
   domain_randomisation: true
   chaos: random
 adversarial:                   # RARL, k = 2 iterations; protagonist trains vs 50 % random / 30 % adversary / 20 % calm
-  total_timesteps: 1000000
+  total_timesteps: 300000      # trimmed for the < 12 h budget (spec: 1 M)
   iterations: 2
-  protagonist_steps: 250000
-  n_envs: auto
+  protagonist_steps: 100000
+  n_envs: 6
   vec: subproc
   n_steps: 256
   batch_size: 2048

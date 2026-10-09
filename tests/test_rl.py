@@ -360,7 +360,7 @@ def test_full_config_dry_run_validates():
     r = CliRunner().invoke(train_app, ["all", "--config", "configs/train/full.yaml", "--dry-run"])
     assert r.exit_code == 0, r.output
     out = r.output.replace("\n", " ")
-    assert "13 stages" in out and "5000000" in out and "plan is valid" in out
+    assert "13 stages" in out and "2500000" in out and "plan is valid" in out
     assert "28" in out  # the 28-day curriculum stage
 
 
