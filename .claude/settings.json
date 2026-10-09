@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv:*)",
+      "Bash(uv run:*)",
+      "Bash(git:*)",
+      "Bash(gh:*)",
+      "Bash(ssh -i ~/.ssh/brew_desktop_ed25519:*)",
+      "Bash(scp -i ~/.ssh/brew_desktop_ed25519:*)",
+      "Bash(bash scripts/desktop/overnight.sh:*)",
+      "Bash(python3:*)",
+      "Bash(node --check:*)",
+      "Bash(ls:*)", "Bash(cat:*)", "Bash(head:*)", "Bash(tail:*)", "Bash(grep:*)", "Bash(find:*)",
+      "Bash(wc:*)", "Bash(du:*)", "Bash(ps:*)", "Bash(pkill:*)", "Bash(mkdir:*)", "Bash(cp:*)", "Bash(mv:*)",
+      "Bash(sed:*)", "Bash(chmod:*)", "Bash(date:*)", "Bash(nc:*)", "Bash(tailscale:*)",
+      "Read", "Edit", "Write",
+      "Agent",
+      "mcp__Claude_Browser__*"
+    ]
+  }
+}

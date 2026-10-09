@@ -13,6 +13,9 @@
 # a failed push never stops training. Final upload retries with backoff. Checkpoints stay
 # local (runs/…) unless --push-model is given (then only the small champion ONNX is pushed).
 set -uo pipefail
+# WSL keeps nvidia-smi in /usr/lib/wsl/lib; uv installs to ~/.local/bin
+export PATH="$PATH:/usr/lib/wsl/lib:$HOME/.local/bin:$HOME/.cargo/bin"
+PS_EXE="$(command -v powershell.exe 2>/dev/null || echo /mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe)"
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 STATE_DIR="$REPO/.overnight"
@@ -91,8 +94,8 @@ push_with_retry() { # tries
 
 # Keep Windows awake while training (WSL only; no admin needed). Best effort.
 keep_awake() {
-  command -v powershell.exe >/dev/null 2>&1 || return 0
-  powershell.exe -NoProfile -Command '
+  [ -x "$PS_EXE" ] || return 0
+  "$PS_EXE" -NoProfile -Command '
     $s = Add-Type -MemberDefinition "[DllImport(\"kernel32.dll\")] public static extern uint SetThreadExecutionState(uint f);" -Name P -Namespace W -PassThru;
     while ($true) { [void]$s::SetThreadExecutionState(0x80000001); Start-Sleep 50 }' >/dev/null 2>&1 &
   echo $! > "$STATE_DIR/awake.pid"
