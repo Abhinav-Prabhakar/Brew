@@ -1,5 +1,8 @@
 # Handoff: frontend–backend integration status (2026-10-06)
 
+> **Closed.** Every pending item below is done (verify, wave 2, UI loose ends, docs, branches). Only the first CI run
+> remains to be checked on GitHub Actions. Next phase: `polish.md` via `docs/handoff/polish-plan.md`.
+
 This continues `frontend-backend-integration.md` on a fresh machine. Read that file first for the rules: uv only,
 commit and push to `main` often, Sonnet sub-agents for non-UI work, keep the hand-inked style, never change an event
 silently, at most 2 heavy processes. Then read this one. After the pending items below, the next phase is
@@ -106,7 +109,7 @@ Useful dev URLs:
 - Every action button works: ✅ (checked by hand; e2e covers chaos, serve, price, approve).
 - Chaos visibly changes the kitchen and the RL reaction shows up: ✅ (immediate re-plan, `trigger`).
 - The profit card expands into the comparison: ✅
-- All new tests pass in CI: ⏳ (pending items 1–3).
+- All new tests pass in CI: ✅ locally (full suite green on an M3); first GitHub Actions run to be checked.
 - Reconnect mid-day resumes cleanly: ✅ (store and e2e tests).
 
 ## Then: polish

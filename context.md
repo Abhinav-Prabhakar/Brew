@@ -1,7 +1,8 @@
 # ROADMAP: from here to a polished demo (written 2026-10-06, updated the same day)
 
-> **Integration phase checkpoint:** see `docs/handoff/integration-status.md` for what's done and the remaining items
-> (verify `main`, finish visual/perf tests from `docs/handoff/wave2-wip.patch`, get CI green), then `polish.md`.
+> **Integration phase: done (2026-10-06).** The page streams the live café; no mock data; every button calls the real
+> API; visual-regression and perf tests are merged (see `docs/handoff/integration-status.md`). **Now: polish**
+> (`polish.md`, executed per `docs/handoff/polish-plan.md`).
 
 > Read `plan.md` first. It is the master plan and was rewritten on 2026-10-06. This file is the short, current
 > status plus the ordered roadmap. Each phase has its own self-contained handoff doc, written for a fresh chat.
@@ -18,13 +19,13 @@
   - Final arena (10 seeds × 7 days), per day: A ₹62.1k, B ₹73.5k, C ₹96.9k, **D ₹104.9k** (D beats C by 8 % and A by
     69 %).
   - Full metrics are in `docs/training/full-20261005/`. The story is told in `technical.md` §9.
-- **Frontend: `design/` is final** (hand-inked 2D, "Strawberry Milk" palette), with **three screens only: lobby,
-  kitchen, pantry**.
-  - It is **static or mocked**. The exception is the new **menu book** (`design/menu.js`): it flies off the lectern,
-    turns 3D pages, shows live prices with an ink strike-through, and has meal-combo and rescue-shelf spreads, all
-    driven by a mock with backend event shapes.
-  - `lobby/` (3D pink café) and `kitchen/` (3D night kitchen) are retired prototypes, to be deleted during
-    integration. `kitchen/` still has uncommitted work-in-progress from another chat; it is unused.
+- **Frontend: `design/` is live** (hand-inked 2D, "Strawberry Milk" palette), with **three screens only: lobby,
+  kitchen, pantry**, plus the menu book and the HUD profit → policy-comparison card.
+  - Client layer in `design/live/` (bus, pure store/reducers, `WsSource` / `ReplaySource`, REST polling); FastAPI
+    serves `design/` at `/`. Offline, the page replays a recorded morning and says so.
+  - Tests: contract, store, sources, rendering, no-mock, e2e against `brew-api`, visual regression (darwin
+    baselines) and a perf guard (lobby frame time is the known polish item).
+  - `lobby/` and `kitchen/` prototypes are deleted (`audio.js` lives on in `git show 76fb830:lobby/js/audio.js`).
 - **Docs:**
   - `plan.md`: master plan.
   - `technical.md`: judges' deep-dive.

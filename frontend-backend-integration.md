@@ -180,7 +180,7 @@ tests that define it before writing integration code. Explore and decide the det
 Commit the harness first, then add tests incrementally. Most of this is not UI design, so **delegate it to Sonnet 5.5
 sub-agents** and review it yourself.
 
-## 5. Phase B: integration
+## 5. Phase B: integration (completed 2026-10-06; status in `docs/handoff/integration-status.md`)
 **Target architecture:**
 ```
 WsSource (real) | ReplaySource (fixtures/demo fallback) | MockSource (dev only)
