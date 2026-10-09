@@ -11,7 +11,6 @@ from brew.analysis.explain import Explainer
 from brew.analysis.impact import replate_cannibalisation, scoreboard
 from brew.events.bus import ListSink
 from brew.policies.base import ManagerAction
-from brew.policies.registry import make_policy
 from brew.sim.actions import InvalidAction, UnknownTarget
 from brew.sim.world import World
 
@@ -37,6 +36,18 @@ def test_policy_c_runs_a_full_day_and_records_decisions(day_c):
     assert day_c.policy.solve_stats["calls"] > 0  # the CP-SAT / greedy plan was used
     types = {d.data["type"] for d in decs}
     assert "prep_start" in types
+
+
+def test_policy_c_event_stream_validates_and_seq_increases(day_c):
+    from brew.events.schema import validate_event
+
+    ev = day_c.test_sink.events
+    assert [e.seq for e in ev] == list(range(1, len(ev) + 1))
+    types = set()
+    for e in ev:
+        validate_event(e.type, e.data)
+        types.add(e.type)
+    assert {"decision.made", "prep.started", "bottleneck.changed"} <= types
 
 
 def test_policy_c_is_deterministic():
