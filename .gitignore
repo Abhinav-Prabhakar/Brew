@@ -19,3 +19,8 @@ wandb/
 runs/
 *.log
 .env
+kitchen/assets/_src/
+.shots/
+
+# desktop overnight runner state (logs worktree, pid files)
+.overnight/
