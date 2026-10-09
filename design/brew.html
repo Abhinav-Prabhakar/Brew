@@ -14,7 +14,7 @@
     --sage:#8fa585; --olive:#6f7a4c; --terra:#c0634f; --mustard:#e3b25a; --navy:#3d4556; --kraft:#c9a27a;
     /* one motion vocabulary: in (leaving), out (arriving), spring (stamps, chips, cards), move (things that travel), cam (the room track) */
     --ease-in:cubic-bezier(.6,0,.75,.4); --ease-out:cubic-bezier(.2,.9,.3,1); --ease-spring:cubic-bezier(.3,1.6,.5,1);
-    --ease-move:cubic-bezier(.45,.05,.3,1); --ease-cam:cubic-bezier(.7,0,.22,1);
+    --ease-move:cubic-bezier(.45,.05,.3,1); --ease-cam:cubic-bezier(.7,0,.2,1.06);  /* cam: a hair of overshoot, like a dolly settling */
     --steel:#e4e7eb; --steel-l:#f2f4f6; --ok:#7fc37a; --warn:#f2b33d; --bad:#e2483d;
     --hand:'Gochi Hand','Comic Sans MS',cursive; --body:'Patrick Hand','Comic Sans MS',cursive;
     color-scheme:light;
@@ -432,7 +432,7 @@
   body.still *{animation:none!important;transition:none!important}
   @media (prefers-reduced-motion: reduce){
     #viewport *{animation:none!important}
-    #track{transition:none}
+    #track,.room,.cam-far{transition:none!important}
     /* information still changes: movement becomes a short fade */
     #viewport :is(.pop,.slide,.settle,.unfold),.cmp.unfold{animation:rmFade .3s ease!important}
     .cmp.unfold .ink{stroke-dashoffset:0!important;animation:none!important} .cmp.unfold .dot{opacity:1!important;animation:none!important}
@@ -450,6 +450,13 @@
   @keyframes settle{35%{transform:scale(1.04,.95)}}
   .p-fefo{transform-box:fill-box;animation:fefo 1.6s ease-in-out infinite}
   @keyframes fefo{0%,60%,100%{transform:none}75%{transform:translateX(3px)}}
+  /* camera: focus zooms transform the whole room (art + cards); zones are focusable for keyboard / screen readers */
+  .room{transform-origin:0 0;transition:transform .95s var(--ease-cam)}
+  .room.zoomed{z-index:3} .room.zoomed > svg{cursor:zoom-out}
+  .zoomhit{fill:transparent;pointer-events:none;outline:none}
+  .zoomhit:focus-visible{stroke:var(--pink-d);stroke-width:4;stroke-dasharray:10 8;fill:rgba(253,238,228,.25)}
+  #camback{position:absolute;left:24px;top:112px;z-index:35;animation:slideIn .5s var(--ease-out)}
+  #camback[hidden]{display:none}
   /* perf: CSS loops of the rooms off screen hold still (they are not painted anyway, but their style ticks) */
   body[data-room="lobby"] :is(#kitchen,#pantry) *,body[data-room="kitchen"] :is(#lobby,#pantry) *,body[data-room="pantry"] :is(#lobby,#kitchen) *{animation-play-state:paused!important}
   /* dev overlay: ?fps */
@@ -541,6 +548,7 @@
 <script src="pantry.js"></script>
 <script src="menu.js"></script>
 <script src="hud.js"></script>
+<script src="camera.js"></script>
 <script>/* ?fps: frames per second + p95 frame time over the last 2 s (dev) */
   if (/[?&]fps\b/.test(location.search)) { const el = document.createElement('div'); el.id = 'fps'; document.body.appendChild(el);
     const d = []; let last = 0, shown = 0;
