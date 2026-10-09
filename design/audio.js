@@ -15,6 +15,7 @@
   const cfg = {vol: store.vol ?? .7, muted: store.muted ?? false, calm: store.calm ?? false, captions: store.captions ?? false};
   const save = () => { try { localStorage.setItem('brew.audio', JSON.stringify(cfg)); } catch (e) { /* private mode */ } };
   const silent = /[?&](still|mute)\b/.test(location.search) || navigator.webdriver;
+  const DEBUG = /[?&]audiodebug\b/.test(location.search);  // log voices that throw (they're silent otherwise)
 
   let ctx = null, master, sfxBus, wallBus, ambBus, musicBus, duckBus, noiseBuf, brownBuf;
   const last = {}; let budget = [];
@@ -205,7 +206,7 @@
     const here = room === 'ui' || room === document.body.dataset.room;
     if (!here && cfg.calm) return;
     DEST = here ? sfxBus : wallBus;
-    try { V[name](...args); } catch (e) { /* audio is best-effort */ } finally { DEST = null; }
+    try { V[name](...args); } catch (e) { if (DEBUG) console.error('audio voice', name, e); /* audio is best-effort */ } finally { DEST = null; }
   }
   function duck() {
     const t = T0(); duckBus.gain.cancelScheduledValues(t); duckBus.gain.setTargetAtTime(.35, t, .03); duckBus.gain.setTargetAtTime(1, t + .9, .5);

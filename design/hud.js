@@ -36,7 +36,7 @@ function perHour(fc, t){
   const b = fc?.buckets; if (!b || !b.length) return null;
   const slot = Math.floor(R.tod(t) / 900);
   const next = b.filter((x) => x.slot >= slot && x.slot < slot + 4);
-  if (!next.length) return null;
+  if (new Set(next.map((x) => x.slot)).size < 2) return null;  // the forecast's horizon is running out: one slot ×4 would mislead
   return Math.round(next.reduce((a, x) => a + (x.p50 || 0), 0) * 4 / Math.max(1, new Set(next.map((x) => x.slot)).size));
 }
 
@@ -78,7 +78,7 @@ function render(s){
   $('.clock .wx').setAttribute('aria-label', `${s.weather?.state || ''} ${s.weather?.temp_c != null ? Math.round(s.weather.temp_c) + '°C' : ''}`);
   const fc = $('.clock .fcst');
   fc.hidden = false; fc.textContent = daypart(tod, open) + (fcN != null && open ? ` · ~${fcN}/hr` : s.weather?.temp_c != null ? ` · ${Math.round(s.weather.temp_c)}°C` : '');
-  fc.title = fcN != null && open ? `forecast: about ${fcN} items in the next hour (P50)` : '';
+  fc.title = fcN != null && open ? `demand forecast: about ${fcN} in the next hour (P50)` : '';
   hud.querySelector('[data-date]').textContent = date ? `${s.clock.weekday} ${date.getDate()} ${MON[date.getMonth()]}` : '—';
   const k = s.kpis || {}, amt = $('.money .amt');
   R.roll(amt, k.profit_today ?? 0, money); amt.classList.toggle('neg', (k.profit_today ?? 0) < 0);
