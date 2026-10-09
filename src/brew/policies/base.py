@@ -48,6 +48,7 @@ class ManagerAction:
     replate_mode: str | None = None  # off|gentle|standard|aggressive|custom (ignored under owner override)
     replate_discounts: dict[str, float] = field(default_factory=dict)  # lot_id -> discount % (monotone)
     pos: list[PurchaseOrder] = field(default_factory=list)  # intra-day purchase orders (urgent top-ups)
+    replate_caps: dict[str, float] = field(default_factory=dict)  # lot_id -> units offered on the rescue menu
     reason: str = ""
     factors: list[dict[str, Any]] = field(default_factory=list)
 

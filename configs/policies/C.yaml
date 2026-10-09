@@ -17,26 +17,28 @@ forecast:
   horizon_slots: 24
 prep:                       # marginal-batch newsvendor over the item's hold window
   max_batches_per_tick: 2
-  underage_floor: 0.4       # share of the lost margin charged for a stock-out while re-prepping
-  waste_penalty_inr: 0.0
+  underage_floor: 0.25      # share of the lost margin charged for a stock-out while re-prepping
+  waste_shadow_inr_per_kg: 20.0   # disposal + CO2e shadow price charged on an unused kg
 premake:                    # make-ahead plates / bottled cold brew (replate-eligible, non-bakery)
   enabled: true
-  window_min: 60            # cover demand over this horizon (capped by the hold window)
-  speed_value_inr: 40       # underage value of a unit served instantly (SLA / capacity relief), x busy factor
-  kitchen_load_max: 0.80
-  min_window_demand: 2.0    # expected sales in the window below which nothing is made ahead
-  max_units: 6
+  window_min: 120           # cover demand over this horizon (capped by the hold window)
+  speed_value_inr: 60       # underage value of a unit served instantly (SLA / capacity relief), x busy factor
+  busy_floor: 0.0
+  kitchen_load_max: 1.0
+  min_window_demand: 1.2    # expected sales in the window below which nothing is made ahead
+  max_units: 8
   start_h: 10.0
   stop_h: 20.5
   waste_penalty_inr: 8      # overage penalty per unit besides ingredient cost (disposal, CO2e shadow)
 replate:
-  custom: true              # per-lot markdown chosen by maximising expected revenue (sell-through model)
+  custom: true              # per-lot markdown of surplus units only (rescue bag), chosen with the sell-through model
   levels_pct: [0, 20, 30, 40, 50, 60, 70]
-  waste_value_inr: 12       # value of keeping a unit out of the bin (CO2e shadow, disposal)
-  max_hours_before_list: 4.0  # lots with more time left are not touched
-  surplus_quantile: 0.35    # units beyond this demand quantile are surplus
-  min_surplus_units: 2.0
-  recovery_prior: 0.3       # expected share of leftover units recovered when planning make-ahead sizes
+  waste_value_inr: 12
+  recovery_prior: 0.2       # share of leftover value assumed recovered when sizing make-ahead batches (replate on)
+  max_hours_before_list: 0.75   # only list in the last 45 min ...
+  max_hold_frac: 0.25           # ... and never earlier than the last quarter of the lot's hold window
+  surplus_quantile: 0.5     # units beyond this demand quantile are surplus
+  min_surplus_units: 1.0
 pricing:
   enabled: true
   every_min: 60

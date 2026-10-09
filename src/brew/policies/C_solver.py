@@ -52,11 +52,11 @@ DEFAULTS: dict[str, Any] = {
     "batch_window_s": 45,
     "register_first": True,
     "forecast": {"dispersion": 1.8, "horizon_slots": 24},
-    "prep": {"max_batches_per_tick": 2, "underage_floor": 0.4, "waste_penalty_inr": 0.0},
-    "premake": {"enabled": True, "window_min": 60, "speed_value_inr": 40, "kitchen_load_max": 0.8, "max_units": 6,
-                "start_h": 10.0, "stop_h": 20.5, "waste_penalty_inr": 8, "min_window_demand": 2.0},
-    "replate": {"custom": True, "levels_pct": [0, 20, 30, 40, 50, 60, 70], "waste_value_inr": 12, "recovery_prior": 0.3,
-                "max_hours_before_list": 4.0, "surplus_quantile": 0.35, "min_surplus_units": 2.0},
+    "prep": {"max_batches_per_tick": 2, "underage_floor": 0.25, "waste_shadow_inr_per_kg": 20.0},
+    "premake": {"enabled": True, "window_min": 120, "speed_value_inr": 60, "kitchen_load_max": 1.0, "max_units": 8,
+                "start_h": 10.0, "stop_h": 20.5, "waste_penalty_inr": 8, "min_window_demand": 1.2, "busy_floor": 0.0},
+    "replate": {"custom": True, "levels_pct": [0, 20, 30, 40, 50, 60, 70], "waste_value_inr": 12, "recovery_prior": 0.2,
+                "max_hours_before_list": 0.75, "max_hold_frac": 0.25, "surplus_quantile": 0.5, "min_surplus_units": 1.0},
     "pricing": {"enabled": True, "every_min": 60, "first_h": 9.0, "last_h": 20.0, "min_gain_inr": 120,
                 "util_threshold": 0.9, "default_beta": -1.1, "default_loss": 1.0},
     "purchasing": {"z": 1.4, "cv": 0.35, "shelf_cap_frac": 0.7, "min_cover_days": 1.2, "late_buffer_days": 0.45},
@@ -220,7 +220,8 @@ class PolicyC:
             avg_q = qty_w / mean_units
             margin = margin_w / mean_units
             c_u = margin * min(1.0, max(P["underage_floor"], 2.0 * lead_s / 3600.0 / max(horizon_s / 3600.0, 0.5)))
-            c_o = max(1e-6, avg_q * self._prep_cost(view, key)) + P["waste_penalty_inr"] * avg_q / max(avg_q, 1e-9) * 0.0
+            kg_per_unit = view._w.inv.kg_of(key, avg_q)  # weight of one consumption event of this prep item
+            c_o = max(1e-6, avg_q * self._prep_cost(view, key)) + P["waste_shadow_inr_per_kg"] * kg_per_unit
             # stock on hand when a new batch would land: current usable minus what is sold meanwhile
             lead_demand = 0.0
             if lead_s > 1200.0:
@@ -347,7 +348,8 @@ class PolicyC:
                 f_mu = d.units_until(sku, min(lot["use_by_s"], now - tod + CLOSE_S), now)
                 reach = max(0.0, f_mu - ahead)
                 ahead += units
-                if left_s > Pr["max_hours_before_list"] * 3600.0:
+                hold_s = max(1.0, lot["use_by_s"] - lot["made_at_s"])
+                if left_s > min(Pr["max_hours_before_list"] * 3600.0, Pr.get("max_hold_frac", 0.35) * hold_s):
                     continue
                 full_q = demand_quantile(reach, Pr["surplus_quantile"], phi) if reach > 0 else 0.0
                 surplus = units - full_q
@@ -375,6 +377,7 @@ class PolicyC:
                         break
                 if chosen > lot["discount_pct"] + 0.5:
                     act.replate_discounts[lot["lot_id"]] = chosen
+                    act.replate_caps[lot["lot_id"]] = float(max(1.0, math.ceil(surplus)))
                     parts.append(f"{sku} -{chosen:.0f}%")
                     self._note(
                         act, view, f"markdown {sku}", units=units, expected_full_price_demand=reach,

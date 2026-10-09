@@ -64,23 +64,12 @@ def test_error_envelope_shapes(api_client):
     assert r.status_code == 422
 
 
-def test_unimplemented_endpoints_return_501_with_milestone(api_client):
+def test_policy_d_is_still_a_milestone_3_stub(api_client):
     c = api_client
-    wid = mk(c)
-    for method, path in (
-        ("get", f"/worlds/{wid}/forecast"), ("get", f"/worlds/{wid}/bottlenecks"), ("get", f"/worlds/{wid}/advisor"),
-        ("post", f"/worlds/{wid}/invest"), ("get", "/models"), ("get", "/decisions/abc/explain"), ("post", "/arena"),
-        ("get", "/arena/xyz"),
-    ):  # fmt: skip
-        r = getattr(c, method)(
-            API + path,
-            **({"json": {"catalog_key": "x"} if "invest" in path else {}} if method == "post" else {}),
-        )
-        assert r.status_code == 501, (path, r.status_code, r.text)
-        assert r.json()["error"]["code"] == "not_implemented" and "milestone" in r.json()["error"]["details"]
-    r = c.post(f"{API}/worlds", json={"policy": "C"})
-    assert r.status_code == 501 and r.json()["error"]["details"]["milestone"] == "M2"
-    assert c.post(f"{API}/worlds", json={"policy": "D"}).json()["error"]["details"]["milestone"] == "M3"
+    r = c.post(f"{API}/worlds", json={"policy": "D"})
+    assert r.status_code == 501 and r.json()["error"]["details"]["milestone"] == "M3"
+    assert c.post(f"{API}/worlds", json={"policy": "C"}).status_code == 201
+    assert c.post(f"{API}/worlds", json={"policy": "E"}).status_code == 201
 
 
 def test_openapi_health_cafe_schema(api_client):
@@ -362,7 +351,8 @@ def test_policy_and_strategy_switch(api_client):
     assert r.status_code == 200 and r.json()["policy"] == "B" and r.json()["strategy"] == "rush_menu"
     types = [e.type for e in mgr_world(c, wid).ring.since(0)]
     assert "policy.changed" in types and "strategy.changed" in types
-    assert c.post(f"{API}/worlds/{wid}/policy", json={"policy": "C"}).status_code == 501
+    assert c.post(f"{API}/worlds/{wid}/policy", json={"policy": "D"}).status_code == 501
+    assert c.post(f"{API}/worlds/{wid}/policy", json={"policy": "C"}).status_code == 200
     assert c.post(f"{API}/worlds/{wid}/policy", json={"strategy": "nope"}).status_code == 422
     assert c.post(f"{API}/worlds/{wid}/policy", json={}).status_code == 422
 

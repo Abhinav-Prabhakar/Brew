@@ -539,14 +539,32 @@ class World:
             self.apply_manager_action(action, by=self.policy.code)
         self.ctx_dirty = True
 
+    def decision_context(self) -> dict[str, Any]:
+        """Snapshot of the numbers an explanation may quote (explainer slots)."""
+        kit = self.kitchen
+        return {
+            "hhmm": hhmm(self.now), "hour": int(tod_s(self.now) // 3600), "load_pct": round(kit.load_pct(), 1),
+            "queue": len(self.customers.queue), "orders": len(self.orders.open),
+            "open_agg": self.delivery.open_aggregator_orders(), "temp": round(self.temp_c, 1),
+            "rain": round(self.rain_mm_h, 1), "weather": self.weather_state, "strategy": self.manual_strategy,
+            "rating": round(self.reviews.rep.overall(), 2),
+        }  # fmt: skip
+
     def make_decision(
-        self, typ: str, summary: str, by: str, factors: list | None = None, clipped: list | None = None
+        self,
+        typ: str,
+        summary: str,
+        by: str,
+        factors: list | None = None,
+        clipped: list | None = None,
+        changes: list | None = None,
     ) -> str:
         self.decision_seq += 1
         did = f"dec-{self.decision_seq:06d}"
         rec = {
             "decision_id": did, "sim_s": self.now, "type": typ, "summary": summary, "policy": by,
-            "top_factors": factors or [], "clipped": clipped or [],
+            "top_factors": factors or [], "clipped": clipped or [], "changes": changes or [],
+            "context": self.decision_context(),
         }  # fmt: skip
         self.decisions.append(rec)
         if len(self.decisions) > 2000:
@@ -568,6 +586,7 @@ class World:
     def apply_manager_action(self, a: ManagerAction, by: str) -> dict[str, Any]:
         """Pass a ManagerAction through the charter shield and apply what survives."""
         applied: list[str] = []
+        changes: list[dict[str, Any]] = []
         clipped: list[str] = []
         reason = a.reason
         if a.strategy and a.strategy != self.preset and self.manual_strategy == "balanced":
@@ -580,6 +599,7 @@ class World:
         for ch, lvl in a.throttles.items():
             if self.delivery.set_throttle(ch, lvl):
                 applied.append(f"{ch} throttle -> {lvl}")
+                changes.append({"kind": "throttle", "channel": ch, "level": lvl})
         for k, v in a.kappa.items():
             self.kappa[k] = v
         # prices
@@ -592,11 +612,13 @@ class World:
                     price_targets[m.sku] = self.menu[m.sku].price * (1 + step)
         price_targets.update(a.sku_prices)
         for sku, newp in price_targets.items():
+            old_p = self.menu[sku].price
             ok, why = self.set_price(
                 sku, newp, by, reason or "policy", promotion=a.promotion, restore=a.restore
             )
             if ok:
                 applied.append(f"{sku} -> {self.menu[sku].price:g}")
+                changes.append({"kind": "price", "item": sku, "old": old_p, "new": self.menu[sku].price})
             elif why:
                 clipped.append(f"{sku}: {why}")
         # featured
@@ -619,6 +641,7 @@ class World:
                 started = self.kitchen.start_prep(key, qty)
                 if started > 0:
                     applied.append(f"prep {key} x{started:g}")
+                    changes.append({"kind": "prep", "prep_item": key, "qty": started})
         rp = self.replate
         if a.replate_mode is not None and rp.set_mode(a.replate_mode, by):
             applied.append(f"replate mode -> {a.replate_mode}")
@@ -627,6 +650,7 @@ class World:
                 try:
                     res = rp.premake(sku, int(units), by)
                     applied.append(f"premake {sku} x{res['units']:g}")
+                    changes.append({"kind": "prep", "prep_item": sku, "qty": res["units"], "item": sku})
                 except ReplateError as e:
                     clipped.append(f"premake {sku}: {e}")
         for po in a.pos:
@@ -635,10 +659,16 @@ class World:
                 placed = self.suppliers.place(po.supplier, lines, source=by, arrive_tod_s=po.arrive_tod_s)
                 if placed is not None:
                     applied.append(f"PO {po.supplier} ({len(placed['lines'])} lines)")
+                    changes.append({
+                        "kind": "reorder", "supplier": po.supplier, "ingredient": placed["lines"][0]["ingredient"],
+                        "qty": placed["lines"][0]["qty"],
+                    })  # fmt: skip
         for lot_id, pct in a.replate_discounts.items():
             try:
-                if rp.set_discount(lot_id, pct, by, strict=False):
+                if rp.set_discount(lot_id, pct, by, strict=False, cap=a.replate_caps.get(lot_id)):
                     applied.append(f"replate {lot_id} -{pct:.0f}%")
+                    lot = rp.lots.get(lot_id)
+                    changes.append({"kind": "replate", "item": lot.sku if lot else "", "pct": pct})
             except ReplateError as e:
                 clipped.append(f"replate {lot_id}: {e}")
         result = {"applied": applied, "clipped": clipped}
@@ -646,7 +676,7 @@ class World:
             summary = reason or "; ".join(applied[:3]) or "adjustments clipped by charter"
             if applied and reason:
                 summary = f"{reason}: " + "; ".join(applied[:3])
-            self.make_decision(self._decision_type(a), summary, by, a.factors, clipped)
+            self.make_decision(self._decision_type(a), summary, by, a.factors, clipped, changes)
         return result
 
     @staticmethod

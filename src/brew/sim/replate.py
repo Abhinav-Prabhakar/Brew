@@ -62,6 +62,7 @@ class PreLot:
     sell_by: float = 0.0  # last time the lot can be sold (closing time / donation point), <= lot expiry
     sold_full: float = 0.0
     sold_replate: float = 0.0
+    cap_until: float = 1e18  # the listing closes once sold_replate reaches this (a "rescue bag" of N units)
     remade: float = 0.0
     donated: float = 0.0
     wasted: float = 0.0
@@ -170,6 +171,8 @@ class Replate:
             return None
         if shelf_quality(pl.frac_left(self.w.now)) < self.w.ix.menu[sku].replate.min_quality - EPS:
             return None
+        if pl.sold_replate >= pl.cap_until - EPS:
+            return None
         return pl
 
     def price(self, sku: str) -> float:
@@ -178,7 +181,7 @@ class Replate:
 
     def listed_units(self, sku: str) -> float:
         pl = self.listing(sku)
-        return pl.remaining if pl is not None else 0.0
+        return min(pl.remaining, pl.cap_until - pl.sold_replate) if pl is not None else 0.0
 
     def premade_units_avail(self, sku: str) -> float:
         k = self.pm_key(sku)
@@ -215,6 +218,7 @@ class Replate:
         now = self.w.now
         return {
             "listing_id": pl.listing_id, "sku": pl.sku, "lot_id": pl.lot_id, "units": round(pl.remaining, 2),
+            "offered": round(min(pl.remaining, pl.cap_until - pl.sold_replate), 2) if pl.listed else 0.0,
             "units0": pl.units0, "made_at_s": round(pl.made_s, 1), "use_by_s": round(pl.use_by_s, 1),
             "frac_left": round(pl.frac_left(now), 3), "discount_pct": round(pl.discount_pct, 1),
             "price": pl.price if pl.listed else self.w.menu[pl.sku].price, "listed": pl.listed,
@@ -387,8 +391,10 @@ class Replate:
         self.dirty = True
         return True
 
-    def set_discount(self, lot_id: str, pct: float, by: str, strict: bool = True) -> bool:
-        """List / deepen a lot to ``pct`` percent off. Monotone and floor-checked (strict raises)."""
+    def set_discount(self, lot_id: str, pct: float, by: str, strict: bool = True, cap: float | None = None) -> bool:
+        """List / deepen a lot to ``pct`` percent off. Monotone and floor-checked (strict raises).
+
+        ``cap`` limits the listing to that many more units (a rescue bag); omitted = the whole lot."""
         pl = self.lots.get(lot_id)
         if pl is None or pl.retired or pl.remaining < EPS:
             raise ReplateInvalid(f"lot {lot_id} not found or empty")
@@ -406,10 +412,15 @@ class Replate:
             if strict:
                 raise CharterViolation(f"{pl.sku}: discount must be positive")
             return False
+        cap_changed = False
+        if cap is not None and abs(pl.cap_until - (pl.sold_replate + cap)) > EPS:
+            pl.cap_until = pl.sold_replate + cap
+            cap_changed = True
+            self.w.ctx_dirty = True
         if pl.listed and abs(want - pl.price) < EPS:
-            return False
+            return cap_changed
         eff = (1.0 - want / base) * 100.0
-        return self._apply(pl, eff, by)
+        return self._apply(pl, eff, by) or cap_changed
 
     def list_sku(self, sku: str, pct: float | None, by: str) -> dict[str, Any]:
         """Owner / policy: list or deepen the head lot of ``sku`` (``pct`` None = current ladder rung)."""
@@ -443,7 +454,7 @@ class Replate:
             if m.sku not in self.sku_key:
                 continue
             pl = self.listing(m.sku)
-            if pl is not None and pl.remaining >= 1 - EPS:
+            if pl is not None and self.listed_units(m.sku) >= 1 - EPS:
                 mask[j] = True
                 price[j] = pl.price
                 qual[j] = shelf_quality(pl.frac_left(now))

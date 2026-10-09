@@ -4,11 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request
 
 from brew.api.deps import MW
-from brew.api.schemas import InvestRequest
-from brew.api.world_manager import NotImplementedYet
 from brew.sim import readmodels as rm
 from brew.sim.actions import UnknownTarget
 
@@ -118,9 +116,32 @@ def impact(mw: MW) -> dict[str, Any]:
 
 
 @router.get("/worlds/{wid}/reviews")
-def reviews(mw: MW, limit: int = Query(50, ge=1, le=500)) -> dict[str, Any]:
+def reviews(mw: MW, request: Request, limit: int = Query(50, ge=1, le=500)) -> dict[str, Any]:
+    """Recent reviews: stars, text, the simulator's cause weights and the cause tagger's reading of the text."""
     with mw.lock:
-        return _wrap(mw, rm.reviews(mw.world, limit))
+        rows = rm.reviews(mw.world, limit)
+    tagger = _tagger(request)
+    if tagger is not None and rows:
+        probs = tagger.predict_proba([r["text"] for r in rows])
+        for i, r in enumerate(rows):
+            r["tagged_causes"] = {c: round(float(v[i]), 3) for c, v in probs.items() if v[i] >= tagger.threshold}
+    return _wrap(mw, rows)
+
+
+def _tagger(request: Request) -> Any:
+    st = request.app.state
+    if not hasattr(st, "tagger"):
+        st.tagger = None
+        try:
+            from brew.models.registry import ModelRegistry
+            from brew.models.text_reviews import ReviewCauseTagger
+
+            p = ModelRegistry(str(st.settings.resolved_models_dir())).champion("text", "review_tagger")
+            if p is not None:
+                st.tagger = ReviewCauseTagger.load(p)
+        except Exception:
+            st.tagger = None
+    return st.tagger
 
 
 @router.get("/worlds/{wid}/receipts/{order_no}")
@@ -142,24 +163,3 @@ def decisions(mw: MW, since_seq: int = 0) -> dict[str, Any]:
 def disruptions(mw: MW) -> dict[str, Any]:
     with mw.lock:
         return _wrap(mw, rm.disruptions(mw.world))
-
-
-# --------------------------------------------------------- later milestones (501)
-@router.get("/worlds/{wid}/forecast")
-def forecast(mw: MW, target: str = "demand", key: str | None = None, horizon_min: int = 120) -> Any:
-    raise NotImplementedYet("M2", "demand forecast")
-
-
-@router.get("/worlds/{wid}/bottlenecks")
-def bottlenecks(mw: MW) -> Any:
-    raise NotImplementedYet("M2", "bottleneck analysis")
-
-
-@router.get("/worlds/{wid}/advisor")
-def advisor(mw: MW) -> Any:
-    raise NotImplementedYet("M2", "investment advisor")
-
-
-@router.post("/worlds/{wid}/invest")
-def invest(mw: MW, body: InvestRequest) -> Any:
-    raise NotImplementedYet("M2", "investments")
