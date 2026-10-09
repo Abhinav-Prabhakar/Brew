@@ -8,14 +8,38 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from brew.config.schemas import ScenarioConfig
-from brew.domain.enums import DISRUPTION_KINDS
+from brew.domain.enums import DISRUPTION_KINDS, MANUAL_DISRUPTION_KINDS
 from brew.domain.timeutil import DAY_S, parse_hhmm
 
-from .engine import P_DISRUPT
+from .engine import P_DISRUPT, P_TELEMETRY
 from .state import Disruption
 
 if TYPE_CHECKING:
     from .world import World
+
+
+COST_EVERY_S = 300.0  # chaos.cost cadence while a disruption is active (sim s)
+COST_FINAL_AFTER_S = 1800.0  # final chaos.cost this long after the disruption resolves
+
+
+def default_target(w: World, kind: str) -> str | None:
+    """Sensible target for a manual disruption when the caller gives none (None = no target needed)."""
+    if kind == "staff_absent" or kind == "staff_late":
+        baristas = [s for s in w.kitchen.staff_list if s.role == "barista"]
+        live = [s for s in baristas if s.present and not s.absent]
+        pick = live or baristas or w.kitchen.staff_list
+        return pick[0].key if pick else None
+    if kind == "equipment_down":
+        for e in w.equip:
+            if e.key == "oven" or e.station == "oven":
+                return "oven"
+        return w.equip[0].key if w.equip else None
+    if kind in ("supplier_delay", "supplier_short"):
+        for key, sup in w.ix.supplier.items():
+            if any(it.ingredient == "milk" for it in sup.items):
+                return key
+        return next(iter(w.ix.supplier), None)
+    return None
 
 
 class Disruptions:
@@ -32,6 +56,7 @@ class Disruptions:
         self.supplier_fill_mult: dict[str, float] = {}
         self.demand: list[tuple[str | None, float]] = []
         self.cost_mult = 1.0
+        self.storm = False  # a manual rain_storm is active (weather forced to rain)
         self.log: list[dict] = []
 
     # --------------------------------------------------------------- triggering
@@ -47,7 +72,7 @@ class Disruptions:
     ) -> Disruption:
         """Schedule (or immediately start) a disruption. Raises ``ValueError`` on unknown kind/target."""
         w = self.w
-        if kind not in DISRUPTION_KINDS:
+        if kind not in DISRUPTION_KINDS and kind not in MANUAL_DISRUPTION_KINDS:
             raise ValueError(f"unknown disruption kind {kind!r}")
         self._check_target(kind, target)
         start = w.now if start_s is None else max(w.now, start_s)
@@ -92,6 +117,8 @@ class Disruptions:
         elif k == "power_cut":
             self._equip_set([e.idx for e in w.equip if e.kw_active >= 1.0], False, d.end_s)
         self.recompute()
+        if k == "rain_storm":
+            w.force_weather("rain" if d.severity >= 0.5 else "drizzle")
         w.emit(
             "chaos.triggered", disruption_id=d.id, kind=k, target=d.target, severity=d.severity,
             until_s=round(d.end_s, 1), source=d.source,
@@ -108,6 +135,8 @@ class Disruptions:
             }
         )
         w.kitchen.request_dispatch()
+        if d.meta.get("cost_track"):  # cost-of-chaos shadow: first reading 5 sim-min in
+            w.engine.schedule(w.now + COST_EVERY_S, "CHAOS_COST", (did, "active"), P_TELEMETRY)
 
     def on_end(self, did: str) -> None:
         w = self.w
@@ -124,8 +153,35 @@ class Disruptions:
         elif k == "power_cut":
             self._equip_set([e.idx for e in w.equip if e.kw_active >= 1.0], True, 0.0)
         self.recompute()
+        if k == "rain_storm" and not self.storm:
+            w.force_weather(None)
         w.emit("chaos.resolved", disruption_id=d.id, kind=k, target=d.target)
         w.kitchen.request_dispatch()
+        if d.meta.get("cost_track"):
+            w.engine.schedule(w.now, "CHAOS_COST", (did, "resolved"), P_TELEMETRY)
+            w.engine.schedule(w.now + COST_FINAL_AFTER_S, "CHAOS_COST", (did, "final"), P_TELEMETRY)
+
+    def on_cost(self, payload: tuple[str, str]) -> None:
+        """Emit ``chaos.cost`` (CRN counterfactual) at a sim-time instant; reschedule while the disruption is active."""
+        did, phase = payload
+        w = self.w
+        d = self.items.get(did)
+        probe = w.cost_probe
+        if d is None or probe is None:
+            return
+        cf = probe(did, w.now, phase == "final")
+        if cf is None:
+            return
+        actual = w.kpi.profit_today()
+        cost = round(cf - actual, 2)
+        d.meta["cost_inr"] = cost
+        d.meta["cost_phase"] = phase
+        w.emit(
+            "chaos.cost", disruption_id=did, kind=d.kind, cost_inr=cost, profit_actual=actual,
+            profit_counterfactual=cf, phase=phase,
+        )  # fmt: skip
+        if phase == "active" and d.active:
+            w.engine.schedule(w.now + COST_EVERY_S, "CHAOS_COST", (did, "active"), P_TELEMETRY)
 
     def _equip_set(self, idxs: list[int], up: bool, until: float) -> None:
         w = self.w
@@ -149,6 +205,7 @@ class Disruptions:
         self.supplier_fill_mult = {}
         self.demand = []
         self.cost_mult = 1.0
+        self.storm = False
         for d in self.items.values():
             if not d.active:
                 continue
@@ -171,6 +228,8 @@ class Disruptions:
                 self.demand.append((d.target, 1.0 + d.severity))
             elif k == "price_shock":
                 self.cost_mult *= 1.0 + 0.3 * d.severity
+            elif k == "rain_storm":
+                self.storm = True
         self.w.inv.cost_mult = self.cost_mult
 
     # ----------------------------------------------------------------- queries

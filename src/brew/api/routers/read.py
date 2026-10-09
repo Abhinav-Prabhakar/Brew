@@ -176,4 +176,5 @@ def decisions(mw: MW, since_seq: int = 0) -> dict[str, Any]:
 @router.get("/worlds/{wid}/disruptions")
 def disruptions(mw: MW) -> dict[str, Any]:
     with mw.lock:
+        mw.refresh_costs()
         return _wrap(mw, rm.disruptions(mw.world))

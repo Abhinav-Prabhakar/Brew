@@ -375,7 +375,7 @@ def decisions(w: World, since_seq: int = 0) -> list[dict[str, Any]]:
 
 def disruptions(w: World) -> list[dict[str, Any]]:
     return [
-        {"id": d.id, "kind": d.kind, "target": d.target, "severity": d.severity, "start_s": d.start_s, "end_s": d.end_s, "source": d.source, "active": d.active, "resolved": d.resolved}
+        {"id": d.id, "kind": d.kind, "target": d.target, "severity": d.severity, "start_s": d.start_s, "end_s": d.end_s, "source": d.source, "active": d.active, "resolved": d.resolved, "cost_inr": d.meta.get("cost_inr")}
         for d in w.dis.items.values()
     ]  # fmt: skip
 

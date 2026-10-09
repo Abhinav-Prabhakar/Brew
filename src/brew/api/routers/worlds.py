@@ -56,6 +56,7 @@ async def delete_world(wid: str, mgr: Manager) -> None:
 @router.get("/worlds/{wid}/state")
 def world_state(mw: MW) -> dict[str, Any]:
     with mw.lock:
+        mw.refresh_costs()
         s = rm.state(mw.world)
     s["world"].update({"status": mw.status, "clock_mode": mw.clock, "kind": mw.kind, "lagging": mw.lagging})
     return s

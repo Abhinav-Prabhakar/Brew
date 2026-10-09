@@ -485,6 +485,15 @@ class ChaosResolved(D):
     target: str | None = None
 
 
+class ChaosCost(D):
+    disruption_id: str
+    kind: str
+    cost_inr: float  # profit_counterfactual - profit_actual (today's profit, CRN fork without the disruption)
+    profit_actual: float
+    profit_counterfactual: float
+    phase: Literal["active", "resolved", "final"] = "active"
+
+
 class StrategyChanged(D):
     strategy: str
     previous: str
@@ -581,6 +590,7 @@ EVENT_MODELS: dict[str, type[D]] = {
     "bottleneck.changed": BottleneckChanged,
     "chaos.triggered": ChaosTriggered,
     "chaos.resolved": ChaosResolved,
+    "chaos.cost": ChaosCost,
     "strategy.changed": StrategyChanged,
     "policy.changed": PolicyChanged,
     "throttle.changed": ThrottleChanged,

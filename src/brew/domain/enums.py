@@ -19,6 +19,8 @@ DISRUPTION_KINDS = (
     "price_shock",
     "platform_outage",
 )
+# Manual-only kinds (kept out of DISRUPTION_KINDS: that tuple sizes the RL observation and random-chaos draws).
+MANUAL_DISRUPTION_KINDS = ("rain_storm",)
 CAUSES = ("wait", "cold_food", "price", "quality", "ambience", "staff", "accuracy", "packaging", "value")
 THROTTLE_LEVELS = ("open", "plus5", "plus10", "pause")
 STRATEGY_PRESETS = ("fcfs", "edf", "dine_first", "delivery_jit", "batch_max", "throughput")

@@ -76,6 +76,31 @@ def cafe(request: Request) -> dict[str, Any]:
     }  # fmt: skip
 
 
+_CHAOS_UI = (
+    ("staff_absent", "barista sick", "Calls in sick: a barista is out for the duration."),
+    ("equipment_down", "oven breaks", "The oven breaks down until the technician fixes it."),
+    ("supplier_delay", "milk delivery late", "The dairy supplier's deliveries run late (+12 h x severity)."),
+    ("rain_storm", "rain storm", "Heavy rain: delivery demand surges, dine-in drops, riders slow down."),
+    ("rider_shortage", "rider shortage", "Few delivery riders: platform ETAs stretch by (1 + severity)."),
+    ("power_cut", "power cut", "Power cut: every high-draw appliance stops until power returns."),
+)
+
+
+@router.get("/chaos/kinds")
+def chaos_kinds() -> dict[str, Any]:
+    """The kitchen chaos-card buttons: ``POST /worlds/{id}/chaos {kind, target?, severity?, duration_min?}``."""
+    c = default_cafe()
+    barista = next((s.key for s in c.staff if s.role == "barista"), None)
+    oven = "oven" if any(e.station == "oven" or e.key == "oven" for e in c.equipment) else None
+    dairy = next((s.key for s in c.suppliers if any(i.ingredient == "milk" for i in s.items)), None)
+    default = {"staff_absent": barista, "equipment_down": oven, "supplier_delay": dairy}
+    items = [
+        {"kind": k, "label": label, "default_target": default.get(k), "description": desc}
+        for k, label, desc in _CHAOS_UI
+    ]
+    return {"items": items}
+
+
 @router.get("/events/schema")
 def events_schema() -> dict[str, Any]:
     """JSON Schema of the event union (for frontend codegen)."""

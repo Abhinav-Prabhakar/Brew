@@ -55,6 +55,9 @@ class ManagedWorld:
         self.pacer: asyncio.Task[None] | None = None
         self.created_at = datetime.now(UTC)
         self.wall_events = 0
+        # cost of chaos: disruption id -> shadow World forked just before the disruption (no disruption applied)
+        self.shadows: dict[str, World] = {}
+        world.cost_probe = self._cost_probe
 
     # ---- control (all under lock)
     def advance(self, target: float, budget_s: float | None = None) -> bool:
@@ -91,12 +94,44 @@ class ManagedWorld:
             self.world.advance_to(self.world.now)  # run zero-delay consequences at the current sim_s
             return res
 
+    MAX_SHADOWS = 2
+
+    def _cost_probe(self, did: str, t: float, final: bool) -> float | None:
+        """Advance the disruption's shadow world to ``t`` and return its profit today (None: not tracked)."""
+        sh = self.shadows.get(did)
+        if sh is None:
+            return None
+        if sh.now < t:
+            sh.advance_to(t)
+        p = sh.kpi.profit_today()
+        if final:
+            self.shadows.pop(did, None)
+        return p
+
+    def refresh_costs(self) -> None:
+        """Lazily catch the shadows up to the real clock and refresh ``cost_inr`` on active disruptions."""
+        with self.lock:
+            w = self.world
+            for did, sh in list(self.shadows.items()):
+                d = w.dis.items.get(did)
+                if d is None or not d.active:
+                    continue
+                if sh.now < w.now:
+                    sh.advance_to(w.now)
+                d.meta["cost_inr"] = round(sh.kpi.profit_today() - w.kpi.profit_today(), 2)
+
     def chaos(self, kind: str, target: str | None, severity: float, duration_min: float) -> dict[str, Any]:
         with self.lock:
+            shadow = None
+            if len(self.shadows) < self.MAX_SHADOWS:
+                shadow = self.world.fork(world_id=f"{self.world.world_id}-shadow")  # just before the disruption
             try:
                 d = self.world.trigger_chaos(kind, target, severity, duration_min)
             except ValueError as e:
                 raise BadPayload(str(e)) from e
+            if shadow is not None:
+                self.shadows[d.id] = shadow
+                d.meta["cost_track"] = True
             self.world.advance_to(self.world.now)
             return {
                 "id": d.id,
@@ -107,6 +142,7 @@ class ManagedWorld:
                 "end_s": d.end_s,
                 "source": d.source,
                 "sim_s": self.world.now,
+                "cost_tracked": shadow is not None,
             }
 
     def set_policy(self, policy: str | None, strategy: str | None) -> None:
@@ -119,8 +155,10 @@ class ManagedWorld:
                 if code not in available(md):
                     raise BadPayload(f"unknown policy {policy!r}")
                 if code != self.world.policy.code:
+                    self.shadows.clear()  # counterfactuals stop being comparable once the policy changes
                     self.world.set_policy(make_policy(code, models_dir=md) if code == "D" else code)
             if strategy:
+                self.shadows.clear()
                 try:
                     self.world.set_strategy(strategy)
                 except ValueError as e:
