@@ -56,7 +56,7 @@ DEFAULTS: dict[str, Any] = {
     "premake": {"enabled": True, "window_min": 120, "speed_value_inr": 60, "kitchen_load_max": 1.0, "max_units": 8,
                 "start_h": 10.0, "stop_h": 20.5, "waste_penalty_inr": 8, "min_window_demand": 1.2, "busy_floor": 0.0},
     "replate": {"custom": True, "levels_pct": [0, 20, 30, 40, 50, 60, 70], "waste_value_inr": 12, "recovery_prior": 0.2,
-                "max_hours_before_list": 0.75, "max_hold_frac": 0.25, "surplus_quantile": 0.5, "min_surplus_units": 1.0},
+                "max_hours_before_list": 0.75, "max_hold_frac": 0.25, "surplus_quantile": 0.35, "min_surplus_units": 2.0},
     "pricing": {"enabled": True, "every_min": 60, "first_h": 9.0, "last_h": 20.0, "min_gain_inr": 120,
                 "util_threshold": 0.9, "default_beta": -1.1, "default_loss": 1.0},
     "purchasing": {"z": 1.4, "cv": 0.35, "shelf_cap_frac": 0.7, "min_cover_days": 1.2, "late_buffer_days": 0.45},
@@ -109,6 +109,26 @@ class PolicyC:
         self.sku_step_min: dict[str, dict[str, float]] = {}
         self.unit_cost: dict[str, float] = {}
         self.decisions: list[dict[str, Any]] = []
+
+    # ------------------------------------------------------------------ fork support
+    def __getstate__(self) -> dict[str, Any]:
+        """Forks (``World.fork`` pickles the policy) must stay cheap: the champion models are shared
+        read-only objects, so they are re-attached from the module cache instead of being copied."""
+        st = dict(self.__dict__)
+        if not self._bundle_given:
+            st["bundle"] = None
+            if st.get("demand") is not None:
+                d = st["demand"]
+                st["demand"] = d.__class__.__new__(d.__class__)
+                st["demand"].__dict__.update({**d.__dict__, "forecaster": None})
+        return st
+
+    def __setstate__(self, st: dict[str, Any]) -> None:
+        self.__dict__.update(st)
+        if not self._bundle_given and self.bundle is None:
+            self.bundle = load_bundle(self.models_dir, self.use_models)
+            if self.demand is not None:
+                self.demand.forecaster = self.bundle.forecaster
 
     # --------------------------------------------------------------- lifecycle
     def reset(self, view: WorldView, seed: int) -> None:

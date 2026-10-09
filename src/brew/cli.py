@@ -79,7 +79,7 @@ def sim_bench(seed: int = typer.Option(7), days: int = typer.Option(3, min=1)) -
     tbl = Table(title="brew-sim bench")
     for c in ("policy", "sec/day", "events/day", "fork ms (mid-day)"):
         tbl.add_column(c)
-    for pol in ("A", "B"):
+    for pol in ("A", "B", "C"):
         w = World(policy=pol, seed=seed, days=days, sink=ListSink(), telemetry=True)
         t0 = time.perf_counter()
         w.run(days)

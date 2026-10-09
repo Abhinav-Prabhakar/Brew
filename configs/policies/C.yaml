@@ -37,8 +37,8 @@ replate:
   recovery_prior: 0.2       # share of leftover value assumed recovered when sizing make-ahead batches (replate on)
   max_hours_before_list: 0.75   # only list in the last 45 min ...
   max_hold_frac: 0.25           # ... and never earlier than the last quarter of the lot's hold window
-  surplus_quantile: 0.5     # units beyond this demand quantile are surplus
-  min_surplus_units: 1.0
+  surplus_quantile: 0.35    # units beyond this demand quantile are surplus
+  min_surplus_units: 2.0
 pricing:
   enabled: true
   every_min: 60
