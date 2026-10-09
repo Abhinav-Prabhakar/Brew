@@ -17,6 +17,9 @@ class WorldCreate(BaseModel):
     start_date: str | None = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     cash_start: float | None = None
     strategy: str = "balanced"
+    replate: Literal["off", "gentle", "standard", "aggressive"] | None = Field(
+        None, description="Force the Replate ladder (owner override); default follows the policy."
+    )
 
 
 class ControlRequest(BaseModel):
