@@ -752,7 +752,7 @@ function renderBottleneck(s){
   if (sig === bnSig) return; bnSig = sig;
   const col = (r) => r >= .85 ? 'var(--terra)' : r >= .6 ? 'var(--mustard)' : 'var(--sage)';
   let h = `<h3>what's limiting throughput? <small>live · last 15 min</small></h3>`;
-  h += rows.map((r) => `<div class="r" data-resource="${esc(r.res)}"><span>${esc(RES_LABEL[r.res] || R.human(r.res))}</span><span class="bar2"><i style="width:${Math.round(Math.min(1, r.rho) * 100)}%;background:${col(r.rho)}"></i></span><span class="${r.res === primary && r.rho >= .6 ? 'hot' : ''}">${Math.round(r.rho * 100)}%${r.res === primary && r.rho >= .6 ? ' ← bottleneck' : ' busy'}</span></div>`).join('')
+  h += rows.map((r) => `<div class="r" data-resource="${esc(r.res)}"><span>${esc(RES_LABEL[r.res] || (/^ingredient:/.test(r.res) ? R.human(r.res.slice(11)) + ' stock' : R.human(r.res)))}</span><span class="bar2"><i style="width:${Math.round(Math.min(1, r.rho) * 100)}%;background:${col(r.rho)}"></i></span><span class="${r.res === primary && r.rho >= .6 ? 'hot' : ''}">${Math.round(r.rho * 100)}%${r.res === primary && r.rho >= .6 ? ' ← bottleneck' : ' busy'}</span></div>`).join('')
     || `<div class="r"><span>${s.clock?.is_open ? 'measuring…' : 'closed · nothing queued'}</span><span></span><span></span></div>`;
   if (inv) { const day = inv.days_of_cover, lowc = day < 1; h += `<div class="r" data-resource="stock:${esc(inv.key)}"><span>${esc(String(inv.name || R.human(inv.key)).replace(/\s*\([^)]*\)/g, '').toLowerCase().slice(0, 22))}</span><span class="bar2"><i style="width:${Math.round(Math.min(1, day / 3) * 100)}%;background:${lowc ? 'var(--terra)' : day < 2 ? 'var(--mustard)' : 'var(--sage)'}"></i></span><span class="${lowc ? 'hot' : ''}">${day < 1 ? `~${Math.max(1, Math.round(day * 24))} h left` : day.toFixed(1) + ' days'}</span></div>`; }
   const bought = new Set((s.investments || []).map((x) => x.catalog_key));
@@ -771,8 +771,11 @@ document.querySelector('#lobby .bn')?.addEventListener('click', async (e) => {
   catch (err) { toast(err.message || 'could not invest', true); }
   finally { delete el.dataset.busy; bnSig = ''; render(R.S(), false); }
 });
-function toast(msg, bad){ const v = document.getElementById('viewport'); const tEl = document.createElement('div');
-  tEl.className = 'toast' + (bad ? ' bad' : ''); tEl.textContent = msg; v.appendChild(tEl); setTimeout(() => tEl.remove(), 3200); }
+// toasts stack downward instead of landing on top of each other (and the same message twice in a row is one toast)
+function toast(msg, bad){ const v = document.getElementById('viewport');
+  const live = [...v.querySelectorAll(':scope > .toast')]; if (live.some((x) => x.textContent === msg)) return;
+  const tEl = document.createElement('div'); tEl.className = 'toast' + (bad ? ' bad' : ''); tEl.textContent = msg;
+  tEl.style.top = (104 + live.length * 46) + 'px'; v.appendChild(tEl); setTimeout(() => tEl.remove(), 3200); }
 window.BrewToast = window.BrewToast || toast;
 
 /* investments delivered show up in the room */
