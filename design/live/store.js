@@ -126,7 +126,7 @@
         if (patch) s = { ...s, ...patch };
       }
     }
-    if (!pseudo && handlers['*']) { // handlers that look at every stream event (the clock follows sim_s)
+    if (handlers['*'] && (!pseudo || ev.sim_s > s.sim_s)) { // handlers that look at every stream event (the clock follows sim_s; so does a replayed rest.* line that moves time on)
       for (const h of handlers['*']) {
         const patch = h.fn(s, ev);
         if (patch) s = { ...s, ...patch };
