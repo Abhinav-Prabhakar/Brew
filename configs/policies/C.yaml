@@ -33,6 +33,9 @@ replate:
   custom: true              # per-lot markdown chosen by maximising expected revenue (sell-through model)
   levels_pct: [0, 20, 30, 40, 50, 60, 70]
   waste_value_inr: 12       # value of keeping a unit out of the bin (CO2e shadow, disposal)
+  max_hours_before_list: 4.0  # lots with more time left are not touched
+  surplus_quantile: 0.35    # units beyond this demand quantile are surplus
+  min_surplus_units: 2.0
   recovery_prior: 0.3       # expected share of leftover units recovered when planning make-ahead sizes
 pricing:
   enabled: true

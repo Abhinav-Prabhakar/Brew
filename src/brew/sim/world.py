@@ -35,6 +35,7 @@ from .engine import P_CLOCK, P_DECIDE, P_TELEMETRY, Engine
 from .finance import Finance
 from .forecast_ma import MaForecast
 from .inventory import Inventory
+from .investments import Investments
 from .kitchen import Kitchen
 from .kpis import Kpis
 from .observation import KAPPA_CLASSES, ObservationBuilder
@@ -154,12 +155,17 @@ class World:
         self.fin = Finance(self, keep_ledger_entries)
         self.replate = Replate(self)
         self.dlog = DemandLog([m.sku for m in self.cfg.menu])
+        self.invest = Investments(self)
+        self.fridge_factor = 1.0
         if cash_start is not None:
             self.fin.cash = cash_start
         self.kpi = Kpis(self)
         self.dis = Disruptions(self)
         self.ma = MaForecast(self)
         self.obs_builder = ObservationBuilder(self)
+        from brew.analysis.bottleneck import BottleneckAnalyzer
+
+        self.bn = BottleneckAnalyzer(self)
         self._view = WorldView(self)
         self.regulars: list[Regular] = []
         self._init_regulars()
@@ -179,6 +185,10 @@ class World:
 
     def view(self) -> WorldView:
         return self._view
+
+    def tod_minutes(self) -> int:
+        """Whole minutes since local midnight."""
+        return int(tod_s(self.now) // 60)
 
     def emit(self, type_: str, **data: Any) -> None:
         """Append an event to the stream (seq strictly increasing from 1)."""
@@ -249,6 +259,7 @@ class World:
             "RIDER_ARRIVE": d.on_rider_arrive,
             "DELIVERED": d.on_delivered,
             "PO_ARRIVE": self.suppliers.on_arrive,
+            "INVEST_DELIVER": self.invest.deliver,
             "DIS_START": de.on_start,
             "DIS_END": de.on_end,
         }
@@ -472,6 +483,7 @@ class World:
             speed=self.speed,
         )
         self.kitchen.on_minute()
+        self.bn.sample()
         if int(self.now) % 300 == 0:
             self.replate.tick()
         if self.pending_hides:
@@ -1047,6 +1059,7 @@ class World:
         k.labour_accrued = 0.0
         self.sweep_expired()
         self.fin.close_day(day, staff_cost)
+        self.invest.day_end()
         # policy: purchasing + donation
         view = self._view
         act: DayEndAction = self.policy.on_day_end(view)

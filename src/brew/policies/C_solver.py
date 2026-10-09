@@ -55,7 +55,8 @@ DEFAULTS: dict[str, Any] = {
     "prep": {"max_batches_per_tick": 2, "underage_floor": 0.4, "waste_penalty_inr": 0.0},
     "premake": {"enabled": True, "window_min": 60, "speed_value_inr": 40, "kitchen_load_max": 0.8, "max_units": 6,
                 "start_h": 10.0, "stop_h": 20.5, "waste_penalty_inr": 8, "min_window_demand": 2.0},
-    "replate": {"custom": True, "levels_pct": [0, 20, 30, 40, 50, 60, 70], "waste_value_inr": 12, "recovery_prior": 0.3},
+    "replate": {"custom": True, "levels_pct": [0, 20, 30, 40, 50, 60, 70], "waste_value_inr": 12, "recovery_prior": 0.3,
+                "max_hours_before_list": 4.0, "surplus_quantile": 0.35, "min_surplus_units": 2.0},
     "pricing": {"enabled": True, "every_min": 60, "first_h": 9.0, "last_h": 20.0, "min_gain_inr": 120,
                 "util_threshold": 0.9, "default_beta": -1.1, "default_loss": 1.0},
     "purchasing": {"z": 1.4, "cv": 0.35, "shelf_cap_frac": 0.7, "min_cover_days": 1.2, "late_buffer_days": 0.45},
@@ -220,7 +221,17 @@ class PolicyC:
             margin = margin_w / mean_units
             c_u = margin * min(1.0, max(P["underage_floor"], 2.0 * lead_s / 3600.0 / max(horizon_s / 3600.0, 0.5)))
             c_o = max(1e-6, avg_q * self._prep_cost(view, key)) + P["waste_penalty_inr"] * avg_q / max(avg_q, 1e-9) * 0.0
-            s0 = (view.usable(key) + view.prep_inflight(key)) / avg_q
+            # stock on hand when a new batch would land: current usable minus what is sold meanwhile
+            lead_demand = 0.0
+            if lead_s > 1200.0:
+                lead_demand = sum(d.units_until(sku, now + lead_s, now) * q for sku, q in users[key]) / avg_q
+                if lead_s > 4 * 3600.0:  # long-lead items (cold brew): add the nights' share of the next day
+                    lead_demand += max(0.0, (lead_s - close_in - 8 * 3600.0) / (14 * 3600.0)) * sum(
+                        float(nxt_day[d.idx[sku]]) * q for sku, q in users[key]
+                    ) / avg_q
+            s0 = max(0.0, (view.usable(key)) / avg_q - lead_demand) + view.prep_inflight(key) / avg_q
+            if lead_s > 4 * 3600.0:
+                mean_units = mean_units + lead_demand * 0.5
             batch = p.batch_size / avg_q
             best_b, best_v = 0, -1e18
             for b in range(0, int(P["max_batches_per_tick"]) + 1):
@@ -276,7 +287,7 @@ class PolicyC:
             else:
                 co = cost + Pm["waste_penalty_inr"]
             # a pre-made unit only saves time when the kitchen is busy: scale the speed value with expected load
-            busy = min(1.0, max(0.0, (self._expected_load(view) - 0.35) / 0.4))
+            busy = max(Pm.get("busy_floor", 0.0), min(1.0, max(0.0, (self._expected_load(view) - 0.35) / 0.4)))
             cu = Pm["speed_value_inr"] * busy
             if cu <= 0.5:
                 continue
@@ -303,7 +314,13 @@ class PolicyC:
 
     # ------------------------------------------------------------------ replate
     def _replate(self, view: WorldView, act: ManagerAction) -> None:
-        """Per-lot markdown: maximise expected revenue + recovery value over the ladder levels."""
+        """Per-lot markdown of *surplus* units only.
+
+        A discount on the rescue menu also pulls full-price buyers over (the choice model has no outside
+        option for food), so listing early gives revenue away.  C lists a lot only when its units exceed the
+        demand expected to reach it at full price before the use-by (negative-binomial quantile), and then
+        picks the shallowest ladder level whose sell-through (model) clears the surplus in the time left.
+        """
         d = self.demand
         assert d is not None
         lots = view.replate_lots()
@@ -311,71 +328,60 @@ class PolicyC:
             return
         Pr = self.P["replate"]
         now = view.now
-        st = self.bundle.sellthrough
         tod = view.tod_s
+        st = self.bundle.sellthrough
+        phi = d.dispersion
         parts: list[str] = []
         by_sku: dict[str, list[dict[str, Any]]] = defaultdict(list)
         for lot in lots:
             by_sku[lot["sku"]].append(lot)
+        n_listed = sum(1 for x in lots if x["listed"])
         for sku, group in by_sku.items():
             group.sort(key=lambda x: x["use_by_s"])
-            ahead = 0.0  # units of this SKU queued ahead of the lot (FEFO)
+            ahead = 0.0
             for lot in group:
                 units = lot["units"]
                 left_s = lot["use_by_s"] - now
                 if units < 1 or left_s <= 0:
                     continue
                 f_mu = d.units_until(sku, min(lot["use_by_s"], now - tod + CLOSE_S), now)
-                avail_demand = max(0.0, f_mu - ahead)  # demand reaching this lot at full price
+                reach = max(0.0, f_mu - ahead)
                 ahead += units
+                if left_s > Pr["max_hours_before_list"] * 3600.0:
+                    continue
+                full_q = demand_quantile(reach, Pr["surplus_quantile"], phi) if reach > 0 else 0.0
+                surplus = units - full_q
+                if surplus < Pr["min_surplus_units"]:
+                    continue
                 base = lot["base_price"]
-                best = (-1e18, 0.0)
+                ticks = max(1.0, left_s / 300.0)
+                chosen = 0.0
                 for pct in Pr["levels_pct"]:
-                    if pct and pct < lot["discount_pct"] - 1e-9:
+                    if pct <= 0 or pct < lot["discount_pct"] - 1e-9:
                         continue
-                    val = self._lot_value(view, sku, lot, pct, units, avail_demand, left_s, base, st)
-                    if val > best[0] + 1e-9:
-                        best = (val, pct)
-                pct = best[1]
-                if pct > lot["discount_pct"] + 0.5:
-                    act.replate_discounts[lot["lot_id"]] = float(pct)
-                    parts.append(f"{sku} -{pct:.0f}%")
+                    price = max(lot["floor"], round(base * (1 - pct / 100.0) / 5.0) * 5.0)
+                    if st is not None:
+                        try:
+                            rate = st.rate(
+                                sku, lot["frac_left"], pct, price / max(1.0, base), view.hour, view.weather, 0.0,
+                                n_listed, units,
+                            )  # fmt: skip
+                        except Exception:
+                            rate = 0.04 * (1 + pct / 30.0)
+                    else:
+                        rate = 0.04 * (1 + pct / 30.0)
+                    chosen = float(pct)
+                    if rate * ticks >= surplus:  # the shallowest level that clears the surplus
+                        break
+                if chosen > lot["discount_pct"] + 0.5:
+                    act.replate_discounts[lot["lot_id"]] = chosen
+                    parts.append(f"{sku} -{chosen:.0f}%")
                     self._note(
-                        act, view, f"markdown {sku}", units=units, expected_full_price_demand=avail_demand,
-                        hours_left=left_s / 3600.0, discount_pct=pct,
+                        act, view, f"markdown {sku}", units=units, expected_full_price_demand=reach,
+                        surplus_units=surplus, hours_left=left_s / 3600.0, discount_pct=chosen,
                     )  # fmt: skip
         if parts:
             act.reason = (act.reason + "; " if act.reason else "") + "replate: " + ", ".join(parts)
-
-    def _lot_value(
-        self, view: WorldView, sku: str, lot: dict[str, Any], pct: float, units: float, demand_full: float,
-        left_s: float, base: float, st: Any,
-    ) -> float:  # fmt: skip
-        """Expected revenue + waste-avoidance value of holding the lot at ``pct`` off until its use-by."""
-        Pr = self.P["replate"]
-        ticks = max(1.0, left_s / 300.0)
-        price = base if pct <= 0 else max(lot["floor"], round(base * (1 - pct / 100.0) / 5.0) * 5.0)
-        if pct <= 0:
-            sold = min(units, demand_full)
-            return sold * base + (units - sold) * 0.0  # leftover recovered nowhere
-        if st is not None:
-            try:
-                rate = st.rate(
-                    sku, lot["frac_left"], pct, price / max(1.0, base), view.hour, view.weather, 0.0,
-                    len([x for x in view.replate_lots() if x["listed"]]), units,
-                )  # fmt: skip
-            except Exception:
-                rate = 0.05 * (1 + pct / 40.0)
-        else:
-            rate = 0.05 * (1 + pct / 40.0)
-        rp_sales = min(units, rate * ticks)
-        # cannibalisation: full-price demand shifts to the discounted alternative at the observed preference
-        shift = min(1.0, 0.25 + pct / 100.0)
-        full_sold = min(units - rp_sales, demand_full * (1 - shift))
-        sold = rp_sales + full_sold
-        left = units - sold
-        waste_value = Pr["waste_value_inr"] * 1.0
-        return rp_sales * price + full_sold * base + waste_value * rp_sales + 0.0 * left
 
     # ------------------------------------------------------------------ pricing
     def _pricing(self, view: WorldView, act: ManagerAction) -> None:
@@ -673,14 +679,17 @@ class PolicyC:
             late_buf = Pu["late_buffer_days"] if sc.on_time_rate < 0.985 else 0.0
             shelf_days = ing.shelf_life_sealed_h / 24.0
             if ing.finished_good:
-                days = 1.0 + (0.4 if shelf_days >= 2 else 0.0)
-                target = perishable_order_up_to(u, days, shelf_days, 1.0, Pu["cv"], 0.9)
-                pos = self._usable_at(view, key, 0.0, u) + view.on_order(key)
+                days = 1.15 + (0.4 if shelf_days >= 2 else 0.0)
+                target = perishable_order_up_to(u, days, shelf_days, 1.3, Pu["cv"], 0.9)
+                keep_after = view.now + 86400.0 + 8 * 3600.0
+                pos = sum(q for q, e in view.lots(key) if e > keep_after) + view.on_order(key)
             else:
                 cover = max(Pu["min_cover_days"], gap + late_buf + open_before)
                 target = perishable_order_up_to(u, cover, shelf_days, Pu["z"], Pu["cv"], Pu["shelf_cap_frac"])
                 pos = self._usable_at(view, key, open_before, u) + view.on_order(key)
             qty = target - pos
+            if not ing.finished_good and pos < u * 1.0 and view.on_order(key) <= 0:
+                qty = max(qty, u * 1.2 - pos)
             if ing.shelf_life_opened_h < 60.0 and not ing.finished_good:
                 # a lot spoils soon after it is opened: never deliver more than ~one opening's worth at once
                 qty = min(qty, u * max(0.6, ing.shelf_life_opened_h / 14.0) * 1.15)
