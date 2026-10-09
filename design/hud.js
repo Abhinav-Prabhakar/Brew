@@ -194,7 +194,36 @@ addEventListener('keydown', (e) => {
   if ((e.key === 'm' || e.key === 'M') && window.BREW_MENUBOOK && !BREW_MENUBOOK.isOpen) BREW_MENUBOOK.open();
 });
 document.addEventListener('click', (e) => { if (!keysCard.hidden && !e.target.closest('#keys')) keysOpen(false); });
-window.BrewHUD = {fastForward, confetti, floatMoney};
+/* ---------- closing time: the day's Z-report prints itself (day.ended), click to tear it off ---------- */
+const zrep = document.createElement('div');
+zrep.id = 'zrep'; zrep.hidden = true; zrep.setAttribute('role', 'dialog'); zrep.setAttribute('aria-label', "the day's report");
+document.getElementById('viewport').appendChild(zrep);
+let zT = null;
+function zreport(m){
+  if (!m) return;
+  const L = (k, v, cls = '') => `<div class="r ${cls}"><span>${k}</span><i></i><b>${v}</b></div>`;
+  const pct = (x) => (x * 100).toFixed(1) + '%', d = m.date ? new Date(m.date + 'T00:00:00') : null;
+  const best = Object.entries(m.orders_by_channel || {}).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k.replace('_', '-')}\u00a0${v}`).join(' · ');
+  zrep.innerHTML = `<div class="roll"><h4>brew café ♡</h4><div class="c">Z-REPORT · day ${(m.day ?? 0) + 1}${d ? ' · ' + d.getDate() + ' ' + MON[d.getMonth()] : ''}</div><hr>`
+    + L('orders', m.orders ?? '—') + L('items sold', m.items_sold ?? '—') + `<div class="c">${esc(best)}</div><hr>`
+    + L('revenue', money(m.revenue ?? 0)) + L('food cost', m.food_cost_pct != null ? m.food_cost_pct.toFixed(1) + '%' : '—')
+    + L('labour', money(m.ledger?.labour ?? 0)) + L('rent', money(m.ledger?.rent ?? 0))
+    + L('NET PROFIT', money(m.net_profit ?? 0), 'big') + `<hr>`
+    + L('late orders', m.sla_breach_rate != null ? pct(m.sla_breach_rate) : '—') + L('walk-outs', m.walkouts ?? 0)
+    + L('rating', m.rating != null ? '★ ' + m.rating.toFixed(2) : '—') + L('waste', (m.waste_kg ?? 0).toFixed(1) + ' kg')
+    + (m.replate_units_sold ? L('rescued', `${m.replate_units_sold} plates`) : '') + (m.combo_orders ? L('combos', m.combo_orders) : '')
+    + `<hr><div class="c">${m.price_changes ?? 0} price calls · policy ${esc(R.S()?.policy?.policy || 'D')}</div><div class="sig">thank u, see you tomorrow ♡</div></div>`;
+  zrep.hidden = false; R.bump(zrep.firstElementChild, 'roll');
+  window.BrewAudio?.play?.('bill', 'ui', 24, 800);
+  clearTimeout(zT); zT = setTimeout(() => { zrep.hidden = true; }, 25000);
+}
+zrep.addEventListener('click', () => { window.BrewAudio?.play?.('tear', 'ui', 800); zrep.hidden = true; });
+window.BREW_LIVE?.on?.('day.ended', (d, ev) => {
+  if (!['live', 'replay', 'offline-demo', 'dev'].includes(window.BrewLive?.status)) return;
+  if (ev?.sim_s != null && Math.abs(R.now() - ev.sim_s) > 600) return;  // a day that ended long ago (catch-up): no print
+  zreport(d?.summary);
+});
+window.BrewHUD = {fastForward, confetti, floatMoney, zreport};
 
 /* ---------- policy comparison (click the profit card) ---------- */
 function drawCmp(s){

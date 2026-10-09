@@ -567,6 +567,18 @@
   .egg-sticky i{font-family:'Caveat',cursive;font-weight:700;font-size:18px;font-style:normal;opacity:.75}
   .egg-sticky::before{content:'';position:absolute;left:84px;top:-10px;width:60px;height:18px;background:rgba(227,178,90,.55);border:1.5px dashed rgba(29,26,28,.35);transform:rotate(-4deg)}
   @keyframes eggSticky{from{transform:translateY(-30px) rotate(-8deg);opacity:0}}
+  /* closing time: the day's Z-report unrolls out of the printer (hud.js) */
+  #zrep{position:absolute;left:50%;top:96px;translate:-50% 0;z-index:62;width:320px;padding:16px 20px 30px;background:#fffefb;border:2px solid var(--ink);
+    box-shadow:6px 7px 0 rgba(29,26,28,.25);font:13px/18px 'Courier Prime',monospace;color:var(--ink);transform:rotate(-1.2deg);cursor:pointer;
+    clip-path:polygon(0 0,100% 0,100% calc(100% - 10px),95% 100%,90% calc(100% - 10px),85% 100%,80% calc(100% - 10px),75% 100%,70% calc(100% - 10px),65% 100%,60% calc(100% - 10px),55% 100%,50% calc(100% - 10px),45% 100%,40% calc(100% - 10px),35% 100%,30% calc(100% - 10px),25% 100%,20% calc(100% - 10px),15% 100%,10% calc(100% - 10px),5% 100%,0 calc(100% - 10px))}
+  #zrep[hidden]{display:none}
+  #zrep .roll{animation:print 2.2s steps(26) both}
+  #zrep h4{font:700 15px/20px 'Courier Prime',monospace;text-align:center}
+  #zrep .c{text-align:center;opacity:.75}
+  #zrep .r{display:flex;gap:6px} #zrep .r span:first-child{flex:none} #zrep .r i{flex:1;border-bottom:1.5px dotted rgba(29,26,28,.45);margin-bottom:5px} #zrep .r b{font-weight:400}
+  #zrep .r.big{font-weight:700;font-size:15px;margin-top:2px} #zrep .r.big b{font-weight:700}
+  #zrep hr{border:0;border-top:1.5px dashed rgba(29,26,28,.5);margin:6px 0}
+  #zrep .sig{margin-top:8px;text-align:center;font-family:'Caveat',cursive;font-weight:700;font-size:21px;color:var(--pink-d)}
   /* ? — the keys card */
   #keys{left:50%;top:50%;translate:-50% -50%;z-index:65;width:400px;padding:14px 22px 16px;transform:rotate(-1deg);animation:unfold .45s var(--ease-spring)}
   #keys[hidden]{display:none}
