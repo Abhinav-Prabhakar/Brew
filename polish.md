@@ -63,7 +63,7 @@ present itself on GitHub as well as `Abhinav-Prabhakar/Dock` does.
 ## 3. Work items
 
 ### 3.1 Sound design
-- **Start from `lobby/js/audio.js`** (the retired 3D prototype). It has a complete **Web Audio synthesiser**: paper
+- **Start from `lobby/js/audio.js`** (the retired 3D prototype, deleted during integration — recover it with `git show 76fb830:lobby/js/audio.js`). It has a complete **Web Audio synthesiser**: paper
   tear, thermal printer, split-flap clatter, scooter, rain, bell, cash, mixed through master, SFX and ambience buses.
   Port and extend it into `design/` rather than starting over. `lobby/` is due for deletion, so copy what you need
   first.
