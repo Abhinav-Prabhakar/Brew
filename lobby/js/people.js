@@ -109,7 +109,7 @@
   const CAP = (r, tl = 1.55) => new T.SphereGeometry(r, 32, 16, 0, Math.PI * 2, 0, tl);
 
   function limb(parent, r, len, mat) {
-    return G.m(G.cap(r, len), mat, { p: [0, -len / 2 - r * 0.4, 0], parent });
+    return G.m(G.cap(r, len, 4, 12), mat, { p: [0, -len / 2 - r * 0.4, 0], parent });
   }
 
   P.build = function (t) {
@@ -229,7 +229,7 @@
     const head = G.group(chest, [0, 0.6, 0.012]);
     head.scale.setScalar(1.16);
     p.head = head;
-    const skull = G.m(G.sph(0.108, 40, 28), sk, { p: [0, 0.11, 0], s: [0.9, 1.06, 0.98], parent: head });
+    const skull = G.m(G.sph(0.108, 32, 22), sk, { p: [0, 0.11, 0], s: [0.9, 1.06, 0.98], parent: head });
     G.m(G.sph(0.05, 20, 14), sk, { p: [0, 0.052, 0.058], s: [1.05, 0.75, 0.9], parent: head });                    // jaw / chin
     const skD = skinMat(B.art.shade(t.skin, -0.06));
     // ears: helix ring + lobe
@@ -335,6 +335,7 @@
     ring.userData.noMerge = true;
     Object.values(p.mouths).forEach((m) => (m.userData.noMerge = true));
     p.brows.forEach((m) => (m.userData.noMerge = true));
+    G.trimCasters(root, 0.03);
     G.mergeChildren(root);
     all.add(p);
     return p;

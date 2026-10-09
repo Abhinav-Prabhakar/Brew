@@ -199,6 +199,185 @@
     });
   });
 
+
+  /* ---------------- ceiling fans (Bengaluru essential) ---------------- */
+  const fans = [];
+  function ceilingFan(x, z) {
+    const g = G.group(scene, [x, L.ceil, z]);
+    const white = G.mat('#fbf6f4', { physical: true, roughness: 0.35, clearcoat: 0.6 });
+    G.m(G.cyl(0.012, 0.012, 0.42, 10), G.brass(), { p: [0, -0.21, 0], parent: g, cast: false });
+    const rotor = G.group(g, [0, -0.46, 0]);
+    G.m(G.lathe([[0, 0.05], [0.1, 0.05], [0.12, 0.0], [0.1, -0.05], [0, -0.06]], 32), white, { parent: rotor });
+    for (let i = 0; i < 4; i++) {
+      const arm = G.group(rotor, [0, 0, 0]);
+      arm.rotation.y = (i / 4) * Math.PI * 2;
+      G.m(G.rbox(0.62, 0.012, 0.13, 0.006), G.mat('#d9b48a', { roughness: 0.5, normal: 'clayN', ns: 0.2 }), { p: [0.45, -0.005, 0], r: [0.12, 0, 0], parent: arm });
+      G.m(G.rbox(0.12, 0.015, 0.03, 0.005), G.brass(), { p: [0.14, 0, 0], parent: arm, cast: false });
+    }
+    G.m(G.sph(0.07, 20, 12), new T.MeshStandardMaterial({ color: '#fff7ea', emissive: '#ffe6bd', emissiveIntensity: 0.6, roughness: 0.3 }), { p: [0, -0.08, 0], s: [1, 0.6, 1], parent: rotor, cast: false });
+    fans.push(rotor);
+  }
+  G.onFrame((dt) => fans.forEach((f, i) => (f.rotation.y += dt * (1.6 + i * 0.15))));
+
+  /* ---------------- linen curtains on brass rods ---------------- */
+  const linen = G.mat('#fbf1ea', { roughness: 0.95, tex: 'weave', ns: 0.3, side: T.DoubleSide });
+  function drape(x, side, h) {
+    const w = 0.42, geo = new T.PlaneGeometry(w, h, 16, 10);
+    const pos = geo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const px = pos.getX(i), py = pos.getY(i);
+      const v = (py + h / 2) / h; // 0 bottom → 1 top
+      const tie = Math.exp(-Math.pow((v - 0.36) * 6, 2)); // pinch at the tieback
+      const nx = px * (1 - 0.55 * tie) - side * 0.08 * tie;
+      pos.setX(i, nx);
+      pos.setZ(i, Math.sin((px / w) * Math.PI * 7) * 0.025 * (1 - 0.5 * tie) + 0.02 * (1 - v));
+    }
+    geo.computeVertexNormals();
+    const m = G.m(geo, linen, { p: [x, 0.95 + h / 2, L.wallZ + 0.16], parent: scene });
+    // tieback cord
+    G.m(G.tor(0.05, 0.007, 6, 16), G.mat('#e9a7b8', { roughness: 0.7 }), { p: [x - side * 0.08, 0.95 + h * 0.36, L.wallZ + 0.19], r: [Math.PI / 2, 0, 0], s: [1.2, 1, 0.6], parent: scene, cast: false });
+    return m;
+  }
+  function curtains(cx) {
+    const h = 2.62, w = 1.5;
+    G.m(G.cyl(0.014, 0.014, w + 0.75, 12), G.brass(), { p: [cx, 3.6, L.wallZ + 0.17], r: [0, 0, Math.PI / 2], parent: scene, cast: false });
+    [-1, 1].forEach((sd) => G.m(G.sph(0.028, 12, 10), G.brass(), { p: [cx + sd * (w / 2 + 0.38), 3.6, L.wallZ + 0.17], parent: scene, cast: false }));
+    drape(cx - w / 2 - 0.14, -1, h);
+    drape(cx + w / 2 + 0.14, 1, h);
+  }
+
+  /* ---------------- wall sconces ---------------- */
+  function sconce(x, y) {
+    const g = G.group(scene, [x, y, L.wallZ + 0.02]);
+    G.m(G.cyl(0.05, 0.05, 0.02, 24), G.brass(), { r: [Math.PI / 2, 0, 0], p: [0, 0, 0.01], parent: g });
+    G.m(new T.TubeGeometry(new T.CatmullRomCurve3([new T.Vector3(0, 0, 0.02), new T.Vector3(0, 0.03, 0.12), new T.Vector3(0, 0.1, 0.16)]), 12, 0.008, 6), G.brass(), { parent: g, cast: false });
+    G.m(G.sph(0.075, 20, 14), new T.MeshStandardMaterial({ color: '#fff8ee', emissive: '#ffd9a0', emissiveIntensity: 1.6, roughness: 0.25, transparent: true, opacity: 0.95 }), { p: [0, 0.17, 0.16], parent: g, cast: false });
+    sconceMats.push(g.children[2].material);
+  }
+  const sconceMats = [];
+  D.setNight = (night) => sconceMats.forEach((m) => (m.emissiveIntensity = 1.2 + night * 2.4));
+
+  /* ---------------- woven jute rug ---------------- */
+  function rug(x, z, r) {
+    const c = G.canvas(512, 512), x2 = c.getContext('2d');
+    x2.translate(256, 256);
+    for (let k = 0; k < 46; k++) {
+      x2.strokeStyle = k % 9 === 7 || k % 9 === 8 ? '#e9a7b8' : k % 2 ? '#c9a676' : '#d8b98a';
+      x2.lineWidth = 5.6; x2.beginPath(); x2.arc(0, 0, 250 - k * 5.4, 0, Math.PI * 2); x2.stroke();
+    }
+    const n = G.noise(64, 9);
+    for (let i = 0; i < 9000; i++) { x2.fillStyle = `rgba(90,60,30,${n[i % 4096] * 0.12})`; x2.fillRect(Math.random() * 512 - 256, Math.random() * 512 - 256, 2, 2); }
+    const tex = G.tex(c, { wrap: false });
+    G.m(new T.CircleGeometry(r, 64), new T.MeshStandardMaterial({ map: tex, roughness: 1, normalMap: G.lib('knitN'), normalScale: new T.Vector2(0.6, 0.6), alphaTest: 0.02 }), { p: [x, 0.006, z], r: [-Math.PI / 2, 0, 0], parent: scene, cast: false });
+  }
+
+  /* ---------------- by the door: umbrella stand, coir mat ---------------- */
+  function doorDetail() {
+    const st = G.group(scene, [4.72, 0, -5.55]);
+    G.m(G.lathe([[0, 0], [0.13, 0], [0.14, 0.52], [0.125, 0.52], [0.115, 0.04], [0, 0.04]], 32), G.mat('#2f5a4c', { physical: true, roughness: 0.3, clearcoat: 0.8 }), { parent: st });
+    [['#e46d8d', 0.03, 0.12], ['#3b4f8f', -0.04, -0.1]].forEach(([c, dx, rz]) => {
+      const u = G.group(st, [dx, 0.05, 0]);
+      u.rotation.z = rz;
+      G.m(new T.ConeGeometry(0.05, 0.7, 10, 1, true), G.mat(c, { roughness: 0.6, side: T.DoubleSide }), { p: [0, 0.4, 0], r: [Math.PI, 0, 0], parent: u });
+      G.m(G.cyl(0.006, 0.006, 0.95, 6), G.mat('#3a3440'), { p: [0, 0.5, 0], parent: u });
+      G.m(G.tor(0.035, 0.008, 6, 12, Math.PI), G.mat('#3a2620'), { p: [0.035, 0.98, 0], parent: u });
+    });
+    const mc = G.canvas(512, 280), mx = mc.getContext('2d');
+    mx.fillStyle = '#b98a55'; mx.fillRect(0, 0, 512, 280);
+    for (let i = 0; i < 4000; i++) { mx.fillStyle = `rgba(${80 + Math.random() * 60},${50 + Math.random() * 30},20,.25)`; mx.fillRect(Math.random() * 512, Math.random() * 280, 1, 4); }
+    mx.strokeStyle = '#7a5530'; mx.lineWidth = 10; mx.strokeRect(14, 14, 484, 252);
+    D._mat = () => { mx.fillStyle = '#5a3a20'; mx.font = 'italic 700 120px Fraunces'; mx.textAlign = 'center'; mx.textBaseline = 'middle'; mx.fillText('brew', 256, 150); matTex.needsUpdate = true; };
+    const matTex = G.tex(mc, { wrap: false });
+    G.m(G.rbox(1.05, 0.022, 0.6, 0.008), new T.MeshStandardMaterial({ map: matTex, roughness: 1, normalMap: G.lib('knitN'), normalScale: new T.Vector2(0.8, 0.8) }), { p: [L.door[0], 0.011, -5.45], parent: scene, cast: false });
+  }
+
+  /* ---------------- gallery wall on the right ---------------- */
+  function gallery() {
+    const frames = [[-4.4, 2.35, 0.55, 0.7, 'sunset'], [-3.6, 2.55, 0.45, 0.45, 'cup'], [-3.6, 1.95, 0.45, 0.45, 'leaf'], [-2.75, 2.3, 0.6, 0.8, 'type']];
+    frames.forEach(([z, y, w, h, kind]) => {
+      const g = G.group(scene, [7.97, y, z]);
+      g.rotation.y = -Math.PI / 2;
+      G.m(G.rbox(w + 0.06, h + 0.06, 0.03, 0.01), G.mat(kind === 'type' ? '#1f1a1d' : '#d9b48a', { roughness: 0.5 }), { parent: g });
+      const c = G.canvas(256, Math.round((256 * h) / w)), x = c.getContext('2d'), H = c.height;
+      x.fillStyle = '#fbf3ee'; x.fillRect(0, 0, 256, H);
+      if (kind === 'sunset') { const gr = x.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, '#f6a3b8'); gr.addColorStop(0.6, '#ffd9a0'); gr.addColorStop(1, '#fbf3ee'); x.fillStyle = gr; x.fillRect(20, 20, 216, H - 40); x.fillStyle = '#e46d8d'; x.beginPath(); x.arc(128, H * 0.55, 40, 0, Math.PI * 2); x.fill(); x.fillStyle = '#2f5a4c'; x.fillRect(20, H * 0.7, 216, H * 0.3 - 20); }
+      if (kind === 'cup') { x.fillStyle = '#e46d8d'; x.beginPath(); x.ellipse(128, 140, 70, 60, 0, 0, Math.PI); x.fill(); x.fillRect(58, 110, 140, 30); x.strokeStyle = '#e46d8d'; x.lineWidth = 12; x.beginPath(); x.arc(205, 140, 24, -1.2, 1.2); x.stroke(); }
+      if (kind === 'leaf') { x.fillStyle = '#5c9a62'; x.beginPath(); x.ellipse(128, 128, 50, 95, 0.6, 0, Math.PI * 2); x.fill(); x.strokeStyle = '#fbf3ee'; x.lineWidth = 4; x.beginPath(); x.moveTo(70, 200); x.lineTo(190, 60); x.stroke(); }
+      if (kind === 'type') { x.fillStyle = '#1f1a1d'; x.fillRect(0, 0, 256, H); x.fillStyle = '#f6c3d0'; x.font = 'italic 700 46px Fraunces'; x.textAlign = 'center'; x.fillText('but first,', 128, H * 0.42); x.fillStyle = '#fff'; x.font = '800 54px "DM Sans"'; x.fillText('COFFEE', 128, H * 0.6); }
+      const t = G.tex(c, { wrap: false });
+      G.m(new T.PlaneGeometry(w - 0.04, h - 0.04), new T.MeshStandardMaterial({ map: t, roughness: 0.85 }), { p: [0, 0, 0.017], parent: g, cast: false });
+      galleryTex.push(() => t.needsUpdate = true);
+    });
+  }
+  const galleryTex = [];
+
+  /* ---------------- counter clutter ---------------- */
+  const bellParts = {};
+  function counterBits() {
+    const top = L.counterTop;
+    // card machine
+    const pos = G.group(scene, [1.32, top, 2.62]);
+    pos.rotation.y = -0.4;
+    G.m(G.rbox(0.08, 0.025, 0.16, 0.012), G.mat('#2b2730', { roughness: 0.4 }), { p: [0, 0.0125, 0], parent: pos });
+    G.m(G.rbox(0.06, 0.004, 0.06, 0.004), new T.MeshStandardMaterial({ color: '#1d2a33', emissive: '#7fd1b9', emissiveIntensity: 0.6 }), { p: [0, 0.027, -0.035], parent: pos, cast: false });
+    for (let i = 0; i < 9; i++) G.m(G.rbox(0.012, 0.004, 0.01, 0.002), G.mat('#d8d4dc'), { p: [-0.016 + (i % 3) * 0.016, 0.027, 0.02 + Math.floor(i / 3) * 0.016], parent: pos, cast: false });
+    // service bell — dings on every ready order
+    const bell = G.group(scene, [0.9, top, 2.92]);
+    G.m(G.cyl(0.05, 0.055, 0.012, 32), G.mat('#2b2730', { roughness: 0.4 }), { p: [0, 0.006, 0], parent: bell });
+    G.m(new T.SphereGeometry(0.045, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), G.brass(), { p: [0, 0.012, 0], parent: bell });
+    const plunger = G.group(bell, [0, 0.06, 0]);
+    G.m(G.cyl(0.004, 0.004, 0.02, 8), G.metal(), { p: [0, 0.008, 0], parent: plunger, cast: false });
+    G.m(G.sph(0.01, 12, 8), G.metal(), { p: [0, 0.02, 0], parent: plunger, cast: false });
+    bellParts.plunger = plunger;
+    // coffee bean bags
+    [[-0.98, 2.98, 0.2, '#c99a69'], [-1.08, 2.93, -0.2, '#b98a59']].forEach(([x, z, r, c]) => {
+      const b = G.group(scene, [x, top, z]);
+      b.rotation.y = r;
+      G.m(G.rbox(0.12, 0.2, 0.07, 0.02), G.mat(c, { roughness: 0.9, normal: 'paperN', ns: 0.6 }), { p: [0, 0.1, 0], parent: b });
+      G.m(G.rbox(0.122, 0.03, 0.04, 0.01), G.mat(c, { roughness: 0.9 }), { p: [0, 0.21, 0], parent: b });
+      G.m(new T.PlaneGeometry(0.07, 0.07), G.mat('#f6c3d0', { roughness: 0.8 }), { p: [0, 0.1, 0.036], parent: b, cast: false });
+    });
+    // napkins + sugar caddy
+    const nap = G.group(scene, [1.55, top, 2.62]);
+    G.m(G.rbox(0.12, 0.09, 0.07, 0.012), G.metal('#d9dce3', 0.3), { p: [0, 0.045, 0], parent: nap });
+    G.m(G.rbox(0.1, 0.02, 0.06, 0.004), G.mat('#ffffff', { roughness: 0.9 }), { p: [0, 0.1, 0], parent: nap });
+    const sug = G.group(scene, [1.72, top, 2.6]);
+    G.m(G.rbox(0.1, 0.05, 0.07, 0.01), G.mat('#fbf7f5', { physical: true, roughness: 0.3, clearcoat: 1 }), { p: [0, 0.025, 0], parent: sug });
+    [['#f6c3d0', -0.025], ['#ffffff', 0], ['#c99a69', 0.025]].forEach(([c, x]) => G.m(G.rbox(0.02, 0.05, 0.045, 0.003), G.mat(c), { p: [x, 0.06, 0], parent: sug, cast: false }));
+  }
+  B.on('order:ready', () => {
+    if (!bellParts.plunger || B.state.speed >= 10) return;
+    gsap.fromTo(bellParts.plunger.position, { y: 0.06 }, { y: 0.05, duration: 0.06, yoyo: true, repeat: 1 });
+  });
+
+  /* ---------------- outside: power lines, a parked scooter, street sign ---------------- */
+  function streetDetail() {
+    const out = B.world.outside;
+    const cable = G.mat('#2b2a30', { roughness: 0.6 });
+    for (let i = 0; i < 4; i++) {
+      const a = new T.Vector3(-16, 5.2 + i * 0.15, -16.2), b = new T.Vector3(16, 4.9 + i * 0.2, -9.4 - i * 0.3);
+      const pts = [];
+      for (let k = 0; k <= 30; k++) { const t = k / 30; const p = a.clone().lerp(b, t); p.y -= Math.sin(t * Math.PI) * (0.9 + i * 0.2); pts.push(p); }
+      G.m(new T.TubeGeometry(new T.CatmullRomCurve3(pts), 60, 0.012, 4), cable, { parent: out, cast: false, recv: false });
+    }
+    // parked scooter on our pavement
+    const sc = G.group(out, [-5.2, 0, -8.3]);
+    sc.rotation.y = 0.2;
+    const body = G.mat('#9fd3c7', { physical: true, roughness: 0.3, clearcoat: 1 });
+    [-0.5, 0.5].forEach((x) => G.m(G.tor(0.18, 0.06, 10, 22), G.mat('#1f1b20', { roughness: 0.8 }), { p: [x, 0.23, 0], parent: sc }));
+    G.m(G.rbox(0.95, 0.22, 0.38, 0.1), body, { p: [-0.05, 0.45, 0], parent: sc });
+    G.m(G.rbox(0.16, 0.6, 0.32, 0.07), body, { p: [0.47, 0.68, 0], r: [0, 0, -0.25], parent: sc });
+    G.m(G.rbox(0.48, 0.08, 0.28, 0.04), G.mat('#3a2e2a', { roughness: 0.6 }), { p: [-0.15, 0.6, 0], parent: sc });
+    G.m(G.cyl(0.02, 0.02, 0.52, 8), G.metal('#333'), { p: [0.56, 1.02, 0], r: [Math.PI / 2, 0, 0], parent: sc });
+    // street name sign
+    const sg = G.group(out, [2.2, 0, -8.6]);
+    G.m(G.cyl(0.035, 0.035, 2.4, 8), G.mat('#3a3f45', { metalness: 0.5, roughness: 0.4 }), { p: [0, 1.2, 0], parent: sg });
+    const c = G.canvas(512, 128), x = c.getContext('2d');
+    D._sign = () => { x.fillStyle = '#1f6b4f'; x.fillRect(0, 0, 512, 128); x.strokeStyle = '#fff'; x.lineWidth = 6; x.strokeRect(8, 8, 496, 112); x.fillStyle = '#fff'; x.font = '700 50px "DM Sans"'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('100 FEET ROAD', 256, 50); x.font = '500 28px "DM Sans"'; x.fillText('INDIRANAGAR · HAL 2ND STAGE', 256, 96); st.needsUpdate = true; };
+    const st = G.tex(c, { wrap: false });
+    G.m(new T.PlaneGeometry(0.9, 0.225), new T.MeshStandardMaterial({ map: st, roughness: 0.6, side: T.DoubleSide }), { p: [0, 2.35, 0], parent: sg, cast: false });
+  }
+
   D.init = () => {
     espresso(-0.32, 2.98);
     grinder(0.48, 2.92);
@@ -215,5 +394,17 @@
     // a bud vase on every table
     B.room.tables.forEach((t, i) => flowers(t.obj, 0, B.room.TOP_Y, 0, 0.75, i % 2 ? ['#f07ea0', '#ffffff'] : ['#ffd36b', '#ffd3df']));
     D._tipLabel();
+    ceilingFan(-3.6, -2.4);
+    ceilingFan(2.4, -2.6);
+    L.windows.forEach(curtains);
+    sconce(-7.3, 2.35);
+    sconce(4.55, 2.35);
+    rug(-2.7, -3.6, 1.25);
+    rug(0.35, -3.3, 1.05);
+    doorDetail();
+    gallery();
+    counterBits();
+    streetDetail();
+    D._mat(); D._sign();
   };
 })();

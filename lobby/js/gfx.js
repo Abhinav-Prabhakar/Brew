@@ -53,11 +53,11 @@
   try {
     ao = new X.N8AOPostPass(scene, camera, 1, 1);
     Object.assign(ao.configuration, { aoRadius: 0.6, distanceFalloff: 0.7, intensity: 2.4, color: new T.Color('#3a1424'), gammaCorrection: false, halfRes: true, depthAwareUpsampling: true });
-    ao.setQualityMode('Medium');
+    ao.setQualityMode('Low'); // with denoise this is visually indistinguishable from Medium, ~10–15 % cheaper
     composer.addPass(ao);
   } catch (e) { console.warn('N8AO unavailable', e); }
   G.ao = ao;
-  const bloom = new PP.BloomEffect({ intensity: 0.55, luminanceThreshold: 0.82, luminanceSmoothing: 0.18, mipmapBlur: true, radius: 0.72 });
+  const bloom = new PP.BloomEffect({ intensity: 0.55, luminanceThreshold: 0.82, luminanceSmoothing: 0.18, mipmapBlur: true, radius: 0.72, resolutionScale: 0.5 });
   const tone = new PP.ToneMappingEffect({ mode: PP.ToneMappingMode.ACES_FILMIC });
   const vignette = new PP.VignetteEffect({ offset: 0.32, darkness: 0.42 });
   const grade = new PP.BrightnessContrastEffect({ brightness: -0.015, contrast: 0.09 });
@@ -334,7 +334,7 @@
   G.rbox = (w, h, d, r = 0.02, s = 3) => GEO[`rb${w},${h},${d},${r},${s}`] || (GEO[`rb${w},${h},${d},${r},${s}`] = new X.RoundedBoxGeometry(w, h, d, s, Math.min(r, w / 2 - 1e-4, h / 2 - 1e-4, d / 2 - 1e-4)));
   G.cyl = (rt, rb, h, seg = 32) => GEO[`c${rt},${rb},${h},${seg}`] || (GEO[`c${rt},${rb},${h},${seg}`] = new T.CylinderGeometry(rt, rb, h, seg));
   G.sph = (r, ws = 24, hs = 16) => GEO[`s${r},${ws},${hs}`] || (GEO[`s${r},${ws},${hs}`] = new T.SphereGeometry(r, ws, hs));
-  G.cap = (r, l, cs = 6, rs = 14) => GEO[`p${r},${l}`] || (GEO[`p${r},${l}`] = new T.CapsuleGeometry(r, l, cs, rs));
+  G.cap = (r, l, cs = 6, rs = 14) => GEO[`p${r},${l},${cs},${rs}`] || (GEO[`p${r},${l},${cs},${rs}`] = new T.CapsuleGeometry(r, l, cs, rs));
   G.tor = (R, r, ts = 16, rs = 40, arc = Math.PI * 2) => GEO[`t${R},${r},${arc}`] || (GEO[`t${R},${r},${arc}`] = new T.TorusGeometry(R, r, ts, rs, arc));
   G.lathe = (pts, seg = 48) => new T.LatheGeometry(pts.map(([x, y]) => new T.Vector2(x, y)), seg);
 
@@ -380,6 +380,18 @@
     };
     visit(root);
     return saved;
+  };
+
+  /** small things don't need to cast shadows: skip casters under `minR` metres (saves shadow-pass work) */
+  G.trimCasters = (root, minR = 0.035) => {
+    let n = 0;
+    root.traverse((o) => {
+      if (!o.isMesh || !o.castShadow || o.isInstancedMesh) return;
+      if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
+      const s = o.getWorldScale(new T.Vector3());
+      if (o.geometry.boundingSphere.radius * Math.max(s.x, s.y, s.z) < minR) { o.castShadow = false; n++; }
+    });
+    return n;
   };
 
   /** mesh helper: G.m(geo, mat, {p:[x,y,z], r:[x,y,z], s:[..]|n, cast, recv, parent}) */

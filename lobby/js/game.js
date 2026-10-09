@@ -49,6 +49,7 @@
     const dir = new THREE.Vector3(0, 0, -2).sub(sunPos).normalize();
     B.decor.setSun({ dir, k: day * (1 - env.greyNow) * (0.4 + w.sun * 0.6), golden });
     B.decor.bulbMat.emissiveIntensity = 1.6 + night * 3.4;
+    B.decor.setNight(night);
     document.body.classList.toggle('night', night > 0.5);
   };
   let nextWxAt = 0, nextStreet = 0;
@@ -314,6 +315,7 @@
         t.state = 'ready';
         t.readyAt = S.t;
         B.audio.play('ding');
+        B.emit('order:ready', t);
         t.autoAt = S.t + (t.channel === 'zomato' || t.channel === 'swiggy' ? 5 : 9);
         orderSig = '';
       }
@@ -683,6 +685,7 @@
     G.normalizeEnv();
     B.tickets.rail.userData.noMerge = true;
     B.board.group.userData.noMerge = true;
+    G.trimCasters(G.scene);
     const saved = G.mergeChildren(G.scene);
     console.info(`[brew] batched ${saved} meshes`);
     env.update(10);
