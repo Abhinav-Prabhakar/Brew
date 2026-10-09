@@ -1,7 +1,7 @@
 # Smoke configuration: every stage (M2 + M3) end to end on an 8 GB Apple-silicon laptop (< 20 min).
 name: smoke
 runs_dir: data/runs/smoke
-models_dir: models
+models_dir: data/runs/smoke/models   # smoke artefacts never overwrite the committed models/
 device: auto                   # CUDA when available, else CPU
 history:
   scenario: weekday_normal
