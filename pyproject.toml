@@ -57,7 +57,7 @@ build-backend = "hatchling.build"
 packages = ["src/brew"]
 
 [tool.pytest.ini_options]
-markers = ["slow: training / long-running tests", "property: Hypothesis invariants", "integration: API / WS / DB tests"]
+markers = ["slow: training / long-running tests", "property: Hypothesis invariants", "integration: API / WS / DB tests", "frontend: tests of the design/live client layer (golden streams, headless Chromium via Python Playwright)"]
 addopts = "-q -m 'not slow' --timeout=180"
 asyncio_mode = "auto"
 testpaths = ["tests"]

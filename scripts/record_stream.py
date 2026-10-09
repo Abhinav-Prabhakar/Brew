@@ -29,7 +29,7 @@ import orjson
 
 from brew.config.loader import load_scenario, repo_root
 from brew.domain.timeutil import DAY_S
-from brew.events.bus import EventRecord, ListSink, envelope
+from brew.events.bus import EventRecord, envelope
 from brew.events.schema import event_json_schema
 from brew.policies.registry import make_policy
 from brew.sim import readmodels as rm
@@ -89,11 +89,27 @@ def dumps(obj: Any) -> bytes:
     return orjson.dumps(obj, option=orjson.OPT_SERIALIZE_NUMPY)
 
 
-def full_state(w: World) -> dict[str, Any]:
-    """What ``GET /worlds/{id}/state`` returns (readmodels.state + the status fields the router adds)."""
+def full_state(w: World) -> bytes:
+    """What ``GET /worlds/{id}/state`` returns (readmodels.state + the status fields the router adds), serialised NOW:
+    the read models hold references to live sim lists (order_nos, table_ids, ...) that keep mutating."""
     s = rm.state(w)
     s["world"].update({"status": "playing", "clock_mode": "open", "kind": "demo", "lagging": False})
-    return s
+    return dumps(s)
+
+
+class LineSink:
+    """Serialises every event the moment it is emitted (payloads may share lists with the live sim)."""
+
+    def __init__(self, start_date: str) -> None:
+        self.start_date = start_date
+        self.min_seq = 0  # events with seq <= min_seq belong to the hydration and are dropped
+        self.lines: list[bytes] = []
+        self.n_events = 0
+
+    def emit(self, ev: EventRecord) -> None:
+        if ev.seq > self.min_seq:
+            self.lines.append(dumps({"kind": "event", **envelope(ev, self.start_date)}))
+            self.n_events += 1
 
 
 def pick_price_change(w: World) -> tuple[str, float]:
@@ -115,7 +131,7 @@ def pick_price_change(w: World) -> tuple[str, float]:
 def record(name: str, git: str) -> list[bytes]:
     spec = SCENARIOS[name]
     seed = spec["seed"]
-    sink = ListSink()
+    sink = LineSink(START_DATE)
     w = World(
         scenario=load_scenario("weekday_normal"),
         policy=make_policy("D", models_dir=repo_root() / "models"),
@@ -126,6 +142,9 @@ def record(name: str, git: str) -> list[bytes]:
     w.advance_to(t0)
     snapshot = full_state(w)
     seq0 = w.seq
+    sink.min_seq = seq0
+    sink.lines.clear()  # everything before the start time is the hydration, not the stream
+    sink.n_events = 0
 
     # timeline: (sim_s, priority, kind, payload); actions/chaos before the checkpoint at the same time
     timeline: list[tuple[float, int, str, dict[str, Any]]] = []
@@ -142,16 +161,7 @@ def record(name: str, git: str) -> list[bytes]:
 
     out_actions: list[dict[str, Any]] = []
     out_chaos: list[dict[str, Any]] = []
-    stream: list[tuple[str, Any]] = []  # ("event", EventRecord) | ("checkpoint", (seq, state))
-    flushed = 0
     last_cp_seq = seq0
-
-    def flush() -> None:
-        nonlocal flushed
-        for ev in sink.events[flushed:]:
-            if ev.seq > seq0:
-                stream.append(("event", ev))
-        flushed = len(sink.events)
 
     for t, _, kind, p in timeline:
         w.advance_to(t)
@@ -186,27 +196,16 @@ def record(name: str, git: str) -> list[bytes]:
             rec["after_seq"] = w.seq
             out_actions.append(rec)
         elif kind in ("checkpoint", "end"):
-            flush()
             if kind == "end" or w.seq != last_cp_seq:
-                stream.append(("checkpoint", (w.seq, full_state(w))))
+                sink.lines.append(b'{"kind":"checkpoint","seq":%d,"data":' % w.seq + full_state(w) + b"}")
                 last_cp_seq = w.seq
-    flush()
-
-    n_events = sum(1 for k_, _ in stream if k_ == "event")
     meta = {
         "kind": "meta", "name": name, "seed": seed, "policy": "D", "start_date": START_DATE,
         "from_hhmm": spec["from"], "to_hhmm": spec["to"], "from_s": t0, "to_s": t1,
         "chaos": out_chaos, "actions": out_actions, "schema_sha256": schema_sha256(),
-        "n_events": n_events, "first_seq": seq0 + 1, "recorded_with": git,
+        "n_events": sink.n_events, "first_seq": seq0 + 1, "recorded_with": git,
     }  # fmt: skip
-    lines = [dumps(meta), dumps({"kind": "snapshot", "data": snapshot})]
-    for k_, v in stream:
-        if k_ == "event":
-            e: EventRecord = v
-            lines.append(dumps({"kind": "event", **envelope(e, START_DATE)}))
-        else:
-            lines.append(dumps({"kind": "checkpoint", "seq": v[0], "data": v[1]}))
-    return lines
+    return [dumps(meta), b'{"kind":"snapshot","data":' + snapshot + b"}", *sink.lines]
 
 
 def write(name: str, out_dir: Path, git: str) -> Path:
