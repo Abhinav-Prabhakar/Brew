@@ -96,3 +96,19 @@
   4. Start `full.yaml`, give the user the morning commands, and **end the chat** (no monitoring).
 - **Uncommitted `kitchen/` and `design/` changes on `main`** belong to the separate revamp chat. Leave them alone.
 
+
+## Status (2026-10-05 06:31): FULL TRAINING RUNNING on the desktop
+- `main` = `cf21a5b`: M1 + M2 + M3 all merged. Agent branches have been deleted locally and on GitHub. Remote branches left: `main` and `training-logs`.
+- **Desktop smoke run passed:** PPO 43.0 → 44.5, D ≥ A on both arenas, ONNX parity 3.8e-6, 24 min on CUDA, logs pushed.
+- **Fixes in this session:**
+  - Spawn/forkserver process pools. Forking after torch had started threads hung the arena on Linux.
+  - `overnight.sh --resume` now reuses the run dir, and `status` flags interrupted runs.
+  - Log snapshot paths are relative.
+  - full.yaml uses fewer eval workers (RAM).
+- **Full run:** `20261005_063045_cf21a5b` (`configs/train/full.yaml --push-model`), started 06:30 desktop time. Expected to take about 8–10 h; the desktop runs about 27 env steps/s per core.
+- **Do not monitor.** When the user says it's done:
+  1. Run `git fetch origin training-logs` and read `runs/20261005_063045_cf21a5b/{status.json,metrics.json,train.log.excerpt}` on that branch, or SSH in and run `overnight.sh status`.
+  2. Review D vs A/B/C.
+  3. Copy the champion under `models/rl_policy/D/<version>/` together with its registry entry.
+  4. Commit.
+- If the desktop rebooted mid-run, continue with `bash scripts/desktop/overnight.sh start --resume`.
