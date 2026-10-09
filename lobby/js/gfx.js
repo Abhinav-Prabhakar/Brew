@@ -265,8 +265,46 @@
       for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) { x.beginPath(); x.arc(i * 64 + 32, j * 64 + (i % 2) * 32, 2.2, 0, 7); x.fill(); }
       return G.tex(c);
     },
+    // ---- cloth, hair & skin: grey-scale albedo (tinted by material colour) + matching normals
+    weaveMap() { return clothTex('weave').map; },
+    weaveN() { return clothTex('weave').normal; },
+    denimMap() { return clothTex('denim').map; },
+    denimN() { return clothTex('denim').normal; },
+    knitMap() { return clothTex('knit').map; },
+    knitN() { return clothTex('knit').normal; },
+    hairMap() { return clothTex('hair').map; },
+    hairN() { return clothTex('hair').normal; },
+    skinN() { const n = makeNoise(256, 77); const h = new Float32Array(256 * 256); for (let i = 0; i < h.length; i++) h[i] = n[i] * 0.6; return G.normalFromHeight(h, 256, 1.0); },
     fabric() { const n = makeNoise(128, 41); const h = new Float32Array(128 * 128); for (let i = 0; i < h.length; i++) h[i] = n[i] * 0.5 + (((i % 128) % 4 < 2) ^ (((i / 128) | 0) % 4 < 2) ? 0.1 : 0); return G.normalFromHeight(h, 128, 2.5); },
   };
+
+  /** procedural cloth/hair: a height field → (albedo canvas, normal map), cached per kind */
+  const CLOTH = {};
+  function clothTex(kind) {
+    if (CLOTH[kind]) return CLOTH[kind];
+    const S = 256, h = new Float32Array(S * S), n = makeNoise(S, kind.length * 13 + 5);
+    for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+      const i = y * S + x;
+      let v;
+      if (kind === 'weave') { const a = Math.sin((x / S) * Math.PI * 2 * 48), b = Math.sin((y / S) * Math.PI * 2 * 48); v = 0.5 + 0.22 * (((x >> 2) + (y >> 2)) % 2 ? a : b) + (n[i] - 0.5) * 0.3; }
+      else if (kind === 'denim') { v = 0.5 + 0.3 * Math.sin(((x + y) / S) * Math.PI * 2 * 56) + (n[i] - 0.5) * 0.5 + (Math.random() - 0.5) * 0.12; }
+      else if (kind === 'knit') { const rib = Math.abs(Math.sin((x / S) * Math.PI * 24)); const st = Math.abs(Math.sin((y / S) * Math.PI * 40 + (x % 21 < 10 ? 0.6 : -0.6))); v = 0.25 + 0.5 * rib * (0.7 + 0.3 * st) + (n[i] - 0.5) * 0.15; }
+      else { const strand = Math.sin((x / S) * Math.PI * 2 * 90 + n[(y >> 3) * S + x] * 6) * 0.5 + 0.5; v = 0.35 + 0.45 * strand + (n[i] - 0.5) * 0.4; }
+      h[i] = v;
+    }
+    const c = G.canvas(S, S), x = c.getContext('2d'), img = x.createImageData(S, S);
+    for (let i = 0; i < S * S; i++) {
+      const base = kind === 'denim' ? 0.72 + h[i] * 0.32 : kind === 'hair' ? 0.62 + h[i] * 0.45 : 0.8 + h[i] * 0.22;
+      const vv = Math.min(255, base * 255);
+      img.data[i * 4] = vv; img.data[i * 4 + 1] = vv; img.data[i * 4 + 2] = kind === 'denim' ? Math.min(255, vv * 1.04) : vv; img.data[i * 4 + 3] = 255;
+    }
+    x.putImageData(img, 0, 0);
+    const rep = kind === 'hair' ? [6, 2] : kind === 'knit' ? [5, 5] : [7, 7];
+    const map = G.tex(c, { repeat: rep });
+    const normal = G.normalFromHeight(h, S, kind === 'hair' ? 2.4 : kind === 'knit' ? 3.0 : 1.8);
+    normal.repeat.set(rep[0], rep[1]);
+    return (CLOTH[kind] = { map, normal });
+  }
 
   /* ------------------------------------------------------------------ */
   /* materials & geometry caches                                         */
@@ -277,7 +315,9 @@
     const k = color + JSON.stringify(o);
     if (MAT[k]) return MAT[k];
     const p = Object.assign({ color, roughness: 0.62, metalness: 0, envMapIntensity: o.metalness ? 0.8 : 0.36 }, o);
+    if (p.tex) { p.map = G.lib(p.tex + 'Map'); p.normal = p.tex + 'N'; }
     if (p.normal) { p.normalMap = G.lib(p.normal); p.normalScale = new T.Vector2(p.ns || 0.5, p.ns || 0.5); }
+    delete p.tex;
     const { physical, normal, ns, ...rest } = p;
     const m = physical ? new T.MeshPhysicalMaterial(rest) : new T.MeshStandardMaterial(rest);
     return (MAT[k] = m);
