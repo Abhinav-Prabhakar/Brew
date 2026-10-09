@@ -193,6 +193,17 @@ def arena_get(arena_id: str, request: Request) -> dict[str, Any]:
 
 
 # --------------------------------------------------------------------- models
+@router.get("/policies/comparison")
+def policies_comparison() -> dict[str, Any]:
+    """A/B/C/D from the committed final arena (7 days x 10 seeds): per-day means, per-seed profit, bootstrap CI.
+
+    ``baseline`` is policy A (the "naive" reference for the HUD's "x% vs naive" and the pantry's waste/day).
+    """
+    from brew.analysis.comparison import load_comparison
+
+    return load_comparison()
+
+
 @router.get("/models")
 def models(request: Request) -> dict[str, Any]:
     reg = ModelRegistry(_models_dir(request))
