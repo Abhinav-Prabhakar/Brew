@@ -101,7 +101,27 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(read.router, prefix=prefix)
     app.include_router(analysis.router, prefix=prefix)
     app.include_router(ws.router, prefix=prefix)
+    if s.serve_design:
+        _mount_design(app)
     return app
+
+
+def _mount_design(app: FastAPI) -> None:
+    """Serve ``design/`` at ``/`` (index -> brew.html). Mounted last so ``/api/v1/*`` wins."""
+    from fastapi.responses import FileResponse
+    from fastapi.staticfiles import StaticFiles
+
+    from brew.config.loader import repo_root
+
+    d = repo_root() / "design"
+    if not (d / "brew.html").exists():
+        return
+
+    @app.get("/", include_in_schema=False)
+    def _index() -> FileResponse:
+        return FileResponse(d / "brew.html", media_type="text/html")
+
+    app.mount("/", StaticFiles(directory=d), name="design")
 
 
 def app_factory() -> FastAPI:
