@@ -216,7 +216,8 @@ def milp_prices(
                 model.add(sum(use) <= int(cap * scale))
     model.maximize(sum(obj))
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = 0.5
+    solver.parameters.max_deterministic_time = 0.5
+    solver.parameters.max_time_in_seconds = 5.0
     solver.parameters.num_workers = 1
     st = solver.Solve(model)
     out: dict[str, float] = {}

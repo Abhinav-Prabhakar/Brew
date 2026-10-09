@@ -206,7 +206,8 @@ def cpsat_schedule(
                 if ti == i:
                     m.add_hint(p, 1 if sk == k else 0)
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = max(0.001, time_limit_s)
+    solver.parameters.max_deterministic_time = max(0.001, time_limit_s)  # deterministic budget (reproducible)
+    solver.parameters.max_time_in_seconds = max(1.0, 25.0 * time_limit_s)  # wall-clock safety net only
     solver.parameters.num_workers = 1
     solver.parameters.random_seed = int(seed) % (2**31 - 1)
     solver.parameters.cp_model_presolve = True
