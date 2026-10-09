@@ -67,3 +67,20 @@ animates near them. JS is 93 % idle.
 
 ## 8. Close
 - All suites green, baselines updated on purpose, `context.md` updated, pushed to `main`.
+
+## Status (2026-10-06, end of the polish pass)
+All eight steps shipped and pushed to `main`, one commit per step. Measured, not assumed:
+- **Perf** (headless Chromium, software raster, 1632×1040, lunch rush ×60): lobby p95 233 → 16.7–33 ms, kitchen and
+  pantry 16.7 ms, lobby + open book ~45–50 ms (3D page transforms; cheap on a GPU). `test_perf.py` guards 50 ms (80 ms
+  for the book) on CI; `BREW_PERF_LIMIT_MS=16.7` for the strict local run.
+- **A11y**: `test_a11y.py` axe-clean on 6 states + the keyboard path. **Resilience**: `test_resilience.py` kills and
+  restarts brew-api mid-rush, and boots with no backend.
+
+Left open (honest list):
+- **30-minute memory soak** (no growth over a live session) has not been run; keyed layers recycle nodes, but it is
+  unmeasured. Suggested: a slow Playwright test sampling `performance.memory` every minute.
+- **Lobby p95** sometimes reads 33 ms headless (run-to-run noise around two vsyncs); not yet measured on real hardware.
+- **Sound** has been checked for errors only (all 28 voices run); the mix wants a listen on speakers / headphones.
+- **README media** were generated, not reviewed by eye: check the hero GIF before sharing.
+- **CI**: the first GitHub Actions run has not been watched (no `gh` login on this machine).
+- Visual baselines exist for darwin only; Linux CI checks render determinism and skips the pixel diff.
