@@ -58,3 +58,7 @@ def gap_client():
     with TestClient(app) as cl:
         cl.app_ = app  # type: ignore[attr-defined]
         yield cl
+
+
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption("--update-visual", action="store_true", default=False, help="rewrite the visual-regression baselines (tests/visual/)")

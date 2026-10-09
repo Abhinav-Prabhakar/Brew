@@ -163,6 +163,7 @@ postgres = [
 dev = [
     { name = "hypothesis" },
     { name = "mypy" },
+    { name = "pillow" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
@@ -213,6 +214,7 @@ provides-extras = ["postgres"]
 dev = [
     { name = "hypothesis", specifier = ">=6.168.3" },
     { name = "mypy", specifier = ">=2.4.0" },
+    { name = "pillow", specifier = ">=11.0.0" },
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "pytest-asyncio", specifier = ">=1.4.0" },
     { name = "pytest-cov", specifier = ">=7.1.0" },

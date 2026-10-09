@@ -26,3 +26,4 @@ kitchen/assets/_src/
 .overnight/
 design/dev/
 .claude/worktrees/
+tests/visual/_diff/

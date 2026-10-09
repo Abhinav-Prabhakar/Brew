@@ -156,11 +156,13 @@ visible number goes through one tested path. Where they land:
   paperclip. `select.rail()` puts `.batch = {id, order_nos, size, index}` on tickets only when 2+ of the group are on the rail.
 - **Tables** have no "cleaned" event: `dirty -> free` is inferred from a finished `pass/clean` task (FIFO).
 - **Staff** `station` / `task` come from the active `tasks`; `state` is `absent | off | break | working | idle`; `break_due_s` /
-  `break_end_s` and `fatigue` only fill in with `staff.status` (pending backend) or `rest.staff`.
+  `break_end_s` and `fatigue` fill in with `staff.status` (every 60 sim-s) or `rest.staff`.
 - **Shelf** also carries `riders` (rider.assigned/arrived arrive before the bag exists) and `waiting_for_slot`.
 - **Internal keys** (not for renderers): `_next_prune_s`, `_dirty_tables`.
 - **Pseudo events** `rest.<name>` (listed above) and `client.status` (`{lagging}`, from boot.js).
-- **Pending backend** (reducers exist; mark in `contract.json`): `station.load`, `staff.status`, `chaos.cost`, `saves_s` on `batch.*`.
+- **Backend events that feed the kitchen** (all streamed now, in the fixtures): `station.load` (every 60 sim-s, one row per station), `staff.status` (every 60 sim-s: fatigue, break schedule, state), `chaos.cost` (shadow-fork cost of a manual disruption, phases active / resolved / final; at most 2 disruptions are cost-tracked at a time), `saves_s` on `batch.formed/started`, `headline` + `trigger` on `decision.made` (the immediate re-plan after a manual chaos carries the disruption id as `trigger`).
+- **Replays carry REST.** The recorded fixtures (and `design/data/demo-stream.jsonl`) include the `rest.*` pseudo-events (seq null) at the start and every 30 sim-min, so a replay renders the pantry lots / usage, the purchasing proposal, impact, comparison, forecast and bottlenecks like the live app. `ReplaySource` hands them to `BrewLive.ingest` (`state.seq` and `source.lastSeq` ignore them). A pseudo-event that moves `sim_s` forward also moves the clock (`'*'` handlers), so a replayed quiet night still shows the right time. `rest.advisor` is not recorded (it is a minutes-long counterfactual job).
+- **Stepping a replay** (`speed: 0`, i.e. `?source=replay&fixture=<name>&speed=0`): nothing is delivered until `BrewLive.source.stepTo(sim_s)`, which hands over every event with `sim_s <=` the target in one batch. The rendering and visual tests use it (`?still` removes animations / rolling numbers).
 - **Boot params**: `?source=ws|replay &api= &world=<id> &clock=wall|open &policy=D &play=0 &fixture=<name> &replay=<url> &speed=<n> &loop=1`;
   `window.BREW_LIVE_AUTOBOOT = false` skips auto boot (`BrewLive.boot(params)` by hand). Statuses: `booting | live | reconnecting |
   replay | offline-demo | closed`; bus also emits `hydrate`, `frame`, `status`. `BrewLive.refresh(name, arg)` fetches a read model
