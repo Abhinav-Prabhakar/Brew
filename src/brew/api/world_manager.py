@@ -21,8 +21,6 @@ from brew.sim import readmodels as rm
 from brew.sim.actions import BadPayload, apply_action
 from brew.sim.world import World
 
-SPEEDS = (0, 1, 10, 60)
-
 
 class NotImplementedYet(Exception):
     """Feature belongs to a later milestone (HTTP 501)."""
@@ -50,8 +48,8 @@ class ManagedWorld:
         self.fan = FanoutSink(self.ring)
         world.sink = self.fan
         self.db_sink: DbWriterSink | None = None
-        self.speed = 0
-        self.last_speed = 1
+        self.running = False
+        self.clock = "open"  # "wall" = locked to the real local time (live café)
         self.status = "paused"
         self.lagging = False
         self.pacer: asyncio.Task[None] | None = None
@@ -70,6 +68,15 @@ class ManagedWorld:
                 t_end = time.perf_counter() + budget_s
                 stop = lambda: time.perf_counter() > t_end  # noqa: E731
             return w.advance_to(target, stop)
+
+    def wall_sim_now(self) -> float:
+        """Sim time matching the real local wall clock (day 0 = the world's start date)."""
+        from zoneinfo import ZoneInfo
+
+        now = datetime.now(ZoneInfo(self.settings.live_tz))
+        y, m, d = (int(x) for x in self.world.start_date.split("-"))
+        days = (now.date() - _date(y, m, d)).days
+        return days * 86_400.0 + now.hour * 3600 + now.minute * 60 + now.second + now.microsecond / 1e6
 
     def step(self, step_s: float) -> dict[str, Any]:
         with self.lock:
@@ -125,7 +132,7 @@ class ManagedWorld:
         with self.lock:
             return {
                 "id": w.world_id, "kind": self.kind, "scenario": w.scenario.key, "policy": w.policy.code,
-                "strategy": w.manual_strategy, "seed": w.seed, "status": self.status, "speed": self.speed,
+                "strategy": w.manual_strategy, "seed": w.seed, "status": self.status, "clock_mode": self.clock,
                 "lagging": self.lagging, "parent_id": self.parent_id, "created_at": self.created_at.isoformat(),
                 "start_date": w.start_date, "clock": rm.clock(w), "last_seq": w.seq,
             }  # fmt: skip
@@ -182,6 +189,10 @@ class WorldManager:
             raise BadPayload(f"unknown scenario {scenario!r}")
         scn = load_scenario(scenario)
         start_date = spec.get("start_date") or scn.start_date
+        if spec.get("clock") == "wall" and not spec.get("start_date"):
+            from zoneinfo import ZoneInfo
+
+            start_date = datetime.now(ZoneInfo(s.live_tz)).date().isoformat()  # live café: today
         if spec.get("start_day"):
             y, m, d = (int(x) for x in start_date.split("-"))
             start_date = (_date(y, m, d) + timedelta(days=int(spec["start_day"]))).isoformat()
@@ -197,7 +208,8 @@ class WorldManager:
                 w.set_strategy(spec["strategy"])
             except ValueError as e:
                 raise BadPayload(str(e)) from e
-        mw.last_speed = int(spec.get("speed", 1)) or 1
+        mw.clock = spec.get("clock") or "open"
+        w.speed = float(s.live_rate)
         w.advance_to(w.day_start_t(0))  # hydrate: day started, weather set, staff scheduled
         self.worlds[wid] = mw
         return mw
@@ -235,7 +247,7 @@ class WorldManager:
 
     def delete(self, wid: str) -> None:
         mw = self.get(wid)
-        mw.speed = 0
+        mw.running = False
         mw.status = "deleted"
         if mw.pacer is not None:
             mw.pacer.cancel()
@@ -258,7 +270,7 @@ class WorldManager:
 
     async def shutdown(self) -> None:
         for mw in list(self.worlds.values()):
-            mw.speed = 0
+            mw.running = False
             if mw.pacer is not None:
                 mw.pacer.cancel()
             if mw.db_sink is not None:

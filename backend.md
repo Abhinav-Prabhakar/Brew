@@ -37,7 +37,7 @@ Brew is an operating system for independent cafes packaged as a cozy restaurant 
 
 | Consumer | Needs |
 |---|---|
-| The 3D lobby (later) | A WebSocket event stream rich enough to animate every visual it has today (see §6.3), a hydration snapshot, and endpoints for player actions (serve, bump, restock, policy, speed). |
+| The 3D lobby (later) | A WebSocket event stream rich enough to animate every visual it has today (see §6.3), a hydration snapshot, and endpoints for player actions (serve, bump, restock, policy). The café runs **live** (real time); there are no playback speeds. |
 | Future rooms (Kitchen, Pantry, Office, Arena, Chaos) | Station/staff/equipment state, inventory lots, forecasts, decisions + explanations, bottlenecks, advisor, arena results, chaos triggers. |
 | Training scripts | Headless sim at high throughput, Gymnasium env, datasets in Parquet. |
 | Us (developers) | CLI tools, deterministic replays, good tests, readable logs. |
@@ -158,7 +158,8 @@ GET    /worlds                                  → list
 GET    /worlds/{id}                             → World (status, clock, speed, policy, strategy)
 DELETE /worlds/{id}
 GET    /worlds/{id}/state                       → full hydration snapshot (§6.4)
-POST   /worlds/{id}/control  {action: play|pause|speed|step, speed?: 0|1|10|60, step_s?}
+POST   /worlds/{id}/control  {action: play|pause|step, step_s?}   # live: real time, no playback speeds
+       (POST /worlds takes clock: "wall" (today, synced to real local time) | "open" (start at opening))
 POST   /worlds/{id}/policy   {policy?: A|B|C|D|E, strategy?: balanced|delivery_first|rush_menu|happy_hour}
 POST   /worlds/{id}/fork     {at?: "now", kind?: counterfactual} → World
 POST   /worlds/{id}/chaos    {kind, target?, severity?, duration_min?} → Disruption
@@ -219,7 +220,7 @@ Server → client: **batched frames** every 50–100 ms wall time: `{"frame": n,
 
 | Type | Key payload fields | Drives (frontend) |
 |---|---|---|
-| `clock.tick` (every sim minute) | `day, hhmm, weekday, speed` | HUD clock, wall clock, board clock |
+| `clock.tick` (every sim minute) | `day, hhmm, weekday` (+ `speed` = live rate, 1.0) | HUD clock, wall clock, board clock |
 | `weather.changed` | `state, temp_c, rain_mm_h` | sky, rain, HUD weather |
 | `day.started` / `day.ended` | `day, summary` | intro / closing card |
 | `customer.arrived` | `customer_id, party_id, persona, party_size, channel, appearance_seeds[]` | door opens, people spawn |

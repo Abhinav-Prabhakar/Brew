@@ -56,7 +56,7 @@ def test_error_envelope_shapes(api_client):
     c = api_client
     r = c.get(f"{API}/worlds/nope")
     assert r.status_code == 404 and set(r.json()["error"]) == {"code", "message", "details"}
-    r = c.post(f"{API}/worlds", json={"policy": "A", "speed": 7})
+    r = c.post(f"{API}/worlds", json={"policy": "A", "clock": "fast"})
     assert r.status_code == 422 and r.json()["error"]["code"] == "validation_error"
     r = c.post(f"{API}/worlds", json={"scenario": "nope"})
     assert r.status_code == 422
@@ -198,30 +198,44 @@ def test_receipt_endpoint(api_client):
 
 
 # ------------------------------------------------------------------ control
-def test_control_speed_pause_play(api_client):
+def test_control_play_pause_step_no_speeds(api_client):
     c = api_client
     wid = mk(c)
-    for sp in (1, 10, 60):
-        r = c.post(f"{API}/worlds/{wid}/control", json={"action": "speed", "speed": sp}).json()
-        assert r["speed"] == sp and r["status"] == "playing"
-        r = c.post(f"{API}/worlds/{wid}/control", json={"action": "pause"}).json()
-        assert r["speed"] == 0 and r["status"] == "paused"
-    assert c.post(f"{API}/worlds/{wid}/control", json={"action": "speed", "speed": 7}).status_code == 422
-    r = c.post(f"{API}/worlds/{wid}/control", json={"action": "speed", "speed": 0}).json()
+    r = c.post(f"{API}/worlds/{wid}/control", json={"action": "play"}).json()
+    assert r["status"] == "playing" and "speed" not in r
+    r = c.post(f"{API}/worlds/{wid}/control", json={"action": "pause"}).json()
     assert r["status"] == "paused"
+    # playback speeds are gone: the café runs live
+    assert c.post(f"{API}/worlds/{wid}/control", json={"action": "speed", "speed": 10}).status_code == 422
     before = c.get(f"{API}/worlds/{wid}").json()["clock"]["sim_s"]
     r = step(c, wid, 600)
     assert r["clock"]["sim_s"] == before + 600 and r["events"] > 0
 
 
-async def test_pacer_advances_world_without_sleeping_in_tests():
-    """Run the pacer coroutine with a huge base rate so a few ticks cover hours of sim time."""
-    app = create_app(Settings(db_enabled=False, live_base_rate=2_000_000.0, pacer_tick_s=0.001))
+def test_wall_clock_world_starts_today_at_the_local_time(api_client):
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    c = api_client
+    r = c.post(f"{API}/worlds", json={"policy": "A", "seed": 3, "clock": "wall"})
+    assert r.status_code == 201, r.text
+    j = r.json()
+    now = datetime.now(ZoneInfo("Asia/Kolkata"))
+    assert j["clock_mode"] == "wall" and j["start_date"] == now.date().isoformat()
+    tod = now.hour * 3600 + now.minute * 60 + now.second
+    sim_tod = j["clock"]["sim_s"] % 86_400
+    # hydrated to at least the 07:00 day start; otherwise within a minute of the real local time
+    assert abs(sim_tod - max(tod, 7 * 3600)) < 90 or tod < 7 * 3600
+
+
+async def test_pacer_runs_live_without_sleeping_in_tests():
+    """Run the pacer with a huge live_rate (dev override) so a few ticks cover hours of sim time."""
+    app = create_app(Settings(db_enabled=False, live_rate=2_000_000.0, pacer_tick_s=0.001))
     async with app.router.lifespan_context(app):
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as c:
             wid = (await c.post(f"{API}/worlds", json={"policy": "A", "seed": 3})).json()["id"]
             start = (await c.get(f"{API}/worlds/{wid}")).json()["clock"]["sim_s"]
-            r = await c.post(f"{API}/worlds/{wid}/control", json={"action": "play", "speed": 60})
+            r = await c.post(f"{API}/worlds/{wid}/control", json={"action": "play"})
             assert r.json()["status"] == "playing"
             for _ in range(500):
                 await asyncio.sleep(0.002)

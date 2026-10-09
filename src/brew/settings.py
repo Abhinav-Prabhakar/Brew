@@ -19,7 +19,8 @@ class Settings(BaseSettings):
     config_dir: str = ""
     models_dir: str = ""
     runs_dir: str = ""
-    live_base_rate: float = 20.0  # sim seconds per wall second at speed 1x
+    live_rate: float = 1.0  # sim seconds per wall second; 1.0 = real time (the café runs live, no playback speeds)
+    live_tz: str = "Asia/Kolkata"  # wall-clock time zone for clock="wall" worlds (the café is in Bengaluru)
     db_enabled: bool = True
     db_store_events: bool = True  # write sim_event rows for live worlds
     ws_frame_interval_s: float = 0.075

@@ -12,7 +12,9 @@ class WorldCreate(BaseModel):
     scenario: str = "weekday_normal"
     policy: str = "A"
     seed: int = 7
-    speed: Literal[0, 1, 10, 60] = 1
+    clock: Literal["wall", "open"] = Field(
+        "open", description="wall: today's date, synced to the real local time (live café); open: start at opening."
+    )
     start_day: int = Field(0, ge=0, description="Offset in days from the scenario start date.")
     start_date: str | None = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     cash_start: float | None = None
@@ -23,8 +25,7 @@ class WorldCreate(BaseModel):
 
 
 class ControlRequest(BaseModel):
-    action: Literal["play", "pause", "speed", "step"]
-    speed: Literal[0, 1, 10, 60] | None = None
+    action: Literal["play", "pause", "step"]
     step_s: float | None = Field(None, gt=0, le=86_400)
 
 

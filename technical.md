@@ -414,7 +414,7 @@ Full list & payloads: `backend.md §6.3`. Add `appearance_seeds: list[int]` (one
 Holds `dict[world_id, ManagedWorld]`. `ManagedWorld` = `World` + `Pacer` + `RingBufferSink` + subscriber queues + action queue + lock. Creation builds the world from config + scenario + policy + seed.
 
 ### 10.3 Pacing (`pacing.py`)
-One asyncio task per live world: every **50 ms** wall: `target = sim_now + dt_wall × base_rate × speed` (base_rate 20 ⇒ 1× runs 20 sim-s per real second, like the lobby; 60× ⇒ a 14 h day in 42 s). Process events up to `target` **in a worker thread** via `asyncio.to_thread` with a max of 30 ms CPU per tick (if it can't keep up, it lags gracefully and reports `lagging: true` in `/worlds/{id}`). Pause = speed 0. `step` control advances by `step_s` synchronously (used by tests — **tests never sleep on wall time**).
+One asyncio task per live world. **The café runs live; there are no playback speeds.** Every **50 ms** wall: `target = anchor_sim + (wall − anchor_wall) × live_rate` (`BREW_LIVE_RATE`, default **1.0 = real time**; a larger value is a dev-only override). `clock="wall"` worlds start on **today's date** (`BREW_LIVE_TZ`, default Asia/Kolkata), fast-forward to the current local time on create/play and stay locked to the wall clock (they catch up after a lag). `clock="open"` worlds start at opening and skip the closed night. Process events up to `target` **in a worker thread** via `asyncio.to_thread` with a max of 30 ms CPU per tick (if it can't keep up, `lagging: true`). Controls: play / pause / step; `step` advances `step_s` synchronously (tests and debugging — **tests never sleep on wall time**).
 Player actions are queued and applied at the start of the next tick, stamped with the current `sim_s`, and logged as events (`action.applied`) — replays reproduce them.
 
 ### 10.4 WebSocket (`ws.py`)
@@ -589,7 +589,7 @@ Organise under `tests/` mirroring `src/brew`. Use fixtures `cafe_cfg`, `small_wo
 **Policies:** each satisfies the protocol and runs a full day; B batches more than A; C (milestone 2) ≥ A/B profit on smoke seeds; D parity with ONNX.
 **Events:** every emitted event validates against its schema; `seq` strictly increasing; throttling rules respected; `customer.arrived` has one appearance seed per member.
 **Telemetry:** parquet files written with expected columns; demand_15m aggregates equal orders.
-**API (integration):** create world → step → state snapshot coherent with events; control speed/pause; actions (serve_order on ready order succeeds, on non-ready → 409; bump; set_price charter violation → 422; throttle); chaos creates disruption + event; fork; error envelope shape; OpenAPI builds.
+**API (integration):** create world → step → state snapshot coherent with events; control play/pause/step (no speeds; `speed` action → 422); wall-clock world starts today at the local time; actions (serve_order on ready order succeeds, on non-ready → 409; bump; set_price charter violation → 422; throttle); chaos creates disruption + event; fork; error envelope shape; OpenAPI builds.
 **WebSocket:** hello + replay from `since_seq`; frames batched; resync when beyond buffer; multiple subscribers.
 **DB:** writer persists orders/reviews/decisions; migrations upgrade on empty DB.
 **Synth:** validator accepts good fixtures, rejects bad rows with line numbers, dedupes, writes clean files; prompts directory contains all 7 prompts each with "Save output to" and schema sections.
