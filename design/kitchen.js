@@ -224,7 +224,7 @@ document.getElementById('kitchen-scene').innerHTML = DEFS
   + `<g filter="url(#wob)"><rect x="1490" y="292" width="106" height="360" fill="url(#k-out)" ${st(3)}/></g>` + g('k-outside')
   + `<g filter="url(#wob)">${M}</g>` + g('k-hopper') + g('k-brewlvl') + `<g filter="url(#wob)">${GRINDER_FRONT}${CARAFE_FRONT}${BACKDOOR}</g>`
   + g('k-dishes', 'filter="url(#wob)"') + `<g id="k-fx">${FXL}</g>` + g('k-broken') + g('k-crew') + g('k-tech')
-  + `<g filter="url(#wob)">${P}</g>` + g('k-pass', 'filter="url(#wob)"') + `<g filter="url(#wob)">${BELL}</g>` + g('k-passtxt')
+  + `<g filter="url(#wob)">${P}</g>` + g('k-pass', 'filter="url(#wob)"') + `<g filter="url(#wob)">${BELL}</g>` + g('k-passtxt') + g('k-decor', 'filter="url(#wob)"')
   + g('k-cards') + g('k-labels') + g('k-dark')
   + `<rect width="1600" height="1000" filter="url(#grain)" opacity=".22" pointer-events="none"/>`;
 $('k-labels').innerHTML = gt(73, 277, '← lobby', 17, `text-anchor="middle" fill="${C.pinkD}"`) + gt(1544, 276, 'staff break', 16, 'text-anchor="middle"')
@@ -633,11 +633,22 @@ room.querySelector('.chaos')?.addEventListener('click', async (e) => {
 });
 
 /* ================================================================ frame */
+/* investments delivered show up in the room (lobby.js renderDecor draws the front-of-house ones) */
+let decorSig = '';
+function renderDecor(s){
+  const keys = (s.investments || []).map((x) => x.catalog_key), sig = keys.join();
+  if (sig === decorSig) return; decorSig = sig;
+  const lip = (k, dx, label, rot) => hangTag(MACHINE[k][0] + dx, MACHINE[k][1] + 10, label, rot);
+  let k = '';
+  if (keys.includes('press_2nd')) k += lip('press', 55, 'new ♡ · 2nd panini press', 3);
+  if (keys.includes('dishwasher_upgrade')) k += lip('dishpit', -20, 'new ♡ · faster dishwasher', -4);
+  $('k-decor').innerHTML = k;
+}
 function render(s){
   if (!s) return;
   const t = R.now();
   renderOutside(s); renderFX(s); renderLevels(s); renderBroken(s, t); renderCrew(s, t); renderCards(s, t); renderPass(s);
-  renderCrewCard(s, t); renderBoard(s); renderChaos(s, t);
+  renderCrewCard(s, t); renderBoard(s); renderChaos(s, t); renderDecor(s);
 }
 R.onState(render);
 setInterval(() => { const s = R.S(); if (!s || document.body.dataset.room !== 'kitchen') return; render(s); }, 1000);

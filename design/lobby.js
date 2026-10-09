@@ -776,6 +776,7 @@ function renderDecor(s){
   if (keys.includes('marketing_push')) k += `<g transform="rotate(-4 120 300)"><rect x="40" y="226" width="150" height="110" rx="6" fill="#fffdf8" ${st(2.6)}/><rect x="52" y="238" width="126" height="40" fill="${C.pink}" ${st(1.8)}/>${gtx(115, 266, 'brew ♡', 24, `text-anchor="middle" fill="${C.pinkD}"`)}${tx(115, 300, 'now open · koramangala', 12.5, 'text-anchor="middle"')}${tx(115, 320, 'first latte on us', 12, 'text-anchor="middle" opacity=".7"')}</g>`;
   if (keys.includes('espresso_2nd')) k += `<rect x="460" y="${B-88}" width="56" height="88" rx="8" fill="#b9cdb0" ${st(3)}/><rect x="460" y="${B-88}" width="56" height="18" rx="6" fill="${C.sage}" ${st(2.6)}/><circle cx="488" cy="${B-50}" r="10" fill="#fff" ${st(2.2)}/><path d="M480 ${B-22}h16l-2 16h-12z" fill="#fff" ${st(2)}/>`;
   if (keys.includes('bar_stools') || keys.includes('table_2top')) k += `<rect x="560" y="${wy+wh+12}" width="480" height="10" rx="3" fill="#e0b98a" ${st(2.2)}/>` + [610, 720, 830, 940].map((x) => `<path d="M${x-16} ${wy+wh+40}h32M${x} ${wy+wh+40}V${wy+wh+92}M${x-14} ${wy+wh+92}h28" fill="none" ${st(2.6)}/><ellipse cx="${x}" cy="${wy+wh+38}" rx="18" ry="5" fill="${C.pink}" ${st(2.2)}/>`).join('');
+  if (keys.includes('fridge_bigger')) k += hangTag(676, B - 104, 'new ♡ · bigger fridge', 6);
   $('l-decor').innerHTML = k;
 }
 

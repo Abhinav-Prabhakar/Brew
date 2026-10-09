@@ -12,6 +12,11 @@ const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({'&': '&amp;', '<'
 const use = (id, x, y, w, h = w) => `<use href="#${id}" x="${x}" y="${y}" width="${w}" height="${h}"/>`;
 const tx = (x, y, s, sz = 14, opt = '') => `<text x="${x}" y="${y}" ${opt} font-family="Patrick Hand" font-size="${sz}" fill="${I}">${s}</text>`;
 const gtx = (x, y, s, sz = 18, opt = '') => `<text x="${x}" y="${y}" ${opt} font-family="Gochi Hand" font-size="${sz}" fill="${I}">${s}</text>`;
+/** a paper tag hanging on a short string from (x, y): marks a delivered investment ("new ♡ · 2nd press") */
+const hangTag = (x, y, label, rot = 4, fill = th.pinkL) => { const w = label.length * 6.6 + 30;
+  return `<g transform="translate(${x} ${y}) rotate(${rot})"><path d="M0 0q5 9 0 18" fill="none" ${st(1.6)}/><circle cx="0" cy="0" r="2.4" fill="${I}"/>`
+    + `<rect x="${-w / 2}" y="18" width="${w}" height="24" rx="4" fill="${fill}" ${st(2)}/><circle cx="${-w / 2 + 10}" cy="30" r="2.8" fill="#fbf7f1" ${st(1.4)}/>`
+    + tx(6, 35, label, 13, 'text-anchor="middle"') + `</g>`; };
 
 /* ---------- faces ---------- */
 const eyes = (x, y, lx = 0, ly = 0) =>

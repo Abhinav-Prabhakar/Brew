@@ -312,7 +312,7 @@ const g = (id, extra = '') => `<g id="${id}" ${extra}></g>`;
 const $ = (id) => document.getElementById(id);
 document.getElementById('pantry-scene').innerHTML = DEFS
   + `<g filter="url(#wob)">${M}</g>` + g('p-fx') + `<g id="p-stock" filter="url(#wob)"></g><g filter="url(#wob)">${STRIPS}${CHAN}${DOOR}</g>`
-  + g('p-feed') + `<g filter="url(#wob)">${BENCH}</g>` + g('p-tags') + g('p-head') + g('p-hits')
+  + g('p-feed') + `<g filter="url(#wob)">${BENCH}</g>` + g('p-tags') + g('p-decor', 'filter="url(#wob)"') + g('p-head') + g('p-hits')
   + `<rect width="1600" height="1000" filter="url(#grain)" opacity=".22" pointer-events="none"/>`;
 { let FX = `<g transform="translate(560 174)"><g class="p-spin">${[0, 120, 240].map(a => `<path d="M0 0q-3-12 4-14q4 6-4 14z" fill="${K.steelD}" ${st(1.4)} transform="rotate(${a})"/>`).join('')}</g></g>
 <g transform="translate(640 174)"><g class="p-spin" style="animation-delay:-.3s">${[0, 120, 240].map(a => `<path d="M0 0q-3-12 4-14q4 6-4 14z" fill="${K.steelD}" ${st(1.4)} transform="rotate(${a})"/>`).join('')}</g></g>
@@ -532,12 +532,21 @@ room.querySelector('.porder')?.addEventListener('click', async (e) => {
   finally { approving = false; orderSig = ''; renderOrder(R.S()); }
 });
 
+/* ---------- investments delivered (the standing order hangs off its shelf) ---------- */
+let decorSig = '';
+function renderDecor(s){
+  const keys = (s.investments || []).map((x) => x.catalog_key), sig = keys.join();
+  if (sig === decorSig) return; decorSig = sig;
+  const oat = BY.oat_milk;
+  $('p-decor').innerHTML = keys.includes('oatmilk_standing') && oat ? hangTag(oat.x + oat.w / 2 - 6, S[oat.s] - oat.h - 34, 'standing order ♡ daily', 5, '#fbeec6') : '';
+}
+
 /* ---------- frame ---------- */
 let lastRefresh = 0;
 function render(s){
   if (!s) return;
   const now = R.now();
-  renderShelves(s, now); renderTip(s, now); renderFresh(s, now); renderCover(s); renderOrder(s);
+  renderShelves(s, now); renderTip(s, now); renderFresh(s, now); renderCover(s); renderOrder(s); renderDecor(s);
   if (document.body.dataset.room === 'pantry' && performance.now() - lastRefresh > 60000) refreshLots();
 }
 function refreshLots(){ lastRefresh = performance.now(); window.BrewLive?.refresh?.('pantry', SLOTS.map((x) => x.id).filter((x) => x !== 'rescue')); }
