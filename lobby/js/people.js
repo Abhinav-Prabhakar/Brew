@@ -10,7 +10,7 @@
   const SKINS = ['#f7dcc8', '#efc3a1', '#e2a983', '#c98d63', '#ad7049', '#8c5536', '#6c3d24', '#4f2c1a'];
   const HAIRC = ['#1b1412', '#2a1b15', '#3a251a', '#563420', '#6e4527', '#8a5a33', '#a3483a', '#9a9590', '#d98aa6'];
   const skinMat = (c) => G.mat(c, { physical: true, roughness: 0.62, sheen: 0.4, sheenColor: new T.Color('#ffd9cc'), sheenRoughness: 0.6 });
-  const cloth = (c, o = {}) => G.mat(c, Object.assign({ roughness: 0.82, normal: 'fabric', ns: 0.35 }, o));
+  const cloth = (c, o = {}) => G.mat(c, Object.assign({ roughness: 0.84, normal: 'fabric', ns: 0.12 }, o));
   const hairMat = (c) => G.mat(c, { physical: true, roughness: 0.5, sheen: 1, sheenColor: new T.Color(B.art.mix(c, '#ffffff', 0.35)), sheenRoughness: 0.35 });
 
   /* ---------------- traits (what someone looks like) ---------------- */
@@ -129,6 +129,7 @@
       const hip = G.group(pelvis, [sd * 0.08 * t.build, -0.02, 0]);
       limb(hip, 0.066, 0.3, legsSkin ? sk : bottom);
       const knee = G.group(hip, [0, -0.41, 0]);
+      G.m(G.sph(0.058, 14, 10), legsSkin ? sk : bottom, { parent: knee });
       limb(knee, 0.054, 0.3, legsSkin || (o.kind === 'dress') ? sk : bottom);
       G.m(G.rbox(0.105, 0.075, 0.25, 0.035), shoe, { p: [0, -0.43, 0.045], parent: knee });
       G.m(G.rbox(0.108, 0.02, 0.254, 0.008), G.mat(o.shoe === '#f4f1ec' || o.shoe === '#ffffff' ? '#e9a7b8' : '#2a2224', { roughness: 0.6 }), { p: [0, -0.465, 0.045], parent: knee });
@@ -189,7 +190,9 @@
       const up = o.short ? sk : sleeve;
       limb(sh, 0.05, 0.2, up);
       if (o.short) G.m(G.cap(0.056, 0.06), sleeve, { p: [0, -0.06, 0], parent: sh });
+      G.m(G.sph(0.062, 18, 14), up === sk ? sleeve : sleeve, { p: [0, -0.01, 0], s: [1, 0.9, 0.95], parent: sh });
       const elbow = G.group(sh, [0, -0.29, 0]);
+      G.m(G.sph(0.047, 14, 10), fore, { parent: elbow });
       limb(elbow, 0.043, 0.18, fore);
       G.m(G.sph(0.047, 16, 12), sk, { p: [0, -0.27, 0.005], s: [0.82, 1.15, 0.62], parent: elbow });
       if (acc.watch && sd === -1) G.m(G.tor(0.044, 0.008, 8, 20), G.mat(acc.watch, { metalness: 0.7, roughness: 0.3 }), { p: [0, -0.21, 0], r: [Math.PI / 2, 0, 0], parent: elbow });
@@ -199,8 +202,9 @@
     p.held = p.arms[1].held;
 
     // neck + head
-    G.m(G.cyl(0.046, 0.05, 0.12, 16), sk, { p: [0, 0.63, 0], parent: chest });
-    const head = G.group(chest, [0, 0.69, 0.005]);
+    G.m(G.cyl(0.05, 0.055, 0.1, 16), sk, { p: [0, 0.6, 0.004], parent: chest });
+    const head = G.group(chest, [0, 0.6, 0.012]);
+    head.scale.setScalar(1.16);
     p.head = head;
     const skull = G.m(G.sph(0.108, 40, 28), sk, { p: [0, 0.11, 0], s: [0.9, 1.06, 0.98], parent: head });
     [-1, 1].forEach((sd) => G.m(G.sph(0.026, 12, 10), sk, { p: [sd * 0.097, 0.1, -0.005], s: [0.5, 1, 0.8], parent: head }));
@@ -275,7 +279,7 @@
     if (acc.headphones) { const hp = G.mat('#2f2b33', { roughness: 0.4 }); G.m(G.tor(0.125, 0.01, 8, 32, Math.PI), hp, { p: [0, 0.115, 0], parent: head }); [-1, 1].forEach((sd) => G.m(G.cyl(0.035, 0.035, 0.03, 16), G.mat('#f2f2f5', { roughness: 0.3 }), { p: [sd * 0.115, 0.1, 0], r: [0, 0, Math.PI / 2], parent: head })); }
     if (acc.headphonesNeck) { G.m(G.tor(0.09, 0.012, 8, 28), G.mat('#2f2b33', { roughness: 0.4 }), { p: [0, 0.6, 0.02], r: [Math.PI / 2 + 0.3, 0, 0], parent: chest }); [-1, 1].forEach((sd) => G.m(G.cyl(0.032, 0.032, 0.03, 14), G.mat('#3d3d48'), { p: [sd * 0.085, 0.58, 0.06], r: [0.3, 0, Math.PI / 2], parent: chest })); }
     if (acc.backpack) { const bp = cloth(acc.backpack, { roughness: 0.7 }); G.m(G.rbox(0.3, 0.38, 0.15, 0.05), bp, { p: [0, 0.32, -0.17], parent: chest }); G.m(G.rbox(0.2, 0.12, 0.05, 0.02), cloth(B.art.shade(acc.backpack, -0.15)), { p: [0, 0.22, -0.25], parent: chest }); [-1, 1].forEach((sd) => G.m(G.rbox(0.04, 0.34, 0.015, 0.006), cloth(B.art.shade(acc.backpack, -0.2)), { p: [sd * 0.08, 0.37, fz + 0.003], parent: chest, cast: false })); }
-    if (acc.messenger) { const mm = G.mat(acc.messenger, { roughness: 0.55 }); G.m(G.rbox(0.035, 0.62, 0.012, 0.006), mm, { p: [0.0, 0.33, fz + 0.006], r: [0, 0, 0.62], parent: chest, cast: false }); G.m(G.rbox(0.28, 0.2, 0.08, 0.03), mm, { p: [0.17, 0.05, 0.06], r: [0, -0.6, 0], parent: chest }); }
+    if (acc.messenger) { const mm = G.mat(acc.messenger, { roughness: 0.55 }); G.m(G.rbox(0.035, 0.5, 0.012, 0.006), mm, { p: [0.0, 0.27, fz + 0.01], r: [0, 0, 0.6], parent: chest, cast: false }); G.m(G.rbox(0.28, 0.2, 0.08, 0.03), mm, { p: [0.17, 0.05, 0.06], r: [0, -0.6, 0], parent: chest }); }
     if (acc.tote) { const tm = cloth(acc.tote); G.m(G.rbox(0.24, 0.28, 0.04, 0.01), tm, { p: [-0.25, -0.06, 0.02], r: [0, 0.2, 0.05], parent: chest }); G.m(G.tor(0.08, 0.008, 6, 16, Math.PI), tm, { p: [-0.25, 0.08, 0.02], parent: chest, cast: false }); G.m(new T.CircleGeometry(0.035, 16), G.mat('#e46d8d'), { p: [-0.25, -0.06, 0.042], parent: chest, cast: false }); }
     if (acc.lanyard) { G.m(G.tor(0.07, 0.004, 6, 20, Math.PI), G.mat(acc.lanyard), { p: [0, 0.52, fz - 0.02], r: [0.3, 0, Math.PI], parent: chest, cast: false }); G.m(G.rbox(0.06, 0.085, 0.006, 0.004), G.mat('#ffffff'), { p: [0, 0.4, fz + 0.01], parent: chest, cast: false }); }
     if (acc.dupatta) { const dm = cloth(acc.dupatta, { side: T.DoubleSide }); G.m(G.tor(0.11, 0.032, 8, 28), dm, { p: [0, 0.57, 0.0], r: [Math.PI / 2 + 0.2, 0, 0], parent: chest }); G.m(G.rbox(0.09, 0.5, 0.02, 0.01), dm, { p: [0.14, 0.32, 0.08], r: [0, 0, 0.12], parent: chest }); }
@@ -289,6 +293,10 @@
 
     root.traverse((m) => { if (m.isMesh && m.castShadow !== false) { m.castShadow = true; m.receiveShadow = true; } });
     ring.castShadow = false;
+    ring.userData.noMerge = true;
+    Object.values(p.mouths).forEach((m) => (m.userData.noMerge = true));
+    p.brows.forEach((m) => (m.userData.noMerge = true));
+    G.mergeChildren(root);
     all.add(p);
     return p;
   };

@@ -114,7 +114,7 @@
       cols.push(c.r, c.g, c.b);
     }
     lg.setAttribute('color', new T.Float32BufferAttribute(cols, 3));
-    add(g, lg, new T.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.2, transmission: 0.25, thickness: 0.05, clearcoat: 1 }));
+    add(g, lg, new T.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.25, clearcoat: 1 }));
     add(g, geo('liqTop', () => new T.CircleGeometry(0.036, 40)), liquid(surface(top)), [0, 0.118, 0], [-Math.PI / 2, 0, 0]);
     if (ice) [[-0.012, 0.11, 0.008, 0.3], [0.013, 0.112, -0.006, 0.9], [0.002, 0.098, 0.012, 1.6], [-0.006, 0.124, -0.012, 2.2]].forEach(([x, y, z, r]) => add(g, G.rbox(0.021, 0.021, 0.021, 0.004), M.ice(), [x, y, z], [r, r * 1.3, r * 0.7]));
     if (straw) add(g, geo('straw', () => G.cyl(0.0034, 0.0034, 0.21, 12)), new T.MeshStandardMaterial({ map: surface('straw'), roughness: 0.6 }), [0.012, 0.13, 0.006], [0.05, 0, -0.22]);
@@ -269,31 +269,32 @@
 
   /* ---------------- the photo studio ---------------- */
   F.shoot = async function (onProgress) {
+    G.studio = true;
     const S = 384;
     const r = new T.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: false });
     r.setPixelRatio(1);
     r.setSize(S, S);
     r.outputColorSpace = T.SRGBColorSpace;
     r.toneMapping = T.ACESFilmicToneMapping;
-    r.toneMappingExposure = 1.05;
+    r.toneMappingExposure = 0.92;
     r.shadowMap.enabled = true;
     r.shadowMap.type = T.VSMShadowMap;
     const sc = new T.Scene();
-    sc.background = new T.Color('#f6c9d5');
+    sc.background = new T.Color('#efb2c3');
     const pm = new T.PMREMGenerator(r);
     sc.environment = pm.fromScene(new window.TX.RoomEnvironment(r), 0.04).texture;
     // seamless sweep + marble
-    const sweep = new T.Mesh(new T.CylinderGeometry(1.2, 1.2, 3, 64, 1, true, Math.PI * 0.75, Math.PI * 1.5), new T.MeshStandardMaterial({ color: '#f7cad6', roughness: 0.95, side: T.BackSide }));
+    const sweep = new T.Mesh(new T.CylinderGeometry(1.2, 1.2, 3, 64, 1, true, Math.PI * 0.75, Math.PI * 1.5), new T.MeshStandardMaterial({ color: '#f0b0c2', roughness: 0.95, side: T.BackSide }));
     sweep.position.set(0, 1.2, 0.3);
     sweep.receiveShadow = true;
     sc.add(sweep);
     const marble = G.lib('marble').clone();
     marble.needsUpdate = true;
-    const table = new T.Mesh(new T.CircleGeometry(0.6, 64), new T.MeshPhysicalMaterial({ map: marble, roughness: 0.25, clearcoat: 0.6, clearcoatRoughness: 0.15 }));
+    const table = new T.Mesh(new T.CircleGeometry(0.34, 64), new T.MeshPhysicalMaterial({ map: marble, roughness: 0.25, clearcoat: 0.6, clearcoatRoughness: 0.15 }));
     table.rotation.x = -Math.PI / 2;
     table.receiveShadow = true;
     sc.add(table);
-    const keyL = new T.DirectionalLight('#fff4ea', 2.4);
+    const keyL = new T.DirectionalLight('#fff4ea', 2.8);
     keyL.position.set(-0.5, 0.9, 0.45);
     keyL.castShadow = true;
     keyL.shadow.mapSize.set(1024, 1024);
@@ -314,9 +315,9 @@
       sc.add(mdl);
       const box = new T.Box3().setFromObject(mdl);
       const size = box.getSize(new T.Vector3()), ctr = box.getCenter(new T.Vector3());
-      const rad = Math.max(size.x, size.y * 1.1, size.z) * 0.72;
+      const rad = Math.max(size.x, size.y * 1.15, size.z) * 0.56;
       const dist = rad / Math.tan((28 * Math.PI) / 360) * 1.05;
-      const dir = new T.Vector3(0.12, 0.62, 1).normalize();
+      const dir = new T.Vector3(0.14, 0.5, 1).normalize();
       cam.position.copy(ctr).addScaledVector(dir, dist);
       cam.lookAt(ctr.x, ctr.y - size.y * 0.06, ctr.z);
       r.render(sc, cam);
@@ -328,9 +329,10 @@
       F.imgs[id] = im;
       sc.remove(mdl);
       onProgress && onProgress((i + 1) / ids.length, B.ITEM[id].name);
-      await new Promise((res) => setTimeout(res, 0));
+      await new Promise((res) => { const ch = new MessageChannel(); ch.port1.onmessage = res; ch.port2.postMessage(0); });
     }
     await Promise.all(Object.values(F.imgs).map((im) => (im.complete ? 1 : new Promise((res) => (im.onload = res)))));
+    G.studio = false;
     pm.dispose();
     r.dispose();
     r.forceContextLoss();

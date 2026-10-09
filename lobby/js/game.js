@@ -1,11 +1,83 @@
 /* brew · game.js — orders, kitchen, live menu, policies, HUD and the main loop */
 (function () {
-  const B = window.B, A = B.art, S = B.state;
+  const B = window.B, A = B.art, S = B.state, G = B.gfx;
   const tickets = []; // live tickets (not yet served/voided)
   const STATIONS = 3;
   let batchSeq = 0;
   let orderSig = '';
   let kitchenLoad = 0, loadSmooth = 0, rushOn = false;
+
+
+  /* =================== weather & time of day =================== */
+  const SKY = [
+    [5, '#3a3466', '#c58aa0'], [7, '#f4b8b0', '#ffe2c6'], [9, '#8fcbef', '#fde6d6'], [12, '#78bfee', '#e6f3fb'],
+    [16, '#8cc5ec', '#fbe6d2'], [17.8, '#f29a86', '#ffd5a0'], [19, '#6d5aa0', '#f2a1a6'], [20.3, '#232454', '#4d3b78'], [24, '#141436', '#2b2350'],
+  ];
+  function skyAt(h) {
+    for (let i = 0; i < SKY.length - 1; i++) {
+      const [h0, t0, b0] = SKY[i], [h1, t1, b1] = SKY[i + 1];
+      if (h >= h0 && h <= h1) { const k = (h - h0) / (h1 - h0); return [A.mix(t0, t1, k), A.mix(b0, b1, k)]; }
+    }
+    return [SKY[0][1], SKY[0][2]];
+  }
+  const WX = (B.WX = {
+    sunny: { label: 'Sunny', grey: 0, wet: 0, sun: 1, dT: 1 },
+    partly: { label: 'Partly cloudy', grey: 0.12, wet: 0, sun: 0.8, dT: 0 },
+    cloudy: { label: 'Overcast', grey: 0.4, wet: 0, sun: 0.35, dT: -1 },
+    drizzle: { label: 'Drizzle', grey: 0.5, wet: 0.45, sun: 0.2, dT: -3 },
+    rain: { label: 'Monsoon rain', grey: 0.65, wet: 1, sun: 0.1, dT: -5 },
+  });
+  const NEXT = {
+    sunny: [['sunny', 3], ['partly', 3]], partly: [['sunny', 2], ['cloudy', 3], ['partly', 1]], cloudy: [['drizzle', 3], ['partly', 2], ['rain', 1]],
+    drizzle: [['rain', 3], ['cloudy', 2]], rain: [['drizzle', 3], ['rain', 1], ['cloudy', 1]],
+  };
+  const env = { greyNow: 0, wetNow: 0 };
+  env.update = (dt = 0.12) => {
+    const h = B.gameMin() / 60, w = WX[S.weather];
+    // ease weather in/out so the light changes gently
+    env.greyNow += (w.grey - env.greyNow) * Math.min(1, dt * 0.6);
+    env.wetNow += (w.wet - env.wetNow) * Math.min(1, dt * 0.6);
+    let [top, bot] = skyAt(h);
+    top = A.mix(top, '#9a9cb0', env.greyNow); bot = A.mix(bot, '#cdcad6', env.greyNow);
+    const night = B.clamp((h - 18.5) / 1.5, 0, 1);
+    const day = B.clamp(Math.sin(((h - 6.5) / 13) * Math.PI), 0, 1) * (1 - night);
+    const golden = B.clamp(1 - Math.abs(h - 17.8) / 1.6, 0, 1);
+    const sunK = B.clamp((h - 6) / 13, 0, 1);
+    G.setDaylight({ day: day * (0.3 + w.sun * 0.7), night, golden, grey: env.greyNow, sunX: sunK });
+    B.world.setSky({ top, bot, night, grey: env.greyNow, wet: env.wetNow, sunK, moonK: B.clamp((h - 18.5) / 5, 0, 1) });
+    const sunPos = new THREE.Vector3(-11 + sunK * 22, 4 + day * 6, -18);
+    const dir = new THREE.Vector3(0, 0, -2).sub(sunPos).normalize();
+    B.decor.setSun({ dir, k: day * (1 - env.greyNow) * (0.4 + w.sun * 0.6), golden });
+    B.decor.bulbMat.emissiveIntensity = 1.6 + night * 3.4;
+    document.body.classList.toggle('night', night > 0.5);
+  };
+  let nextWxAt = 0, nextStreet = 0;
+  env.setWeather = (kind, silent) => {
+    S.weather = kind;
+    B.audio.setRain(WX[kind].wet);
+    B.emit('weather', kind);
+    if (!silent) {
+      const ico = { sunny: '☀️', partly: '⛅', cloudy: '☁️', drizzle: '🌦️', rain: '🌧️' }[kind];
+      const msg = { sunny: 'Sun’s out — iced drinks will move.', partly: 'A few clouds rolling in.', cloudy: 'Overcast. Chai weather incoming.', drizzle: 'Light drizzle — expect more deliveries.', rain: 'Proper monsoon rain. Delivery apps are spiking.' }[kind];
+      B.toast(ico, `Weather: ${WX[kind].label}`, msg);
+    }
+  };
+  env.tick = () => {
+    if (!nextWxAt) nextWxAt = S.t + B.rand(70, 110) * B.SEC_PER_MIN;
+    if (S.t >= nextWxAt) {
+      nextWxAt = S.t + B.rand(80, 150) * B.SEC_PER_MIN;
+      const nx = B.wpick(NEXT[S.weather]);
+      if (nx !== S.weather) env.setWeather(nx);
+    }
+    const h = B.gameMin() / 60;
+    S.temp = Math.round(26 + Math.sin(((h - 8) / 12) * Math.PI) * 6 + WX[S.weather].dT);
+    if (S.t >= nextStreet) {
+      const busy = h > 8.5 && h < 10.5 ? 1.6 : h > 17 && h < 20 ? 1.4 : 1;
+      nextStreet = S.t + B.rand(2.5, 6) / busy;
+      if (B.world.trafficCount() < 8) B.world.spawnTraffic();
+    }
+  };
+  B.env = env;
 
   /* =================== policies =================== */
   const POLICIES = {
@@ -225,7 +297,7 @@
         const b = 'b' + ++batchSeq;
         g.slice(0, 3).forEach((t) => (t.batch = b));
         made = true;
-        B.toast('📎', `Batched ×${Math.min(3, g.length)}`, `${B.ITEM[id].name}s clipped together — one pour, three tickets.`, { ttl: 3 });
+        B.toast('📎', `Batched ×${Math.min(3, g.length)}`, `${B.ITEM[id].name}s clipped together — one pour, ${Math.min(3, g.length)} tickets.`, { ttl: 3 });
       }
     });
     if (made) relayout(true);
@@ -265,6 +337,7 @@
     // the floor staff hand over anything that's been sitting ready
     tickets.filter((t) => t.state === 'ready' && S.t >= t.autoAt).forEach((t) => serve(t, true));
     const q = tickets.filter((t) => t.state === 'queued').length;
+    B.decor.setBrewing(brewingUnits.size);
     kitchenLoad = B.clamp(Math.round((brewingUnits.size / STATIONS) * 72 + q * 7), 0, 100);
     loadSmooth += (kitchenLoad - loadSmooth) * Math.min(1, dt * 0.25);
   }
@@ -339,8 +412,7 @@
     const total = B.printer.print({ no: t.no, name: c.name, where: c.channel === 'take' ? 'TAKEAWAY' : c.claim ? `DINE-IN ${c.claim.tables[0].id}` : 'DINE-IN', items: t.items, pay: B.pick(['UPI', 'UPI', 'UPI', 'Card', 'Cash']) });
     earn(total);
     B.audio.play('register');
-    const p = B.w2s(c.x, c.y - 200 * B.proj(c.y));
-    flyText(p, '+' + B.inr(total));
+    flyText(G.objScreen(c.p.head, [0, 0.3, 0]), '+' + B.inr(total));
     // reviews
     const late = (t.servedAt || S.t) > t.promise + 6;
     if (!c.unhappy) {
@@ -353,16 +425,16 @@
     S.revenue += total;
     S.cost += Math.round(total * 0.3);
   }
-  function spend(amount, why) {
+  function spend(amount, why, obj) {
     if (!amount) return;
     S.cash -= amount;
     S.cost += amount;
-    if (why) flyText(B.elCenter(B.$('#fridge')), '−' + B.inr(amount), true);
+    if (why && obj) flyText(G.objScreen(obj, [0, 1, 0]), '−' + B.inr(amount), true);
   }
   function review(stars, c, text) {
     S.rating = (S.rating * S.ratingN + stars) / (S.ratingN + 1);
     S.ratingN++;
-    const from = c && c.el ? B.elCenter(c.el.querySelector('.head') || c.el) : { x: innerWidth / 2, y: innerHeight / 2 };
+    const from = c && c.p ? G.objScreen(c.p.head, [0, 0.25, 0]) : { x: innerWidth / 2, y: innerHeight / 2 };
     const to = B.elCenter(B.$('#hud-stars'));
     const bad = stars <= 2;
     const el = B.h(`<div class="fly-star">${A.star(1, 'fly' + Math.random().toString(36).slice(2, 7))}</div>`);
@@ -378,7 +450,7 @@
           gsap.from(crack, { strokeDasharray: '0 40', duration: 0.2 });
           el.querySelector('path:nth-of-type(2)').setAttribute('fill', '#c9b8bd');
           B.audio.play('crack');
-          const r = B.$('.pill.rating');
+          const r = B.$('.chip.rating');
           r.classList.remove('hit'); void r.offsetWidth; r.classList.add('hit');
           for (let i = 0; i < 7; i++) {
             const s = B.h('<i class="shard"></i>');
@@ -409,8 +481,7 @@
     const hAng = ((mins / 60) % 12) * 30, mAng = (mins % 60) * 6;
     B.$('#clock-hand-h').setAttribute('transform', `rotate(${hAng} 12 12)`);
     B.$('#clock-hand-m').setAttribute('transform', `rotate(${mAng - 90} 12 12)`);
-    B.$('#wc-h').setAttribute('transform', `rotate(${hAng})`);
-    B.$('#wc-m').setAttribute('transform', `rotate(${mAng})`);
+    B.world.setClock(Math.floor(mins / 60), mins % 60);
     const night = mins / 60 > 19.2;
     const wxIcon = night && B.state.weather === 'sunny' ? 'night' : B.state.weather;
     const wxEl = B.$('#hud-wx-ico');
@@ -487,8 +558,7 @@
     spawner();
     kitchenStep(dt);
     B.cust.tick(dt);
-    B.scene.tickWeather();
-    B.scene.tickStreet();
+    env.tick();
     slowAcc += dt;
     if (slowAcc > 0.5) { slowAcc = 0; formBatches(); relayout(false); B.delivery.tick(); }
     menuAcc += dt;
@@ -530,7 +600,7 @@
       const queued = ord.filter((t) => t.state === 'queued');
       ord.forEach((t) => B.tickets.refresh(t, t.state === 'queued' ? queued.indexOf(t) : 0));
       hud();
-      B.scene.update();
+      env.update(0.12 * Math.max(1, S.speed));
     }
   });
   setInterval(() => S.started && boardTick(), 600);
@@ -580,42 +650,67 @@
     if (e.key === '2') setSpeed(10);
     if (e.key === '3') setSpeed(60);
     if (e.key === 'm' || e.key === 'M') B.menubook.open();
-    if (e.key === 'f' || e.key === 'F') B.$('#fridge').click();
+    if (e.key === 'f' || e.key === 'F') B.fridge.toggle();
   });
 
   /* =================== boot =================== */
   B.game = { placeOrder, serve, pay, review, voidTicket, spend, get tickets() { return tickets; } };
 
-  function boot() {
-    B.fit();
-    window.addEventListener('resize', B.fit);
+  const loadMsg = (m, k) => { B.$('#load-msg').textContent = m; if (k != null) B.$('#load-fill').style.width = (k * 100).toFixed(0) + '%'; };
+  async function boot() {
+    G.start();
+    G.allowLook = false;
+    // establishing shot while we load
+    G.rig.pos.set(-2.2, 3.4, 10.8);
+    G.rig.target.set(-0.4, 1.6, -3);
+    loadMsg('Setting out the chairs…', 0.08);
+    const fonts = ['700 20px "Space Mono"', '400 20px "Space Mono"', 'italic 700 20px Fraunces', '600 20px Fraunces', '700 20px Caveat', '500 20px Caveat', '800 20px "DM Sans"', '700 20px "DM Sans"', '500 20px "DM Sans"', '20px VT323', '900 20px Nunito'];
+    await Promise.race([Promise.all(fonts.map((f) => document.fonts.load(f))), new Promise((r) => setTimeout(r, 4000))]);
+    await A.ready([...Object.values(A.persona), ...Object.values(A.modIcon)].map((svg) => A.img(svg, 64, 64)).concat(Object.values(A.modIcon).map((svg) => A.img(svg, 48, 48))));
+    loadMsg('Photographing today’s menu…', 0.15);
+    await B.food.shoot((k, name) => loadMsg(`Photographing the ${name.toLowerCase()}…`, 0.15 + k * 0.7));
+    loadMsg('Polishing the counter…', 0.9);
+    B.world.redrawText();
+    B.emit('fonts');
     B.board.init();
     B.room.init();
+    B.decor.init();
     B.fridge.build();
-    B.scene.init();
+    B.menubook.refreshAll();
     menuTick(true);
     setPolicy('balanced', true);
+    env.setWeather('sunny', true);
+    G.normalizeEnv();
+    B.tickets.rail.userData.noMerge = true;
+    B.board.group.userData.noMerge = true;
+    const saved = G.mergeChildren(G.scene);
+    console.info(`[brew] batched ${saved} meshes`);
+    env.update(10);
     hud(true);
-    B.$('#world').classList.add('neon-off');
+    B.world.neonOn(false);
+    for (let i = 0; i < 4; i++) B.world.spawnTraffic();
+    loadMsg('Ready.', 1);
+    await new Promise((r) => setTimeout(r, 250));
+    gsap.to('#loading', { opacity: 0, duration: 0.6, onComplete: () => B.$('#loading').remove() });
+    B.$('#intro').hidden = false;
+    gsap.from('.intro-card', { y: 30, opacity: 0, scale: 0.96, duration: 0.8, ease: 'power3.out' });
+    G.camTo([-1.2, 3.1, 10.2], [-0.2, 1.5, -3], 12, 'sine.inOut');
+    if (/[?&]auto\b/.test(location.search)) start(); // dev: skip the intro card
   }
 
   function start() {
     B.audio.init();
-    const sign = B.$('#intro-sign');
-    sign.classList.add('open');
+    B.$('#intro-sign').classList.add('open');
     B.audio.play('open');
     setTimeout(() => {
       gsap.to('#intro', { opacity: 0, duration: 0.7, ease: 'power2.in', onComplete: () => B.$('#intro').remove() });
-      B.camera.intro();
-      setTimeout(() => {
-        B.$('#door-sign').classList.add('open');
-        B.audio.play('flap');
-      }, 700);
+      // the camera glides in behind the counter
+      G.camTo(G.HOME.pos.toArray(), G.HOME.target.toArray(), 2.6, 'power3.inOut').then(() => (G.allowLook = true));
+      setTimeout(() => { B.world.signFlip(true); B.audio.play('flap'); }, 900);
       // the neon buzzes into life
-      const w = B.$('#world');
-      [0, 120, 200, 420, 520].forEach((d, i) => setTimeout(() => w.classList.toggle('neon-off', i % 2 === 1), 900 + d));
-      setTimeout(() => w.classList.remove('neon-off'), 1500);
-      setTimeout(() => B.board.sweep(), 1100);
+      [0, 120, 200, 420, 520].forEach((d, i) => setTimeout(() => B.world.neonOn(i % 2 === 0), 1100 + d));
+      setTimeout(() => B.world.neonOn(true), 1700);
+      setTimeout(() => B.board.sweep(), 1300);
       setTimeout(() => {
         S.started = true;
         nextWalkIn = 1.2;
@@ -625,11 +720,37 @@
         B.after(8, () => B.cust.spawn('camper', { channel: 'dine' }));
         B.after(12, () => B.cust.spawn('commuter', { channel: 'dine' }));
         B.toast('☕', 'Doors open!', 'Morning rush starts at 8:30. Keep an eye on the rail.');
-      }, 2200);
-      setTimeout(() => B.$('#coach').classList.add('hide'), 40000);
+      }, 2600);
+      setTimeout(() => B.$('#coach').classList.add('hide'), 45000);
     }, 900);
   }
+  /* dev helpers: advance the sim and grab frames without a visible window */
+  B.dev = {
+    advance(sec, dt = 0.1) {
+      const gt = gsap.globalTimeline;
+      for (let t = 0; t < sec; t += dt) {
+        step(dt * S.speed);
+        B.wt.time(B.wt.time() + dt * S.speed);
+        G.time += dt;
+        if (Math.round(t / dt) % 25 === 0) G.render();
+      }
+      // snap real-time UI tweens (ticket slides, clips…) to their end state
+      gt.getChildren(true, true, false).forEach((tw) => { let p = tw.parent; while (p && p !== B.wt) p = p.parent; if (!p && tw.repeat() !== -1) tw.progress(1); });
+      const ord = ordered(), queued = ord.filter((t) => t.state === 'queued');
+      ord.forEach((t) => B.tickets.refresh(t, t.state === 'queued' ? queued.indexOf(t) : 0));
+      hud(); boardTick(); env.update(1);
+    },
+    cam(pos, target) { G.rig.pos.set(...pos); G.rig.target.set(...target); },
+    async shot(name = 'shot', w = 1440, h = 810) {
+      const r = G.renderer;
+      r.setSize(w, h); G.composer.setSize(w, h); G.camera.aspect = w / h; G.camera.updateProjectionMatrix();
+      G.render();
+      const url = r.domElement.toDataURL('image/jpeg', 0.85);
+      await fetch('/__shot?name=' + name, { method: 'POST', body: url });
+      return url.length;
+    },
+  };
   B.$('#open-btn').addEventListener('click', start);
   B.$('#coach').addEventListener('click', () => B.$('#coach').classList.add('hide'));
-  boot();
+  boot().catch((e) => { console.error(e); loadMsg('Something went wrong: ' + e.message); });
 })();
