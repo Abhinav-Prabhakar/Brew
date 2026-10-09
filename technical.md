@@ -140,6 +140,10 @@ Loader: `brew.config.loader.load_cafe(path="configs/cafe") -> CafeConfig` (pydan
   vegan: false
   co2e_g: 410
   popularity_prior: 1.0      # α_j intercept scale in MNL
+  replate:                   # omit for made-to-order-only items
+    eligible: false          # true for croissant, muffin, cheesecake, cinnamon, coldbrew, sandwich, cheesetoast, pasta, avotoast
+    premake_hold_s: 0        # safe hold of a pre-made unit (bakes 10 h, coldbrew 24 h, sandwich 3 h, pasta 2 h, toasts 1.5 h)
+    min_quality: 0.6
   desc: Double ristretto under velvety microfoam. Poured with a heart.
 ```
 
@@ -338,7 +342,16 @@ Ledger entries with accounts: `revenue, discount, gst_collected (liability, excl
 ### 7.10 Disruptions (`disruptions.py`)
 Each disruption = `{kind, target, severity, start_s, end_s, source}` scheduled as events. Effects: `staff_absent` (staff unavailable for shift), `staff_late` (shift start + delay), `equipment_down` (slots unavailable; MTTR draw), `supplier_delay` (+h to POs), `supplier_short` (fill rate × severity), `rider_shortage` (ETA × (1+severity)), `power_cut` (all electric equipment down, card payments fail → cash only), `demand_spike` (arrival multiplier for persona/channel), `price_shock` (ingredient unit_cost × (1+severity)), `platform_outage` (aggregator orders stop). Random failures from MTBF (`failures` stream). Emit `chaos.triggered/resolved`, `equipment.down/up`, `staff.*`.
 
-### 7.11 KPIs (`kpis.py`)
+### 7.11 Replate (`sim/replate.py`, config `replate.yaml`)
+- **Pre-make:** `premake(sku, units)` schedules the recipe's tasks with `order_no=None`; on completion creates a finished-goods lot `{lot_id, sku, units, made_s, use_by_s = made_s + premake_hold_s, quality}`. Normal orders for that SKU consume pre-made units first (FEFO, skipping the kitchen) — this is what makes pre-making faster at peak.
+- **Listing tick** (every `MANAGER_TICK` and on lot creation): for each pre-made lot with `frac_left = (use_by − now)/premake_hold_s`, compute the target discount from the active ladder; if higher than the current one → `replate.marked_down` (first time → `replate.listed`). Ladders (`replate.yaml`): `gentle {0.5:20, 0.25:35, last45m:50}`, `standard {0.5:30, 0.25:50, last45m:70}`, `aggressive {0.75:25, 0.5:45, 0.25:65, last45m:80}`. `price = max(floor, round_to_5(base × (1 − d)))`, `floor = 0.5 × unit_cost`. A listed unit is sold at the listing price only when the customer chose the replate alternative; full-price orders still draw pre-made stock at full price (listing units decrement either way).
+- **Choice integration (§7.4):** each listing is an extra alternative `j' = replate:{sku}` with `U_j' = U_j(price=listing price) + ρ_p − φ·(1 − quality)` where `ρ_p` = persona `replate_affinity` (default: student +0.3, delivery_home +0.1, commuter 0, regular 0, remote_worker 0, office_bulk −0.2, family −0.1, leisurely −0.3, tourist −0.4) and `φ = 1.2`. Delivery channels may order replate only if `deliverable`. Same CRN Gumbel draws as the parent SKU (+ one extra draw from stream `replate`) so on/off comparisons stay paired.
+- **Retire:** at `use_by` → `replate.retired` with `donated` (sealed bakery) or `wasted` (inventory movements `donate` / `waste_replate`), or `sold_out`.
+- **Policies:** `PolicyDecision.premake: dict[sku,int]` (at manager ticks) and `replate_mode`. A: no premake, mode off. B: premake P50 forecast of bakes at open, `standard`. C: premake `q* = F⁻¹(c_u/(c_u+c_o'))` where `c_o'` = expected loss **after** replate recovery (`unit_cost − E[replate revenue]`, estimated from the sell-through model below) → pre-makes more when replate recovers value; markdown chosen per lot by maximising `E[rev] − waste_cost` over ladder options using a logistic sell-through model on telemetry (`replate_sellthrough` LightGBM classifier: features frac_left, discount, hour, weather, footfall nowcast, competing listings). E: perfect info.
+- **KPIs:** `replate_units_sold`, `replate_revenue`, `replate_waste_avoided_kg`, `replate_co2e_avoided_kg`, `replate_cannibalised_rev` (computed in `analysis/impact.py` by a CRN fork with `replate_mode=off` from day start).
+- **Invariant:** for each pre-made lot `units = sold_full + sold_replate + donated + wasted + remaining`.
+
+### 7.12 KPIs (`kpis.py`)
 Rolling (5-min `kpi.tick`) and daily: revenue, net profit, orders by channel, avg/P95 wait by channel, SLA breach rate, balks, reneges, rating, reviews_neg, table turns, labour hours, revenue/labour hour, food cost %, waste kg & ₹, donated kg, energy kWh, CO₂e kg, staff overload minutes (util > 95 % sustained 10+ min), price changes, batch rate.
 
 ---
@@ -458,10 +471,10 @@ LightGBM quantile on `tasks.parquet` / `deliveries.parquet` with features listed
 ### 13.1 Environment (`rl/env.py`)
 `BrewManagerEnv(gymnasium.Env)`: one step = one **manager tick (900 sim-s)**. `reset(seed, options={scenario, days, domain_randomisation})` builds a World with policy D's executor (C scheduler parametrised by the action) and runs to the first tick. `step(action)` → apply `ManagerAction` (via shield) → `world.run_until(next_tick)` (all event-level decisions inside are handled by C-executor using the current strategy/batch window/throttles) → return `obs, reward, terminated (episode days done), truncated, info{kpis, masks, clipped}`. `action_masks()` for MaskablePPO. Must pass `gymnasium.utils.env_checker.check_env`.
 
-### 13.2 Observation (`sim/observation.py`) — 179 floats, named
-`ObservationBuilder.names: list[str]` (used by explanations and tests). Groups (sizes): time 11 (sin/cos tod, dow one-hot 7, day_frac_of_episode, is_weekend) · weather 6 (one-hot 5, temp_norm) · calendar 4 · demand 52 (P50 next 4 slots × 4 categories × 3 channel groups {dine/take, zomato, swiggy} = 48, + P90−P10 spread per category 4) · nowcast 1 · queues 11 (open orders per channel 4, slack histogram 5, low-patience waiting count, register queue) · resources 45 (13 station utilisations, 13 station queue lengths, 13 equipment-down flags, staff present, fatigue mean, fatigue max, tables free/occupied/dirty) · inventory 16 (days of cover for 10 key ingredients, expiring-<4h value, 5 prep-item stock levels) · economics 10 (price index per category 4, profit today, cash, reputation offline/zomato/swiggy, price changes last 2 h) · disruptions 10 (one flag per kind) · current controls 13 (κ per prep class 4, strategy one-hot 6, throttle levels 2, batch window). All scaled to roughly [−1, 1] by fixed scalers in config + `VecNormalize` during training (stats saved with the model).
+### 13.2 Observation (`sim/observation.py`) — 183 floats, named
+`ObservationBuilder.names: list[str]` (used by explanations and tests). Groups (sizes): time 11 (sin/cos tod, dow one-hot 7, day_frac_of_episode, is_weekend) · weather 6 (one-hot 5, temp_norm) · calendar 4 · demand 52 (P50 next 4 slots × 4 categories × 3 channel groups {dine/take, zomato, swiggy} = 48, + P90−P10 spread per category 4) · nowcast 1 · queues 11 (open orders per channel 4, slack histogram 5, low-patience waiting count, register queue) · resources 45 (13 station utilisations, 13 station queue lengths, 13 equipment-down flags, staff present, fatigue mean, fatigue max, tables free/occupied/dirty) · inventory 16 (days of cover for 10 key ingredients, expiring-<4h value, 5 prep-item stock levels) · economics 10 (price index per category 4, profit today, cash, reputation offline/zomato/swiggy, price changes last 2 h) · disruptions 10 (one flag per kind) · current controls 13 (κ per prep class 4, strategy one-hot 6, throttle levels 2, batch window) · **replate 4** (listed units, ₹ value expiring < 2 h, sell-through today, current mode index). All scaled to roughly [−1, 1] by fixed scalers in config + `VecNormalize` during training (stats saved with the model).
 
-### 13.3 Action space (`rl/actions.py`) — `MultiDiscrete([5,5,5,5, 5,5,5,5, 6, 4,4, 4, 24, 2,2,2])`
+### 13.3 Action space (`rl/actions.py`) — `MultiDiscrete([5,5,5,5, 5,5,5,5, 6, 4,4, 4, 24, 2,2,2, 4, 4])`
 | Dims | Meaning |
 |---|---|
 | 0–3 | price step per category {−10,−5,0,+5,+10 %} relative to current price (coffee, notcoffee, bakes, plates); staples excluded |
@@ -471,10 +484,12 @@ LightGBM quantile on `tasks.parquet` / `deliveries.parquet` with features listed
 | 11 | batch window {0, 30, 60, 120 s} |
 | 12 | featured SKU {none} ∪ 23 SKUs |
 | 13–15 | 86 toggles for {pasta, sandwich, avotoast} (0 = show, 1 = hide) |
+| 16 | replate mode {off, gentle, standard, aggressive} |
+| 17 | pre-make level for plates {0, P50, P70, P85} of next-2 h forecast (sandwich, cheesetoast, pasta, avotoast) |
 **Masks** (`rl/masks.py`): price steps violating charter (bounds, cooldown, staples) masked; κ>off masked if ingredients insufficient; featured masked if hidden/out of stock; 86 masked if the item has open unstarted tasks; throttle `pause` masked if paused > 2 h today. A mask is never all-false (index for "no change" always valid).
 
 ### 13.4 Reward (`rl/reward.py`)
-Per step: `r = Δprofit − λ_late·Σ w_persona·late_min − λ_walk·walkouts·LTV_persona − λ_price·price_changes − λ_waste·waste_kg·(₹/kg + CO₂e shadow) − λ_staff·overload_min`, scaled by `1/1000`. Defaults (₹): `λ_late=6/min` with `w_persona` (commuter 1.5, family 1.4, office_bulk 2.0, others 1.0), `λ_walk=1.0` with `LTV` (commuter 600, regular 1500, others 400), `λ_price=20`, `λ_waste=1.0`, CO₂e shadow ₹8/kg, `λ_staff=10/min`. Terminal: `+ salvage(usable stock) − open obligations`. Shaping weights annealed by curriculum stage (`shaping_scale` 1.0 → 0.3).
+Per step: `r = Δprofit − λ_late·Σ w_persona·late_min − λ_walk·walkouts·LTV_persona − λ_price·price_changes − λ_waste·waste_kg·(₹/kg + CO₂e shadow) − λ_staff·overload_min`, scaled by `1/1000`. Defaults (₹): `λ_late=6/min` with `w_persona` (commuter 1.5, family 1.4, office_bulk 2.0, others 1.0), `λ_walk=1.0` with `LTV` (commuter 600, regular 1500, others 400), `λ_price=20`, `λ_waste=1.0`, CO₂e shadow ₹8/kg, `λ_staff=10/min`. Replate revenue counts in Δprofit; waste is charged at retirement, so the agent learns the pre-make ↔ replate trade-off. Terminal: `+ salvage(usable stock) − open obligations`. Shaping weights annealed by curriculum stage (`shaping_scale` 1.0 → 0.3).
 
 ### 13.5 Training (`rl/train_ppo.py`, `rl/bc.py`, `rl/adversary.py`)
 - **BC:** roll out Policy C for N days (smoke 5, full 200), record `(obs, ManagerAction→MultiDiscrete)` at each tick, train the MaskablePPO policy network's action heads with cross-entropy (+ value head on discounted returns) for E epochs; save as initial weights.
@@ -517,7 +532,7 @@ Runs policies × seeds × scenarios headless in a process pool; per (policy, see
 For each decision: top factors = for D, gradient×input on the ONNX-equivalent torch module (or a surrogate depth-4 decision tree fitted on BC/PPO rollouts → path features); for C, the solver/pricing inputs that changed the choice (load, forecast delta, stock, weather). Render with the `explanations` template bank (fallback built-ins), e.g. *"Raised iced latte +₹10: kitchen 91 % busy, P90 cold-drink demand +40 % (34 °C), stock fine."* Templates are filled by name; unknown slots fail loudly in tests.
 
 ### 14.5 Impact (`analysis/impact.py`)
-Economic (net profit/day, CVaR, rev/labour-hour), environmental (waste kg & ₹, CO₂e, kWh, donated kg), social (overload minutes, P95 offline wait, walkouts, rating, charter-compliant price changes) — absolute and vs a baseline world.
+Economic (net profit/day, CVaR, rev/labour-hour, replate revenue & cannibalisation), environmental (waste kg & ₹, CO₂e, kWh, donated kg, replate waste avoided), social (overload minutes, P95 offline wait, walkouts, rating, charter-compliant price changes) — absolute and vs a baseline world.
 
 ---
 
@@ -564,6 +579,7 @@ Organise under `tests/` mirroring `src/brew`. Use fixtures `cafe_cfg`, `small_wo
 **Choice:** probabilities sum to 1; raising price lowers share (monotone); hidden items never chosen; loss aversion makes +10 % hurt more than −10 % helps.
 **Kitchen:** capacity never exceeded (slots, station max staff, attention ≤ 1 per staff) — Hypothesis over random small configs; batching time formula; dependencies respected; errors cause remakes and extra consumption.
 **Inventory (Hypothesis):** conservation invariant; no negative lots; FEFO picks earliest expiry; opened expiry recalculation; auto-86 when insufficient and restore on restock.
+**Replate:** ladder monotone (discount never decreases); floor respected; only pre-made, food-safe units listed (made-to-order leftovers never); retire → donate/waste movements; per-lot unit invariant (Hypothesis over random premake/order sequences); replate alternative raises share as discount deepens; `mode=off` on a CRN fork reproduces the no-replate world exactly; API actions 422 on floor/monotonicity violation.
 **Delivery:** acceptance timeout cancels; pause throttle rejects; rider waits if not ready; shelf capacity respected; quality decays by half-life.
 **Reviews:** stars distribution responds to lateness; reputation Bayesian average math; causes normalised.
 **Finance:** order total = lines + mods − discount + GST + round_off; ledger sum == daily net profit; GST split.

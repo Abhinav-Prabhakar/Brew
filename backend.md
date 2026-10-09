@@ -93,6 +93,17 @@ Weather states identical to the frontend: `sunny`, `partly`, `cloudy`, `drizzle`
 ### 3.10 Disruptions (chaos)
 `staff_absent`, `staff_late`, `equipment_down`, `supplier_delay`, `supplier_short`, `rider_shortage`, `power_cut`, `demand_spike` (bus of tourists, cricket final), `price_shock`, `platform_outage`. Sources: `scenario` (YAML schedule), `adversary` (RL), `manual` (API/chaos console).
 
+### 3.11 Replate (rescue menu)
+Food that was **pre-prepped / pre-made ahead of demand** and is nearing the end of its safe hold window is moved onto a special menu category, **`replate`**, at a heavy discount instead of being thrown away. It is a first-class feature, not a pricing hack:
+- **What can be replated:** finished goods made ahead in batches (`croissant`, `muffin`, `cheesecake`, `cinnamon`, bottled `coldbrew`) and **pre-made plates** that a policy chose to make ahead of orders (`sandwich`, `cheesetoast`, `pasta` portions, `avotoast` bases). A unit is eligible only while it is still food-safe (inside its hold window, quality ≥ `replate.min_quality`). Made-to-order items that went unserved (walkouts, remakes) are **never** replated — only ahead-of-demand stock.
+- **Listing:** each eligible lot becomes a listing `replate:{sku}` with `units`, `made_at`, `use_by`, `discount_pct`, `price`. Listings are shown as their own menu category ("Replate — still lovely, just made earlier") with honest disclosure (made-at time).
+- **Markdown ladder:** discounts only ever **increase** as `use_by` approaches (default ladder by fraction of hold time remaining: ≤ 50 % → 30 % off, ≤ 25 % → 50 % off, last 45 min → 70 % off; floor = unit cost × 0.5, never above base). At `use_by`: sealed bakery → donation, everything else → waste.
+- **Charter:** replate prices are exempt from the 10 %/2 h step rules (they are clearance, not surge) but bound by: discount-only, monotone markdown, never below the floor, staples allowed (discount only), and placed orders unaffected.
+- **Demand:** replate listings join the customer's choice set as extra alternatives. Personas have a `replate_affinity` (students and value-seekers high, leisurely/tourists lower) and a small "made earlier" penalty; cannibalisation of full-price items is real and must be measured.
+- **Policy role:** pre-making is a decision (how many units ahead, when). Replate turns over-prep from pure waste into recovered revenue, so C/D can pre-make more aggressively for speed. A: replate off. B: fixed ladder. C: optimised markdown (expected sell-through vs. waste cost). D: RL chooses replate aggressiveness. E: oracle.
+- **KPIs / impact:** replate units sold, revenue recovered, waste kg & CO₂e avoided, **cannibalisation** (CRN counterfactual: same seed with replate off), net effect on profit.
+- **Frontend (later):** a "Replate" section in the menu book, green "replate" tags on fridge items, a rescue counter on the HUD.
+
 ---
 
 ## 4. Policies
@@ -196,6 +207,9 @@ Mirrors what the lobby lets you do today plus owner overrides. Every action prod
 | `feature_item` / `hide_item` | `{sku, on}` | Owner menu interventions. |
 | `throttle` | `{channel, level: open|plus5|plus10|pause}` | Aggregator throttle. |
 | `place_po` | `{supplier, lines}` | Manual purchase order. |
+| `premake` | `{sku, units}` | Make units ahead of demand (eligible SKUs only); unsold units flow into Replate. |
+| `replate_list` | `{sku, discount_pct?}` | List / deepen the markdown of an eligible lot now (monotone, floor-checked; 422 on violation). |
+| `replate_mode` | `{mode: off|gentle|standard|aggressive}` | Owner override of the active policy's replate ladder. |
 
 ### 6.3 WebSocket `/api/v1/ws/worlds/{id}?since_seq=`
 Server → client: **batched frames** every 50–100 ms wall time: `{"frame": n, "events": [Event, ...]}`. Each event: `{"seq", "sim_s", "t", "type", "data"}`. Client → server: `{"op": "ping"}`, `{"op": "subscribe", "types": [...]}` (optional filter). On reconnect the client fetches `/state` and resumes with `since_seq` (server keeps a ring buffer of the last 10 000 events per world).
@@ -232,6 +246,9 @@ Server → client: **batched frames** every 50–100 ms wall time: `{"frame": n,
 | `review.posted` | `review_id, party_id?, order_no, stars, text, causes{}` | star to HUD (cracks ≤ 2) |
 | `price.changed` | `sku, old, new, base, dir, reason_text, by` | handwritten price edit + chip |
 | `menu.featured` / `menu.hidden` / `menu.restored` | `sku, reason` | sticker / ribbon |
+| `replate.listed` / `replate.marked_down` | `listing_id, sku, lot_id, units, made_at_s, use_by_s, discount_pct, price` | Replate section in menu book, fridge tag |
+| `replate.sold` | `listing_id, order_no, units, price` | rescue counter |
+| `replate.retired` | `listing_id, units, outcome: donated|wasted|sold_out` | tag removed |
 | `stock.changed` (finished goods & key ingredients) | `key, qty, low: bool` | fridge items + tags |
 | `lot.opened` / `lot.expired` / `po.created` / `po.received` | … | pantry (later) |
 | `task.started` / `task.finished` | `task_id, station, staff_id, order_no?, est_s` | espresso steam, kitchen (later) |
@@ -245,7 +262,7 @@ Server → client: **batched frames** every 50–100 ms wall time: `{"frame": n,
 | `investment.delivered` | `catalog_key, effect` | item drops in |
 
 ### 6.4 Hydration snapshot (`GET /worlds/{id}/state`)
-One JSON with everything the lobby needs to rebuild the scene without replaying events: `world, clock, weather, kpis, menu, rail (orders + batches), board, customers (with state + appearance + patience + table), tables, fridge, shelf, staff, equipment, policy, strategy, last_seq`.
+One JSON with everything the lobby needs to rebuild the scene without replaying events: `world, clock, weather, kpis, menu, replate (listings), rail (orders + batches), board, customers (with state + appearance + patience + table), tables, fridge, shelf, staff, equipment, policy, strategy, last_seq`.
 
 ---
 
@@ -322,10 +339,11 @@ The build is done by sub-agents in this order. Each milestone ends with green te
 - **⏸ Pause: human runs prompts.**
 
 **M2 — Intelligence** (agent 2)
+- **Replate** (§3.11): pre-make decisions, listings, markdown ladder, choice-set integration, events, `premake`/`replate_list`/`replate_mode` actions, `GET /worlds/{id}/replate`, KPIs + cannibalisation counterfactual; ladder in B, optimised markdown in C.
 - History generator, forecasting + backtests, elasticity, prep-time & ETA models, text models (on clean synthetic data), newsvendor, pricing ladder/MILP, capacity LP with shadow prices, scheduler (CP-SAT + greedy fallback), **Policy C**, **Policy E**.
 - Bottleneck analyzer, investment advisor, arena runner + statistics, impact metrics, explainer.
 - API endpoints for forecast/decisions/explain/bottlenecks/advisor/invest/arena/models/reviews.
-- ✅ Accept when: C beats A and B on mean profit over 3 smoke seeds; forecaster beats seasonal-naive WAPE on the smoke backtest; elasticity recovers β signs; all endpoints tested.
+- ✅ Accept when: C beats A and B on mean profit over 3 smoke seeds; with Replate on, C cuts waste kg ≥ 30 % vs. Replate off on the same seeds without lowering mean profit; forecaster beats seasonal-naive WAPE on the smoke backtest; elasticity recovers β signs; all endpoints tested.
 
 **M3 — Learning** (agent 3)
 - Gymnasium env (manager), observation builder with named features, action space + masks + shield, reward, VecEnv, BC from C, MaskablePPO curriculum, adversary + RARL, ONNX export + runtime **Policy D**, explanations via surrogate tree.
