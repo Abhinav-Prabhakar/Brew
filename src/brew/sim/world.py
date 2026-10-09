@@ -339,6 +339,7 @@ class World:
         if not self.stock_init_done:
             self.init_stock()
         self.kpi.reset()
+        self.inv.mark_day()
         self.replate.reset_day()
         self.combos.reset_day()
         self.customers.walkouts_today = self.customers.balks_today = self.customers.reneges_today = 0

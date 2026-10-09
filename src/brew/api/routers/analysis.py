@@ -193,6 +193,57 @@ def arena_get(arena_id: str, request: Request) -> dict[str, Any]:
 
 
 # --------------------------------------------------------------------- models
+@router.get("/worlds/{wid}/inventory/{key}/forecast")
+def inventory_forecast(mw: MW, request: Request, key: str) -> dict[str, Any]:
+    """Today's usage of one ingredient/prep key (SKU demand forecast x BOM): P50/P90, used so far, days of cover.
+
+    Cached per world per 15-sim-minute slot (all keys are computed in one pass).
+    """
+    from brew.analysis.usage import usage_forecast
+
+    with mw.lock:
+        w = mw.world
+        if key not in w.inv.onhand or key in w.inv.virtual:
+            raise UnknownTarget(f"inventory key {key!r} not found")
+        stamp = (w.day, int(w.now // 900))
+        hit = mw.cache.get("usage")
+        if hit is None or hit[0] != stamp:
+            bundle = load_bundle(_models_dir(request))
+            hit = (stamp, usage_forecast(w, bundle.forecaster))
+            mw.cache["usage"] = hit
+        r = hit[1][key]
+        ing = w.ix.ingredient.get(key)
+        uom = ing.base_uom if ing else w.ix.prep[key].base_uom
+        on = w.inv.onhand[key]
+        return _wrap(
+            mw,
+            {
+                "key": key, "uom": uom, "p50": round(r["p50"], 2), "p90": round(r["p90"], 2),
+                "used_so_far": round(r["used_so_far"], 2), "remaining_p50": round(r["remaining_p50"], 2),
+                "on_hand": round(on, 2), "days_of_cover": round(on / r["p50"], 2) if r["p50"] > 0 else None,
+            },
+        )
+
+
+@router.get("/worlds/{wid}/purchasing/proposal")
+def purchasing_proposal(mw: MW) -> dict[str, Any]:
+    """What the active policy would order next (grouped by supplier) and the next scheduled delivery.
+
+    Approve with ``POST /worlds/{id}/actions {kind: "place_po", supplier, lines}`` (the ``lines`` below, as is).
+    Computed on a throwaway copy of the world, cached per 15-sim-minute slot and PO book state.
+    """
+    from brew.sim.purchasing import propose
+
+    with mw.lock:
+        w = mw.world
+        stamp = (w.day, int(w.now // 900), w.suppliers.seq, w.policy.code)
+        hit = mw.cache.get("proposal")
+        if hit is None or hit[0] != stamp:
+            hit = (stamp, propose(w))
+            mw.cache["proposal"] = hit
+        return _wrap(mw, hit[1])
+
+
 @router.get("/policies/comparison")
 def policies_comparison() -> dict[str, Any]:
     """A/B/C/D from the committed final arena (7 days x 10 seeds): per-day means, per-seed profit, bootstrap CI.

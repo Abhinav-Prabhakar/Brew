@@ -57,6 +57,7 @@ class ManagedWorld:
         self.wall_events = 0
         # cost of chaos: disruption id -> shadow World forked just before the disruption (no disruption applied)
         self.shadows: dict[str, World] = {}
+        self.cache: dict[str, Any] = {}  # read-model caches keyed by sim slot (usage forecast, purchase proposal)
         world.cost_probe = self._cost_probe
 
     # ---- control (all under lock)

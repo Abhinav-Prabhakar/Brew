@@ -62,7 +62,7 @@ def tables(mw: MW) -> dict[str, Any]:
 @router.get("/worlds/{wid}/inventory")
 def inventory(mw: MW) -> dict[str, Any]:
     with mw.lock:
-        return _wrap(mw, rm.inventory(mw.world))
+        return _wrap(mw, rm.inventory_summary(mw.world))
 
 
 @router.get("/worlds/{wid}/inventory/{key}/lots")
