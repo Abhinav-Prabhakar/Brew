@@ -18,6 +18,7 @@ class OrderLine(D):
     qty: int
     mods: list[str] = []
     unit_price: float
+    replate: bool = False
 
 
 # ---- time / world ---------------------------------------------------------------
@@ -225,6 +226,7 @@ class ReceiptLine(D):
     mods: list[str]
     unit_price: float
     amount: float
+    replate: bool = False
 
 
 class ReceiptPrinted(D):
@@ -282,6 +284,38 @@ class MenuHidden(D):
 class MenuRestored(D):
     sku: str
     reason: str = ""
+
+
+class ReplateListing(D):
+    """``replate.listed`` / ``replate.marked_down``: a lot goes on (or deeper into) the Replate menu."""
+
+    listing_id: str
+    sku: str
+    lot_id: str
+    units: float
+    made_at_s: float
+    use_by_s: float
+    discount_pct: float
+    price: float
+
+
+class ReplateSold(D):
+    listing_id: str
+    order_no: int
+    units: int
+    price: float
+
+
+class ReplateRetired(D):
+    listing_id: str
+    units: float
+    outcome: Literal["donated", "wasted", "sold_out"]
+
+
+class ReplateMode(D):
+    mode: str
+    previous: str
+    by: str
 
 
 class StockChanged(D):
@@ -485,6 +519,11 @@ EVENT_MODELS: dict[str, type[D]] = {
     "menu.featured": MenuFeatured,
     "menu.hidden": MenuHidden,
     "menu.restored": MenuRestored,
+    "replate.listed": ReplateListing,
+    "replate.marked_down": ReplateListing,
+    "replate.sold": ReplateSold,
+    "replate.retired": ReplateRetired,
+    "replate.mode": ReplateMode,
     "stock.changed": StockChanged,
     "lot.opened": LotOpened,
     "lot.expired": LotExpired,

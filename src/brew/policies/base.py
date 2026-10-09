@@ -31,6 +31,9 @@ class ManagerAction:
     featured: str | None = None  # sku to feature; "" clears
     hide: dict[str, bool] = field(default_factory=dict)  # sku -> hide?
     prep_now: dict[str, float] = field(default_factory=dict)  # prep key -> qty (base uom)
+    premake: dict[str, int] = field(default_factory=dict)  # replate-eligible sku -> units to make ahead
+    replate_mode: str | None = None  # off|gentle|standard|aggressive|custom (ignored under owner override)
+    replate_discounts: dict[str, float] = field(default_factory=dict)  # lot_id -> discount % (monotone)
     reason: str = ""
     factors: list[dict[str, Any]] = field(default_factory=list)
 
@@ -38,6 +41,7 @@ class ManagerAction:
         return not (
             self.price_steps or self.sku_prices or self.kappa or self.strategy or self.throttles
             or self.batch_window_s is not None or self.featured is not None or self.hide or self.prep_now
+            or self.premake or self.replate_mode is not None or self.replate_discounts
         )  # fmt: skip
 
 

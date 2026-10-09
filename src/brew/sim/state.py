@@ -68,6 +68,9 @@ class Unit:
     done: bool = False
     started: bool = False
     ware: str = ""
+    premade: bool = False  # served from make-ahead stock (kitchen steps skipped)
+    rp_price: float = 0.0  # replate listing price when the unit was ordered off the replate menu
+    lot_id: str = ""  # tracked (replate-able) lot the unit was drawn from
 
 
 @dataclass(slots=True, eq=False)

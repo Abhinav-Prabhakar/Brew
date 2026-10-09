@@ -162,9 +162,9 @@ def test_policy_decisions_recorded(day_b):
 
 
 # ------------------------------------------------------------------ observation
-def test_observation_is_named_179(day_b):
+def test_observation_is_named_183(day_b):
     obs = ObservationBuilder(day_b).build()
-    assert obs.vec.shape == (179,) and len(NAMES) == 179 and len(set(NAMES)) == 179
+    assert obs.vec.shape == (183,) and len(NAMES) == 183 and len(set(NAMES)) == 183
     assert obs.get("tod_sin") is not None
     assert all(abs(v) <= 3.5 for v in obs.vec)
 

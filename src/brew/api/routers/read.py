@@ -81,6 +81,12 @@ def fridge(mw: MW) -> dict[str, Any]:
         return _wrap(mw, rm.fridge(mw.world))
 
 
+@router.get("/worlds/{wid}/replate")
+def replate(mw: MW) -> dict[str, Any]:
+    with mw.lock:
+        return _wrap(mw, rm.replate(mw.world))
+
+
 @router.get("/worlds/{wid}/shelf")
 def shelf(mw: MW) -> dict[str, Any]:
     with mw.lock:

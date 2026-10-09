@@ -1,0 +1,25 @@
+# Replate (rescue menu): pre-made / made-ahead food nearing the end of its hold window is listed at a
+# heavy, monotone markdown instead of being thrown away. See backend.md 3.11 / technical.md 7.11.
+modes: ["off", gentle, standard, aggressive]
+# rungs: [fraction of hold time remaining <=, discount %]; last_s: final time-based rung (seconds before use-by)
+ladders:
+  gentle:     {rungs: [[0.5, 20], [0.25, 35]],              last_s: 2700, last_pct: 50}
+  standard:   {rungs: [[0.5, 30], [0.25, 50]],              last_s: 2700, last_pct: 70}
+  aggressive: {rungs: [[0.75, 25], [0.5, 45], [0.25, 65]],  last_s: 2700, last_pct: 80}
+floor_cost_factor: 0.5     # price floor = 0.5 x unit cost
+round_to: 5                # listing prices on the Rs5 grid
+phi: 1.2                   # utility penalty per unit of lost quality ("made earlier")
+noise_tau: 0.35            # scale of the extra CRN Gumbel draw on a replate alternative
+min_ladder_gap_pct: 1.0
+max_premake_job: 8
+# persona replate affinity rho_p (utility shift for choosing the replate alternative)
+affinity:
+  student: 0.3
+  delivery_home: 0.1
+  commuter: 0.0
+  regular: 0.0
+  remote_worker: 0.0
+  office_bulk: -0.2
+  family: -0.1
+  leisurely: -0.3
+  tourist: -0.4
