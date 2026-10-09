@@ -34,7 +34,7 @@ replate:
   custom: true              # per-lot markdown of surplus units only (rescue bag), chosen with the sell-through model
   levels_pct: [0, 20, 30, 40, 50, 60, 70]
   waste_value_inr: 12
-  recovery_prior: 0.2       # share of leftover value assumed recovered when sizing make-ahead batches (replate on)
+  recovery_prior: 0.0       # share of leftover value assumed recovered when sizing make-ahead batches (0 = identical sizing with replate on or off)
   max_hours_before_list: 0.75   # only list in the last 45 min ...
   max_hold_frac: 0.25           # ... and never earlier than the last quarter of the lot's hold window
   surplus_quantile: 0.35    # units beyond this demand quantile are surplus

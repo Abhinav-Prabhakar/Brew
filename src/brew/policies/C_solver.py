@@ -55,7 +55,7 @@ DEFAULTS: dict[str, Any] = {
     "prep": {"max_batches_per_tick": 2, "underage_floor": 0.25, "waste_shadow_inr_per_kg": 20.0},
     "premake": {"enabled": True, "window_min": 120, "speed_value_inr": 60, "kitchen_load_max": 1.0, "max_units": 8,
                 "start_h": 10.0, "stop_h": 20.5, "waste_penalty_inr": 8, "min_window_demand": 1.2, "busy_floor": 0.0},
-    "replate": {"custom": True, "levels_pct": [0, 20, 30, 40, 50, 60, 70], "waste_value_inr": 12, "recovery_prior": 0.2,
+    "replate": {"custom": True, "levels_pct": [0, 20, 30, 40, 50, 60, 70], "waste_value_inr": 12, "recovery_prior": 0.0,
                 "max_hours_before_list": 0.75, "max_hold_frac": 0.25, "surplus_quantile": 0.35, "min_surplus_units": 2.0},
     "pricing": {"enabled": True, "every_min": 60, "first_h": 9.0, "last_h": 20.0, "min_gain_inr": 120,
                 "util_threshold": 0.9, "default_beta": -1.1, "default_loss": 1.0},
