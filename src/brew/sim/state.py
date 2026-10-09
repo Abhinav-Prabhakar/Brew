@@ -177,6 +177,7 @@ class StaffState:
     shift_end_s: float = 0.0
     break_min: float = 30.0
     break_at_s: float = 0.0
+    break_end_s: float = 0.0
     present: bool = False
     on_break: bool = False
     absent: bool = False

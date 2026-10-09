@@ -39,6 +39,7 @@ from .inventory import Inventory
 from .investments import Investments
 from .kitchen import Kitchen
 from .kpis import Kpis
+from .loadboard import Loadboard
 from .observation import KAPPA_CLASSES, ObservationBuilder
 from .orders import Orders
 from .replate import Replate, ReplateError
@@ -149,6 +150,7 @@ class World:
         self.inv = Inventory(self, self.cfg)
         self.choice = ChoiceModel(self.cfg)
         self.kitchen = Kitchen(self)
+        self.loadboard = Loadboard(self)
         self.orders = Orders(self)
         self.customers = Customers(self)
         self.delivery = Delivery(self)
@@ -199,6 +201,13 @@ class World:
         s = self.sink
         if s is not None:
             s.emit(EventRecord(self.seq, self.engine.now, type_, data))
+
+    def emit_lazy(self, type_: str, build: Any) -> None:
+        """Like :meth:`emit` but only builds the payload (``build() -> dict``) when a sink is attached."""
+        self.seq += 1
+        s = self.sink
+        if s is not None:
+            s.emit(EventRecord(self.seq, self.engine.now, type_, build()))
 
     def new_id(self) -> str:
         if not self.id_rng_buf:
@@ -488,6 +497,12 @@ class World:
         )
         self.kitchen.on_minute()
         self.bn.sample()
+        self.loadboard.sample()
+        cf = self.cfg.cafe
+        if cf.open_s <= tod_s(self.now) < cf.close_s:
+            self.emit_lazy("station.load", lambda: {"stations": self.loadboard.station_rows()})
+        if self.loadboard.any_staff_present():
+            self.emit_lazy("staff.status", lambda: {"staff": self.loadboard.staff_rows()})
         if int(self.now) % 300 == 0:
             self.replate.tick()
         if self.pending_hides:

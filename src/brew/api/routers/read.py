@@ -104,6 +104,13 @@ def staff(mw: MW) -> dict[str, Any]:
         return _wrap(mw, rm.staff(mw.world))
 
 
+@router.get("/worlds/{wid}/stations")
+def stations(mw: MW) -> dict[str, Any]:
+    """Per-station load: util (15 sim-min), queue, slots in use, up/down."""
+    with mw.lock:
+        return _wrap(mw, rm.stations(mw.world))
+
+
 @router.get("/worlds/{wid}/equipment")
 def equipment(mw: MW) -> dict[str, Any]:
     with mw.lock:

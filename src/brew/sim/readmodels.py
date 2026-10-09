@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, Any
 from brew.domain.timeutil import DAY_S, hhmm, iso, tod_s
 from brew.domain.timeutil import WEEKDAYS as _WD
 
+from .loadboard import break_rule
+
 if TYPE_CHECKING:
     from .state import Order
     from .world import World
@@ -273,11 +275,20 @@ def shelf(w: World) -> dict[str, Any]:
     }
 
 
+def stations(w: World) -> list[dict[str, Any]]:
+    """Per-station load rows (same shape as the ``station.load`` event)."""
+    return w.loadboard.station_rows()
+
+
 def staff(w: World) -> list[dict[str, Any]]:
     out = []
+    status = {r["staff_id"]: r for r in w.loadboard.staff_rows()}
     for s in w.kitchen.staff_list:
+        r = status[s.key]
         out.append(
             {
+                "state": r["state"], "break_due_s": r["break_due_s"], "break_end_s": r["break_end_s"],
+                "break_rule": break_rule(s), "break_min": s.break_min,
                 "id": s.key, "name": s.name, "role": s.role, "present": s.present, "on_break": s.on_break, "absent": s.absent,
                 "station": s.station if s.active else None, "task": s.task_name if s.active else None,
                 "attention": round(s.attention_used, 2), "fatigue": round(s.fatigue, 3), "wage_per_h": s.wage,
@@ -387,6 +398,7 @@ def state(w: World) -> dict[str, Any]:
         "shelf": shelf(w),
         "staff": staff(w),
         "equipment": equipment(w),
+        "stations": stations(w),
         "policy": {
             "policy": w.policy.code,
             "strategy": w.manual_strategy,

@@ -163,6 +163,7 @@ class Kitchen:
         s.break_pending = False
         s.break_done = True
         s.on_break = True
+        s.break_end_s = w.now + s.break_min * 60.0
         w.emit("staff.break_started", staff_id=s.key, detail="")
         w.engine.schedule(w.now + s.break_min * 60.0, "BREAK_END", s.key, P_DONE)
 
