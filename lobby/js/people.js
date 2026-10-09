@@ -108,8 +108,19 @@
   const TUNIC = (() => { const g = new T.CylinderGeometry(0.158, 0.21, 0.42, 32, 1, true); g.translate(0, -0.16, 0); g.scale(1, 1, 0.72); return g; })();
   const CAP = (r, tl = 1.55) => new T.SphereGeometry(r, 32, 16, 0, Math.PI * 2, 0, tl);
 
-  function limb(parent, r, len, mat) {
-    return G.m(G.cap(r, len, 4, 12), mat, { p: [0, -len / 2 - r * 0.4, 0], parent });
+  // tapered, gently muscled limb: r0 at the joint above, r1 at the joint below
+  const LIMB = {};
+  function taper(r0, r1, len, bulge) {
+    const k = `${r0},${r1},${len},${bulge}`;
+    if (LIMB[k]) return LIMB[k];
+    const yt = -0.4 * r0, yb = yt - len, pts = [];
+    for (let i = 0; i <= 5; i++) { const a = -Math.PI / 2 + (i / 5) * (Math.PI / 2); pts.push([Math.cos(a) * r1 + 1e-4, yb + Math.sin(a) * r1]); }
+    for (let i = 1; i < 8; i++) { const v = i / 8; const r = r1 + (r0 - r1) * v + Math.sin(v * Math.PI) * bulge; pts.push([r, yb + len * v]); }
+    for (let i = 0; i <= 5; i++) { const a = (i / 5) * (Math.PI / 2); pts.push([Math.cos(a) * r0 + 1e-4, yt + Math.sin(a) * r0]); }
+    return (LIMB[k] = G.lathe(pts, 14));
+  }
+  function limb(parent, r, len, mat, r1 = r * 0.82, bulge = r * 0.12) {
+    return G.m(taper(r, r1, len, bulge), mat, { parent });
   }
 
   P.build = function (t) {
@@ -140,10 +151,10 @@
     // legs
     p.legs = [-1, 1].map((sd) => {
       const hip = G.group(pelvis, [sd * 0.08 * t.build, -0.02, 0]);
-      limb(hip, 0.066, 0.3, legsSkin ? sk : bottom);
+      limb(hip, 0.07, 0.3, legsSkin ? sk : bottom, 0.056, 0.008);
       const knee = G.group(hip, [0, -0.41, 0]);
       G.m(G.sph(0.058, 14, 10), legsSkin ? sk : bottom, { parent: knee });
-      limb(knee, 0.054, 0.3, legsSkin || (o.kind === 'dress') ? sk : bottom);
+      limb(knee, 0.055, 0.3, legsSkin || (o.kind === 'dress') ? sk : bottom, 0.036, 0.011);
       G.m(G.rbox(0.104, 0.07, 0.235, 0.034), shoe, { p: [0, -0.428, 0.04], parent: knee });
       G.m(G.sph(0.05, 16, 10), shoe, { p: [0, -0.43, 0.13], s: [1.05, 0.72, 1], parent: knee });
       G.m(G.rbox(0.11, 0.022, 0.262, 0.009), G.mat(sneaker ? '#f7f3ef' : '#2a2224', { roughness: 0.65 }), { p: [0, -0.464, 0.045], parent: knee });
@@ -208,12 +219,12 @@
       const sh = G.group(chest, [sd * 0.195 * t.build, 0.5, 0]);
       sh.rotation.z = sd * 0.09;
       const up = o.short ? sk : sleeve;
-      limb(sh, 0.05, 0.2, up);
+      limb(sh, 0.054, 0.2, up, 0.042, 0.006);
       if (o.short) G.m(G.cap(0.056, 0.06), sleeve, { p: [0, -0.06, 0], parent: sh });
       G.m(G.sph(0.062, 18, 14), up === sk ? sleeve : sleeve, { p: [0, -0.01, 0], s: [1, 0.9, 0.95], parent: sh });
       const elbow = G.group(sh, [0, -0.29, 0]);
-      G.m(G.sph(0.047, 14, 10), fore, { parent: elbow });
-      limb(elbow, 0.043, 0.18, fore);
+      G.m(G.sph(0.044, 14, 10), fore, { parent: elbow });
+      limb(elbow, 0.044, 0.18, fore, 0.03, 0.007);
       const hand = G.group(elbow, [0, -0.255, 0.004]);
       G.m(G.rbox(0.058, 0.064, 0.026, 0.012), sk, { p: [0, -0.012, 0], parent: hand });                     // palm
       G.m(G.rbox(0.054, 0.05, 0.022, 0.011), sk, { p: [0, -0.06, 0.006], r: [0.35, 0, 0], parent: hand });  // fingers, softly curled
