@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import pytest
 from fastapi.testclient import TestClient
+from gaps_common import API
 
 from brew.api.app import create_app
 from brew.settings import Settings
-from gaps_common import API
 
 pytestmark = pytest.mark.integration
 

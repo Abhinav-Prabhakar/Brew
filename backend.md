@@ -170,7 +170,13 @@ POST   /worlds/{id}/control  {action: play|pause|step, step_s?}   # live: real t
        (POST /worlds takes clock: "wall" (today, synced to real local time) | "open" (start at opening))
 POST   /worlds/{id}/policy   {policy?: A|B|C|D|E, strategy?: balanced|delivery_first|rush_menu|happy_hour}
 POST   /worlds/{id}/fork     {at?: "now", kind?: counterfactual} → World
-POST   /worlds/{id}/chaos    {kind, target?, severity?, duration_min?} → Disruption
+POST   /worlds/{id}/chaos    {kind, target?, severity?, duration_min?} → Disruption (+ cost_tracked)
+       kinds: staff_absent, staff_late, equipment_down, supplier_delay, supplier_short, rider_shortage, power_cut,
+       demand_spike, price_shock, platform_outage and the manual-only `rain_storm` (weather forced to rain for the
+       duration: weather.changed on start and on revert; delivery demand up, dine-in down, riders slower).
+       Untargeted manual triggers pick a default target: staff_absent → a present barista, equipment_down → oven,
+       supplier_delay/short → the dairy (milk) supplier.
+GET    /chaos/kinds           → the six kitchen chaos-card buttons [{kind, label, default_target, description}]
 POST   /worlds/{id}/actions  {kind, ...}   (player/owner actions, §6.2)
 ```
 **Read models**
@@ -181,14 +187,25 @@ GET /worlds/{id}/rail                     ticket rail order (priority sorted, ba
 GET /worlds/{id}/board                    split-flap columns {brewing, almost, ready}
 GET /worlds/{id}/customers                customers in the venue with state, persona, patience, table
 GET /worlds/{id}/tables                   tables, seats, merged groups, occupancy
-GET /worlds/{id}/inventory                ingredients & prep items: on-hand, lots summary, days of cover
+GET /worlds/{id}/inventory                {items[]: key, name, uom, on_hand, par, reorder_point, lots, next_expiry_s, days_of_cover,
+                                          supplier, supplier_key, co2e_kg_per_kg, unit_cost, value_inr, freshness (fresh|soon|expiring);
+                                          freshness: {fresh, soon, expiring} value-weighted fractions (sum 1), value_inr, freshness_rules}
 GET /worlds/{id}/inventory/{key}/lots     lots with expiry, quality, status
+GET /worlds/{id}/inventory/{key}/forecast today's usage {key, uom, p50, p90, used_so_far, remaining_p50, on_hand, days_of_cover}
+                                          (SKU demand forecast x BOM; cached per 15 sim-min slot)
+GET /worlds/{id}/purchasing/proposal      what the policy would order now, by supplier: {policy, basis, service_level, supplier, eta_s,
+                                          lines[], orders[{supplier, supplier_name, eta_s, arrive_tod_s, lines[{ingredient, name, qty,
+                                          packs, uom, cost_inr, reason}], total_inr, co2e_kg}], total_inr, co2e_kg, next_delivery_s,
+                                          next_delivery}; approve each order with the place_po action (lines as is)
+GET /worlds/{id}/stations                 per-station load rows (same shape as the station.load event)
 GET /worlds/{id}/fridge                   pastry-fridge finished goods stock
 GET /worlds/{id}/shelf                    delivery shelf bags {order_no, channel, rider_eta, quality}
-GET /worlds/{id}/staff                    staff, station, task, fatigue, shift
+GET /worlds/{id}/staff                    staff, station, task, fatigue, shift, state (working|idle|break|off|absent), break_due_s,
+                                          break_end_s, break_rule, break_min
 GET /worlds/{id}/equipment                status, slots in use, condition
 GET /worlds/{id}/kpis?from=&to=           daily + rolling KPIs
-GET /worlds/{id}/impact                   triple-bottom-line scoreboard
+GET /worlds/{id}/impact                   triple-bottom-line scoreboard + waste_kg_today, waste_kg_by_day[{day, date, waste_kg, partial}]
+GET /worlds/{id}/disruptions              chaos rows incl. cost_inr (CRN counterfactual cost of chaos, null if untracked)
 GET /worlds/{id}/forecast?target=&key=&horizon_min=   P10/P50/P90 buckets + actuals
 GET /worlds/{id}/decisions?since_seq=     policy decisions
 GET /decisions/{id}/explain               top factors + natural-language note
@@ -203,6 +220,11 @@ GET /worlds/{id}/receipts/{order_no}      receipt lines + GST breakdown + QR pay
 POST /arena            {policies, scenario, seeds, days} → job id   (runs in a process pool)
 GET  /arena/{id}       → progress, per-policy KPIs, paired bootstrap CIs vs A, Wilcoxon p
 GET  /models           → registry (champions + metrics)
+GET  /policies/comparison → committed final arena (docs/training/full-20261005, 7 days x 10 seeds): per policy A/B/C/D
+                            mean_profit (INR/day), profit_by_seed, ci95 (bootstrap 95 % CI of the mean of profit_by_seed,
+                            10 000 resamples, RNG seed 0), mean_waste_kg, mean_rating, mean_walkouts, cvar10_daily_profit,
+                            vs_A (paired CI), uplift_pct_vs_A, labels; `baseline` = A (HUD "x% vs naive", pantry waste/day)
+GET  /                 → the frontend (design/brew.html; static files of design/ at /; BREW_SERVE_DESIGN=0 disables)
 GET  /health           → {status, version, git_sha, models_loaded}
 ```
 
@@ -216,7 +238,7 @@ Mirrors what the lobby lets you do today plus owner overrides. Every action prod
 | `set_price` | `{sku, price}` | Owner price override (charter-checked). |
 | `feature_item` / `hide_item` | `{sku, on}` | Owner menu interventions. |
 | `throttle` | `{channel, level: open|plus5|plus10|pause}` | Aggregator throttle. |
-| `place_po` | `{supplier, lines}` | Manual purchase order. |
+| `place_po` | `{supplier, lines, arrive_tod_s?}` | Manual purchase order. `lines` = `[{ingredient, qty}]` (a proposal's `lines` as is; extra keys ignored) or `{ingredient: qty}`; qty is rounded up to packs/MOQ. `arrive_tod_s` carries a proposal order's standing-delivery time. |
 | `premake` | `{sku, units}` | Make units ahead of demand (eligible SKUs only); unsold units flow into Replate. |
 | `replate_list` | `{sku, discount_pct?}` | List / deepen the markdown of an eligible lot now (monotone, floor-checked; 422 on violation). |
 | `replate_mode` | `{mode: off|gentle|standard|aggressive}` | Owner override of the active policy's replate ladder. |
@@ -246,7 +268,7 @@ Server → client: **batched frames** every 50–100 ms wall time: `{"frame": n,
 | `order.accepted` / `order.rejected` | `order_no, promised_s? / reason` | PAUSED stamp |
 | `order.progress` (≤ 1 per order per 5 % step) | `order_no, state: queued|brewing|almost|ready, progress, ahead` | ticket bar + board columns |
 | `rail.reordered` | `order_nos[] (priority order), batches[{id, order_nos[]}]` | FLIP + paperclips |
-| `batch.formed` / `batch.started` | `batch_id, station, order_nos[], size` | paperclip snap |
+| `batch.formed` / `batch.started` | `batch_id, station, step, order_nos[], size, saves_s` (sim-s saved vs running the tasks one by one: `(n-1)(1-batch_factor)*solo_duration`) | paperclip snap + "batched x3 · saves 2m40s" |
 | `order.ready` | `order_no, ready_s` | READY stamp, pass bell |
 | `order.served` | `order_no, by: player|runner` | ticket torn off |
 | `order.voided` | `order_no, reason` | VOID tear |
@@ -264,15 +286,18 @@ Server → client: **batched frames** every 50–100 ms wall time: `{"frame": n,
 | `task.started` / `task.finished` | `task_id, station, staff_id, order_no?, est_s` | espresso steam, kitchen (later) |
 | `prep.started` / `prep.ready` / `prep.expired` | `prep_key, qty` | kitchen/pantry |
 | `staff.*`, `equipment.down/up` | … | kitchen / chaos |
+| `station.load` (every 60 sim-s while open, and once at open) | `stations[{station, util (busy share, mean of the last 15 sim-min, 0..1), queue (tasks waiting), in_use (slots in use, or staff working there when slots = 0), slots, status: up\|down, down_until_s}]` for every station | kitchen station cards, LEDs and % |
+| `staff.status` (every 60 sim-s while any staff is present) | `staff[{staff_id, fatigue, station, task, state: working\|idle\|break\|off\|absent, break_due_s, break_end_s}]` | crew list: fatigue bar, "break due in N min", break countdown |
 | `kpi.tick` (every 5 sim min) | `cash, revenue_today, profit_today, rating, rating_n, load_pct, open_orders, walkouts_today` | HUD numbers |
 | `decision.made` | `decision_id, type, summary, policy` | office sticky notes |
 | `bottleneck.changed` | `resource, rho, shadow_price` | office gauge |
-| `chaos.triggered` / `chaos.resolved` | `kind, target, until_s` | chaos console |
+| `chaos.triggered` / `chaos.resolved` | `disruption_id, kind, target, severity, until_s, source` | chaos console |
+| `chaos.cost` (every 5 sim-min while active, once at resolve, a final one 30 sim-min after; tracked disruptions only, max 2 at once) | `disruption_id, kind, cost_inr, profit_actual, profit_counterfactual, phase: active\|resolved\|final` (`cost_inr = counterfactual - actual` today's profit; the counterfactual is a CRN fork taken just before the disruption) | "cost of chaos" counter |
 | `strategy.changed` / `policy.changed` | … | HUD policy chip |
 | `investment.delivered` | `catalog_key, effect` | item drops in |
 
 ### 6.4 Hydration snapshot (`GET /worlds/{id}/state`)
-One JSON with everything the lobby needs to rebuild the scene without replaying events: `world, clock, weather, kpis, menu, replate (listings), rail (orders + batches), board, customers (with state + appearance + patience + table), tables, fridge, shelf, staff, equipment, policy, strategy, last_seq`.
+One JSON with everything the lobby needs to rebuild the scene without replaying events: `world, clock, weather, kpis, menu, replate (listings), rail (orders + batches), board, customers (with state + appearance + patience + table), tables, fridge, shelf, staff (with state / break_due_s / break_end_s / break_rule), equipment, stations (the `station.load` rows), combos, disruptions (active, with cost_inr), policy, strategy, last_seq`.
 
 ---
 
