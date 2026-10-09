@@ -157,16 +157,16 @@ class ObservationBuilder:
         v[i + 5] = sum(1 for t in tabs if t.state in ("dirty", "cleaning")) / n_t
         i += 6
         # inventory (16)
-        for k in KEY_COVER:
-            use = ma.key_usage_per_day(k)
-            cover = w.inv.onhand[k] / use if use > 0 else 5.0
+        for key in KEY_COVER:
+            use = ma.key_usage_per_day(key)
+            cover = w.inv.onhand[key] / use if use > 0 else 5.0
             v[i] = min(1.0, cover / 5.0)
             i += 1
         v[i] = min(1.0, w.inv.value_expiring(now, 4 * 3600) / 2000.0)
         i += 1
-        for k in PREP_KEYS:
-            par = w.ix.prep[k].par
-            v[i] = min(1.5, w.inv.onhand[k] / par) if par else 0.0
+        for key in PREP_KEYS:
+            par = w.ix.prep[key].par
+            v[i] = min(1.5, w.inv.onhand[key] / par) if par else 0.0
             i += 1
         # economics (10)
         for c in CATEGORIES:
@@ -182,12 +182,12 @@ class ObservationBuilder:
         i += 6
         # disruptions (10)
         active = {d.kind for d in w.dis.active_list()}
-        for k in DISRUPTION_KINDS:
-            v[i] = 1.0 if k in active else 0.0
+        for key in DISRUPTION_KINDS:
+            v[i] = 1.0 if key in active else 0.0
             i += 1
         # controls (13)
-        for k in KAPPA_CLASSES:
-            v[i] = w.kappa.get(k, 0.0)
+        for key in KAPPA_CLASSES:
+            v[i] = w.kappa.get(key, 0.0)
             i += 1
         for s in STRATEGY_PRESETS:
             v[i] = 1.0 if w.preset == s else 0.0

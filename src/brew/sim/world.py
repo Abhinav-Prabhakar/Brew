@@ -576,8 +576,8 @@ class World:
         # featured
         if a.featured is not None:
             if a.featured == "":
-                for sku, m in self.menu.items():
-                    if m.featured:
+                for sku, mst in self.menu.items():
+                    if mst.featured:
                         self.set_featured(sku, False, by, "")
             elif a.featured in self.menu:
                 self.set_featured(a.featured, True, by, reason)
@@ -987,14 +987,14 @@ class World:
         k.dish_wash_pending = False
         k.prep_jobs = {}
         k.prep_inflight = {}
-        for t in self.tables.values():
-            if t.state != "free" or t.occ:
-                for kk, v in t.dirty_ware.items():
+        for tb in self.tables.values():
+            if tb.state != "free" or tb.occ:
+                for kk, v in tb.dirty_ware.items():
                     self.dish[kk]["dirty"] += v
-                t.dirty_ware = {}
-                t.state = "free"
-                t.occ = []
-                t.party_ids = []
+                tb.dirty_ware = {}
+                tb.state = "free"
+                tb.occ = []
+                tb.party_ids = []
         for ware, d in self.dish.items():
             d["clean"] += d["dirty"] + d["washing"]
             d["dirty"] = d["washing"] = 0

@@ -139,28 +139,28 @@ def validate_cafe(cfg: CafeConfig) -> None:
     for p in cfg.prep_items:
         for c in p.components:
             comp_ok(f"prep {p.key}", c.ingredient)
-        for s in p.steps:
-            if s.station not in stations:
-                errs.append(f"prep {p.key}: unknown station {s.station}")
+        for pst in p.steps:
+            if pst.station not in stations:
+                errs.append(f"prep {p.key}: unknown station {pst.station}")
     if ings & preps:
         errs.append(f"keys both ingredient and prep item: {sorted(ings & preps)}")
-    for s in cfg.stations:
-        for e in s.equipment:
-            if e not in equip:
-                errs.append(f"station {s.key}: unknown equipment {e}")
-    for e in cfg.equipment:
-        if e.station not in stations:
-            errs.append(f"equipment {e.key}: unknown station {e.station}")
-    for m in cfg.modifiers:
-        for s in m.applies_to:
-            if s not in skus:
-                errs.append(f"modifier {m.id}: unknown sku {s}")
-        for d in m.recipe_delta:
+    for stn in cfg.stations:
+        for eq in stn.equipment:
+            if eq not in equip:
+                errs.append(f"station {stn.key}: unknown equipment {eq}")
+    for et in cfg.equipment:
+        if et.station not in stations:
+            errs.append(f"equipment {et.key}: unknown station {et.station}")
+    for md in cfg.modifiers:
+        for sk_ in md.applies_to:
+            if sk_ not in skus:
+                errs.append(f"modifier {md.id}: unknown sku {sk_}")
+        for d in md.recipe_delta:
             for k in (d.replace or {}).values():
                 if k not in stock_keys:
-                    errs.append(f"modifier {m.id}: unknown ingredient {k}")
+                    errs.append(f"modifier {md.id}: unknown ingredient {k}")
             if d.add and d.add.get("ingredient") not in stock_keys:
-                errs.append(f"modifier {m.id}: unknown ingredient {d.add.get('ingredient')}")
+                errs.append(f"modifier {md.id}: unknown ingredient {d.add.get('ingredient')}")
     for a, b in cfg.incompatible:
         if a not in mods or b not in mods:
             errs.append(f"incompatible pair {a},{b} references unknown modifier")
@@ -176,24 +176,24 @@ def validate_cafe(cfg: CafeConfig) -> None:
         for sk in st.skills:
             if sk not in stations:
                 errs.append(f"staff {st.key}: unknown station skill {sk}")
-    for k, p in cfg.personas.items():
-        for key in p.affinity:
+    for k, per in cfg.personas.items():
+        for key in per.affinity:
             if key not in skus and key not in CATS:
                 errs.append(f"persona {k}: affinity {key} is not a sku/category")
-        for ch in p.channels:
+        for ch in per.channels:
             if ch not in channels:
                 errs.append(f"persona {k}: unknown channel {ch}")
         for dt in ("weekday", "weekend"):
-            if dt not in p.arrivals:
+            if dt not in per.arrivals:
                 errs.append(f"persona {k}: missing {dt} arrivals")
-        if abs(sum(p.party_size.values()) - 1) > 1e-6:
+        if abs(sum(per.party_size.values()) - 1) > 1e-6:
             errs.append(f"persona {k}: party_size must sum to 1")
-        if abs(sum(p.channels.values()) - 1) > 1e-6:
+        if abs(sum(per.channels.values()) - 1) > 1e-6:
             errs.append(f"persona {k}: channels must sum to 1")
-    for m in cfg.modifiers:
-        for k in m.pick_prob:
+    for md in cfg.modifiers:
+        for k in md.pick_prob:
             if k != "default" and k not in cfg.personas:
-                errs.append(f"modifier {m.id}: pick_prob persona {k} unknown")
+                errs.append(f"modifier {md.id}: pick_prob persona {k} unknown")
     tids = {t.id for t in cfg.tables.tables}
     for a, b in cfg.tables.combinable:
         if a not in tids or b not in tids:

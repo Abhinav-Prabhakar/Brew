@@ -10,6 +10,8 @@ from brew.config.schemas import CafeConfig, Persona
 from brew.domain.enums import CHANNELS
 from brew.domain.timeutil import DAY_S, parse_hhmm
 
+from .rng import RngStreams
+
 SLOT_S = 900
 SLOTS = 96
 CH_INDEX = {c: i for i, c in enumerate(CHANNELS)}
@@ -90,7 +92,7 @@ def _cdf_pick(u: np.ndarray, probs: list[float]) -> np.ndarray:
 
 def build_day_plan(
     cfg: CafeConfig,
-    rng,  # RngStreams
+    rng: RngStreams,
     day: int,
     daytype: str,
     static_mult: dict[str, np.ndarray],
