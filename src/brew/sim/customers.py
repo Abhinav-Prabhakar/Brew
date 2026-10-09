@@ -285,6 +285,7 @@ class Customers:
         p.left = True
         self.walkouts_today += 1
         self.balks_today += 1
+        self.w.kpi.cum_walkouts[p.persona] += 1
         self.w.kpi.balks += 1
         self.w.emit("customer.balked", party_id=p.id, reason=reason)
         self._retire(p)
@@ -368,6 +369,7 @@ class Customers:
         p.left = True
         self.walkouts_today += 1
         self.reneges_today += 1
+        w.kpi.cum_walkouts[p.persona] += 1
         w.kpi.reneges += 1
         w.emit("customer.reneged", party_id=p.id, order_no=order_no)
         w.emit("customer.left", party_id=p.id, happy=False)

@@ -15,7 +15,7 @@ from brew.db.repo import create_world_row
 from brew.db.session import async_session_factory, make_async_engine, make_sync_engine, sync_session_factory
 from brew.db.writer import DbWriterSink
 from brew.events.bus import EventRecord, FanoutSink, RingBufferSink
-from brew.policies.registry import AVAILABLE, PLANNED
+from brew.policies.registry import available, make_policy, planned
 from brew.settings import Settings
 from brew.sim import readmodels as rm
 from brew.sim.actions import BadPayload, apply_action
@@ -106,12 +106,13 @@ class ManagedWorld:
         with self.lock:
             if policy:
                 code = policy.upper()
-                if code in PLANNED:
-                    raise NotImplementedYet(PLANNED[code], f"policy {code}")
-                if code not in AVAILABLE:
+                md = self.settings.resolved_models_dir()
+                if code in planned(md):
+                    raise NotImplementedYet(planned(md)[code], f"policy {code}")
+                if code not in available(md):
                     raise BadPayload(f"unknown policy {policy!r}")
                 if code != self.world.policy.code:
-                    self.world.set_policy(code)
+                    self.world.set_policy(make_policy(code, models_dir=md) if code == "D" else code)
             if strategy:
                 try:
                     self.world.set_strategy(strategy)
@@ -168,11 +169,14 @@ class WorldManager:
         s = self.settings
         if len(self.worlds) >= s.max_worlds:
             raise BadPayload(f"world limit reached ({s.max_worlds})")
-        policy = str(spec.get("policy", "A")).upper()
-        if policy in PLANNED:
-            raise NotImplementedYet(PLANNED[policy], f"policy {policy}")
-        if policy not in AVAILABLE:
+        policy: Any = str(spec.get("policy", "A")).upper()
+        md = s.resolved_models_dir()
+        if policy in planned(md):
+            raise NotImplementedYet(planned(md)[policy], f"policy {policy}")
+        if policy not in available(md):
             raise BadPayload(f"unknown policy {policy!r}")
+        if policy == "D":  # the learned manager needs the champion of *this* server's model directory
+            policy = make_policy("D", models_dir=md)
         scenario = spec.get("scenario", "weekday_normal")
         if scenario not in list_scenarios():
             raise BadPayload(f"unknown scenario {scenario!r}")

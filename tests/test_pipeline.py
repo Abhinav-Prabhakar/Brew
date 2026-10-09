@@ -44,11 +44,11 @@ def test_smoke_and_full_configs_load():
     assert s.forecast.n_estimators < f.forecast.n_estimators and s.eval.replate_ab
 
 
-def test_train_cli_m3_stage_is_reserved_and_unknown_stage_fails():
-    r = CliRunner().invoke(train_app, ["ppo", "--config", "configs/train/smoke.yaml"])
-    assert r.exit_code == 0 and "M3" in r.output
+def test_train_cli_unknown_stage_fails_and_m3_stages_are_listed():
     r = CliRunner().invoke(train_app, ["nope", "--config", "configs/train/smoke.yaml"])
     assert r.exit_code != 0
+    r = CliRunner().invoke(train_app, ["ppo", "--config", "configs/train/smoke.yaml", "--dry-run"])
+    assert r.exit_code == 0 and "ppo" in r.output
 
 
 def test_eval_cli_runs_a_tiny_arena(tmp_path):

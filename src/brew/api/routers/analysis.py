@@ -16,7 +16,7 @@ from brew.domain.timeutil import hhmm
 from brew.models.registry import ModelRegistry
 from brew.policies.bundle import load_bundle
 from brew.policies.demand import DemandService
-from brew.policies.registry import AVAILABLE
+from brew.policies.registry import available
 from brew.sim import readmodels as rm
 from brew.sim.actions import BadPayload, UnknownTarget
 
@@ -159,9 +159,10 @@ def arena_create(body: ArenaRequest, request: Request) -> dict[str, Any]:
     from brew.config.loader import list_scenarios
 
     pols = [p.upper() for p in body.policies]
-    bad = [p for p in pols if p not in AVAILABLE]
+    avail = available(_models_dir(request))
+    bad = [p for p in pols if p not in avail]
     if bad:
-        raise BadPayload(f"unavailable policies {bad}; available: {list(AVAILABLE)}")
+        raise BadPayload(f"unavailable policies {bad}; available: {list(avail)}")
     if body.scenario not in list_scenarios():
         raise BadPayload(f"unknown scenario {body.scenario!r}")
     if not body.seeds or len(body.seeds) > 50 or not 1 <= body.days <= 30:

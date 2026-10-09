@@ -629,8 +629,15 @@ class World:
                     if mst.featured:
                         self.set_featured(sku, False, by, "")
             elif a.featured in self.menu:
-                self.set_featured(a.featured, True, by, reason)
-                applied.append(f"feature {a.featured}")
+                if a.featured_exclusive:
+                    for sku, mst in self.menu.items():
+                        if mst.featured and sku != a.featured:
+                            self.set_featured(sku, False, by, "")
+                try:
+                    if self.set_featured(a.featured, True, by, reason):
+                        applied.append(f"feature {a.featured}")
+                except CharterViolation as e:
+                    clipped.append(str(e))
         for sku, on in a.hide.items():
             try:
                 if self.set_hidden(sku, on, "owner", by, reason or "policy"):
@@ -732,6 +739,7 @@ class World:
         m.chip_dir = d
         m.chip_text = f"₹{abs(m.price - m.base):g} · {reason}" if reason else ""
         self.kpi.price_changes += 1
+        self.kpi.cum_price_changes += 1
         self.price_change_times.append(self.now)
         self.price_mult_dirty = True
         self.ctx_dirty = True
@@ -903,6 +911,8 @@ class World:
         kg = self.inv.kg_of(key, qty)
         self.kpi.waste_kg += kg
         self.kpi.waste_inr += cost
+        self.kpi.cum_waste_kg += kg
+        self.kpi.cum_waste_inr += cost
         self.waste_by_key[key] = self.waste_by_key.get(key, 0.0) + kg
 
     def on_lot_opened(self, key: str, lot: Any) -> None:

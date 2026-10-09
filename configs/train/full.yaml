@@ -1,8 +1,11 @@
-# Full configuration for the training desktop (RTX 3050, Linux). 180 days x 4 scenarios of history.
+# Full configuration for the training desktop (RTX 3050 + many CPU cores, Linux/WSL2).
+#   uv run brew-train all --config configs/train/full.yaml --run-dir runs/full --device auto --resume
+# Dry run (validates the whole plan in seconds):  uv run brew-train all --config configs/train/full.yaml --dry-run
 name: full
 runs_dir: data/runs/full
 models_dir: models
-history:
+device: auto                   # CUDA when available
+history:                       # M2: 180 days of history per scenario
   scenario: weekday_normal
   runs:
     - {policy: B, seed: 201, days: 180, scenario: weekday_normal}
@@ -18,14 +21,58 @@ prep_time: {n_estimators: 400}
 rider_eta: {n_estimators: 400}
 replate_model: {n_estimators: 300}
 text: {source: clean, test_size: 0.2, seed: 0}
-eval:
+eval:                          # M2 arena (C vs A/B/E); the final D arena is `final_eval` below
   policies: [A, B, C, E]
-  seeds: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
-  days: 14
+  seeds: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  days: 7
   scenario: weekday_normal
   replate_ab: true
-  workers: 0
-# M3 (reserved)
-bc: {days: 200}
-ppo: {total_timesteps: 5000000, n_envs: 14, episode_days: 28}
-adversarial: {total_timesteps: 1000000}
+  workers: 6
+bc:                            # BC on 200 days of Policy C (29 episodes of 7 days over mixed scenarios)
+  days: 200
+  episode_days: 7
+  epochs: 80
+  batch_size: 512
+  gamma: 0.995
+  workers: auto
+  scenarios: [weekday_normal, weekend_brunch, rainy_delivery_surge, heatwave, exam_week, festival]
+  domain_randomisation: true
+ppo:                           # technical.md 13.5
+  total_timesteps: 5000000
+  n_envs: auto                 # min(16, cpu - 2), SubprocVecEnv
+  vec: subproc
+  n_steps: 512
+  batch_size: 4096
+  gamma: 0.995
+  gae_lambda: 0.95
+  lr_start: 3.0e-4             # linear decay over the whole run
+  lr_end: 1.0e-4
+  ent_coef: 0.01
+  clip_range: 0.2
+  net_arch: [256, 256]
+  curriculum:                  # 20 / 40 / 40 % of the steps; shaping annealed 1.0 -> 0.3
+    - {days: 1, frac: 0.2, shaping: 1.0}
+    - {days: 7, frac: 0.4, shaping: 0.65}
+    - {days: 28, frac: 0.4, shaping: 0.3}
+  eval: {every: 100000, seeds: 10, days: 7, scenario: weekday_normal, base_seed: 1000, workers: 4}   # 7-day eval episodes (not 28); 4 workers: the 10 PPO env workers stay alive (~0.5 GB each) and WSL has 10 GiB
+  checkpoint_every: 100000
+  scenarios: [weekday_normal, weekend_brunch, rainy_delivery_surge, heatwave, exam_week, festival, chaos_random]
+  domain_randomisation: true
+  chaos: random
+adversarial:                   # RARL, k = 2 iterations; protagonist trains vs 50 % random / 30 % adversary / 20 % calm
+  total_timesteps: 1000000
+  iterations: 2
+  protagonist_steps: 250000
+  n_envs: auto
+  vec: subproc
+  n_steps: 256
+  batch_size: 2048
+  days: 1
+  chaos_mix: [0.5, 0.3, 0.2]
+export: {parity_obs: 256, parity_tol: 1.0e-4, surrogate_depth: 4, surrogate_days: 7, surrogate_seeds: 6}
+final_eval:
+  policies: [A, B, C, D]
+  seeds: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  days: [7]
+  scenario: weekday_normal
+  workers: 6

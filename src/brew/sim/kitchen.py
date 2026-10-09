@@ -214,6 +214,7 @@ class Kitchen:
             for s in ps:
                 if s.attention_used > 0.95:
                     s.overload_s += 60.0
+                    self.w.kpi.cum_overload_s += 60.0
         else:
             self.load_ewma *= 0.9
 
