@@ -1,0 +1,10 @@
+# Investment catalog. effect.kind is interpreted by sim/investments (delivered after lead_time_h).
+- {key: table_2top, name: Extra 2-top table, capex: 14000, opex_per_day: 0, lead_time_h: 24, effect: {kind: add_table, seats: 2}}
+- {key: espresso_2nd, name: Second espresso machine, capex: 180000, opex_per_day: 60, lead_time_h: 72, effect: {kind: add_slots, station: espresso, slots: 2}}
+- {key: press_2nd, name: Second panini press, capex: 60000, opex_per_day: 20, lead_time_h: 48, effect: {kind: add_slots, station: press, slots: 4}}
+- {key: fridge_bigger, name: Bigger pastry fridge, capex: 70000, opex_per_day: 10, lead_time_h: 48, effect: {kind: fridge_capacity, factor: 1.5}}
+- {key: barista_morning, name: Morning barista (07:30-11:30), capex: 0, opex_per_day: 560, lead_time_h: 24, effect: {kind: add_staff, staff: {key: barista_c, name: Isha, role: barista, wage_per_h: 140, skills: {espresso: 0.9, grinder: 1.0, bar: 0.8, cold: 0.8, pass: 0.8, display: 0.8, register: 0.5}, speed: 1.0, error_rate: 0.03, fatigue_rate: 0.014, recovery_rate: 0.03, shift: ["07:30", "11:30"], break_min: 0, break_at: "10:00"}}}
+- {key: dishwasher_upgrade, name: Faster dishwasher, capex: 80000, opex_per_day: 15, lead_time_h: 48, effect: {kind: dish_speed, factor: 0.6}}
+- {key: oatmilk_standing, name: Standing oat-milk order, capex: 0, opex_per_day: 0, lead_time_h: 24, effect: {kind: standing_po, ingredient: oat_milk, qty: 6000}}
+- {key: marketing_push, name: Local marketing push, capex: 8000, opex_per_day: 400, lead_time_h: 12, effect: {kind: demand_mult, factor: 1.08, days: 14}}
+- {key: bar_stools, name: Bar stools (4 seats), capex: 22000, opex_per_day: 0, lead_time_h: 36, effect: {kind: add_table, seats: 4}}

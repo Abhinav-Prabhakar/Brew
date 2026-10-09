@@ -1,0 +1,11 @@
+key: exam_week
+name: Exam week
+description: Students camp out with laptops and cold coffee; tables and the espresso machine are under pressure.
+start_date: "2026-11-24"
+weather: {profile: default, initial: partly, temp_offset: 0}
+demand:
+  global_mult: 1.0
+  persona_mult: {student: 1.6, remote_worker: 1.4}
+  category_mult: {coffee: 1.15}
+disruptions: []
+random_chaos: {rate_per_day: 0.0}

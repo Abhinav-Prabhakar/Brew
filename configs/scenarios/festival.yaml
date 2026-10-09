@@ -1,0 +1,12 @@
+key: festival
+name: Festival day
+description: A public-holiday festival Saturday. Families and tourists flood in, commuters stay home.
+start_date: "2026-10-17"
+weather: {profile: default, initial: sunny, temp_offset: 0}
+demand:
+  global_mult: 1.1
+  persona_mult: {family: 1.6, tourist: 1.5, leisurely: 1.3, commuter: 0.5, office_bulk: 0.3}
+  category_mult: {bakes: 1.25}
+disruptions:
+  - {kind: demand_spike, target: tourist, start: "15:00", end: "17:00", severity: 1.0}
+random_chaos: {rate_per_day: 0.0}

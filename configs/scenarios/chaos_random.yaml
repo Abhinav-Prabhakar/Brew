@@ -1,0 +1,10 @@
+key: chaos_random
+name: Random chaos
+description: A weekday with randomly drawn disruptions (sick staff, broken ovens, late suppliers, rider shortages).
+start_date: "2026-10-05"
+weather: {profile: monsoon, initial: partly, temp_offset: 0}
+demand: {global_mult: 1.0}
+disruptions: []
+random_chaos:
+  rate_per_day: 2.5
+  kinds: [staff_absent, staff_late, equipment_down, supplier_delay, supplier_short, rider_shortage, power_cut, demand_spike, price_shock, platform_outage]

@@ -1,0 +1,121 @@
+- key: roaster
+  name: Chikmagalur Roasters (fictional)
+  lead_time_h: [30, 6]
+  on_time_rate: 0.93
+  fill_rate: 0.98
+  delivery_days: [0, 1, 2, 3, 4, 5]
+  cutoff: "16:00"
+  is_local: false
+  distance_km: 240
+  items:
+    - {ingredient: coffee_beans, pack_size: 1000, pack_uom: g, price: 1100, moq_packs: 3}
+    - {ingredient: decaf_beans, pack_size: 500, pack_uom: g, price: 750, moq_packs: 1}
+    - {ingredient: filter_coffee_powder, pack_size: 1000, pack_uom: g, price: 700, moq_packs: 1}
+    - {ingredient: chai_leaves, pack_size: 1000, pack_uom: g, price: 450, moq_packs: 1}
+    - {ingredient: matcha_powder, pack_size: 100, pack_uom: g, price: 750, moq_packs: 1}
+- key: dairy
+  name: Nandi Fresh Dairy (fictional)
+  lead_time_h: [10, 2]
+  on_time_rate: 0.96
+  fill_rate: 0.99
+  delivery_days: [0, 1, 2, 3, 4, 5, 6]
+  cutoff: "18:00"
+  is_local: true
+  distance_km: 12
+  items:
+    - {ingredient: milk, pack_size: 1000, pack_uom: ml, price: 60, moq_packs: 6}
+    - {ingredient: oat_milk, pack_size: 1000, pack_uom: ml, price: 300, moq_packs: 2}
+    - {ingredient: almond_milk, pack_size: 1000, pack_uom: ml, price: 360, moq_packs: 1}
+    - {ingredient: butter, pack_size: 500, pack_uom: g, price: 310, moq_packs: 1}
+    - {ingredient: cheddar, pack_size: 1000, pack_uom: g, price: 750, moq_packs: 1}
+    - {ingredient: paneer, pack_size: 1000, pack_uom: g, price: 360, moq_packs: 1}
+    - {ingredient: parmesan, pack_size: 250, pack_uom: g, price: 400, moq_packs: 1}
+- key: produce
+  name: KR Market Fresh Produce (fictional)
+  lead_time_h: [8, 2]
+  on_time_rate: 0.9
+  fill_rate: 0.95
+  delivery_days: [0, 1, 2, 3, 4, 5, 6]
+  cutoff: "19:00"
+  is_local: true
+  distance_km: 9
+  items:
+    - {ingredient: avocado, pack_size: 10, pack_uom: pc, price: 700, moq_packs: 1}
+    - {ingredient: ginger, pack_size: 1000, pack_uom: g, price: 200, moq_packs: 1}
+    - {ingredient: microgreens, pack_size: 200, pack_uom: g, price: 500, moq_packs: 1}
+    - {ingredient: green_chilli, pack_size: 500, pack_uom: g, price: 75, moq_packs: 1}
+    - {ingredient: potato, pack_size: 5000, pack_uom: g, price: 200, moq_packs: 1}
+    - {ingredient: strawberry_puree, pack_size: 1000, pack_uom: ml, price: 250, moq_packs: 2}
+    - {ingredient: pickled_onion, pack_size: 1000, pack_uom: g, price: 150, moq_packs: 1}
+    - {ingredient: mint_chutney, pack_size: 1000, pack_uom: g, price: 250, moq_packs: 1}
+    - {ingredient: tikka_masala, pack_size: 1000, pack_uom: g, price: 300, moq_packs: 1}
+    - {ingredient: jalapeno, pack_size: 500, pack_uom: g, price: 250, moq_packs: 1}
+- key: bakery
+  name: Sunrise Bakehouse (fictional)
+  lead_time_h: [6, 1]
+  on_time_rate: 0.94
+  fill_rate: 0.97
+  delivery_days: [0, 1, 2, 3, 4, 5, 6]
+  cutoff: "20:00"
+  is_local: true
+  distance_km: 6
+  items:
+    - {ingredient: muffin_fg, pack_size: 6, pack_uom: pc, price: 372, moq_packs: 1}
+    - {ingredient: cheesecake_slice, pack_size: 6, pack_uom: pc, price: 588, moq_packs: 1}
+    - {ingredient: cinnamon_roll_fg, pack_size: 6, pack_uom: pc, price: 348, moq_packs: 1}
+    - {ingredient: sourdough, pack_size: 20, pack_uom: pc, price: 180, moq_packs: 1}
+    - {ingredient: sandwich_bread, pack_size: 40, pack_uom: pc, price: 160, moq_packs: 1}
+  standing_times: ["07:30", "13:00"]
+- key: cash_carry
+  name: Metro Wholesale Cash & Carry (fictional)
+  lead_time_h: [24, 4]
+  on_time_rate: 0.92
+  fill_rate: 0.98
+  delivery_days: [0, 1, 2, 3, 4, 5]
+  cutoff: "15:00"
+  is_local: false
+  distance_km: 18
+  items:
+    - {ingredient: sugar, pack_size: 5000, pack_uom: g, price: 250, moq_packs: 1}
+    - {ingredient: dark_choc, pack_size: 1000, pack_uom: g, price: 900, moq_packs: 1}
+    - {ingredient: marshmallow, pack_size: 500, pack_uom: g, price: 250, moq_packs: 1}
+    - {ingredient: rose_syrup, pack_size: 750, pack_uom: ml, price: 262, moq_packs: 1}
+    - {ingredient: spice_mix, pack_size: 500, pack_uom: g, price: 600, moq_packs: 1}
+    - {ingredient: sabja_seeds, pack_size: 250, pack_uom: g, price: 150, moq_packs: 1}
+    - {ingredient: waffle_mix, pack_size: 5000, pack_uom: g, price: 900, moq_packs: 1}
+    - {ingredient: maple_syrup, pack_size: 1000, pack_uom: ml, price: 900, moq_packs: 1}
+    - {ingredient: chilli_crunch, pack_size: 500, pack_uom: g, price: 500, moq_packs: 1}
+    - {ingredient: oil, pack_size: 5000, pack_uom: ml, price: 650, moq_packs: 1}
+    - {ingredient: seasoning, pack_size: 500, pack_uom: g, price: 400, moq_packs: 1}
+    - {ingredient: pasta_dry, pack_size: 5000, pack_uom: g, price: 550, moq_packs: 1}
+    - {ingredient: arrabbiata_sauce, pack_size: 3000, pack_uom: ml, price: 600, moq_packs: 1}
+- key: frozen
+  name: ColdChain Frozen Foods (fictional)
+  lead_time_h: [18, 3]
+  on_time_rate: 0.94
+  fill_rate: 0.97
+  delivery_days: [1, 3, 5]
+  cutoff: "14:00"
+  is_local: true
+  distance_km: 15
+  items:
+    - {ingredient: croissant_dough, pack_size: 24, pack_uom: pc, price: 624, moq_packs: 1}
+    - {ingredient: vanilla_icecream, pack_size: 2000, pack_uom: g, price: 560, moq_packs: 1}
+    - {ingredient: ice, pack_size: 20000, pack_uom: g, price: 200, moq_packs: 1}
+- key: packaging_co
+  name: GreenPack Supplies (fictional)
+  lead_time_h: [48, 8]
+  on_time_rate: 0.9
+  fill_rate: 0.99
+  delivery_days: [1, 4]
+  cutoff: "12:00"
+  is_local: false
+  distance_km: 30
+  items:
+    - {ingredient: cup_paper_m, pack_size: 100, pack_uom: pc, price: 320, moq_packs: 2}
+    - {ingredient: lid, pack_size: 100, pack_uom: pc, price: 110, moq_packs: 2}
+    - {ingredient: sleeve, pack_size: 100, pack_uom: pc, price: 90, moq_packs: 2}
+    - {ingredient: straw, pack_size: 100, pack_uom: pc, price: 80, moq_packs: 2}
+    - {ingredient: kraft_bag, pack_size: 100, pack_uom: pc, price: 350, moq_packs: 2}
+    - {ingredient: food_box, pack_size: 50, pack_uom: pc, price: 300, moq_packs: 2}
+    - {ingredient: cutlery_set, pack_size: 100, pack_uom: pc, price: 250, moq_packs: 2}

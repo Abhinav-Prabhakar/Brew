@@ -1,0 +1,16 @@
+# equipment types. slots = concurrent uses_slot tasks (0 = unconstrained).
+- {key: espresso_machine, station: espresso, slots: 2, warmup_s: 900, kw_active: 4.5, kw_idle: 0.8, mtbf_h: 900, mttr_h: 3.0, capex: 180000, maintenance_per_day: 40, footprint_m2: 0.6}
+- {key: grinder, station: grinder, slots: 0, warmup_s: 0, kw_active: 0.4, kw_idle: 0.02, mtbf_h: 2500, mttr_h: 2.0, capex: 45000, maintenance_per_day: 8, footprint_m2: 0.2}
+- {key: bar_station, station: bar, slots: 0, warmup_s: 0, kw_active: 2.0, kw_idle: 0.2, mtbf_h: 3000, mttr_h: 1.5, capex: 20000, maintenance_per_day: 5, footprint_m2: 0.8}
+- {key: blender, station: blender, slots: 1, warmup_s: 0, kw_active: 1.2, kw_idle: 0.0, mtbf_h: 1500, mttr_h: 4.0, capex: 30000, maintenance_per_day: 6, footprint_m2: 0.2}
+- {key: cold_tower, station: cold, slots: 0, warmup_s: 0, kw_active: 0.6, kw_idle: 0.4, mtbf_h: 2500, mttr_h: 3.0, capex: 90000, maintenance_per_day: 15, footprint_m2: 0.5}
+- {key: oven, station: oven, slots: 2, warmup_s: 600, kw_active: 3.5, kw_idle: 0.5, mtbf_h: 1200, mttr_h: 5.0, capex: 120000, maintenance_per_day: 25, footprint_m2: 0.8}
+- {key: panini_press, station: press, slots: 4, warmup_s: 300, kw_active: 2.4, kw_idle: 0.3, mtbf_h: 1500, mttr_h: 2.5, capex: 60000, maintenance_per_day: 12, footprint_m2: 0.5}
+- {key: fryer, station: fryer, slots: 2, warmup_s: 420, kw_active: 4.0, kw_idle: 0.6, mtbf_h: 1400, mttr_h: 3.5, capex: 55000, maintenance_per_day: 12, footprint_m2: 0.5}
+- {key: stove, station: stove, slots: 2, warmup_s: 0, kw_active: 3.0, kw_idle: 0.0, mtbf_h: 3000, mttr_h: 2.0, capex: 35000, maintenance_per_day: 8, footprint_m2: 0.7}
+- {key: waffle_iron, station: griddle, slots: 2, warmup_s: 240, kw_active: 1.8, kw_idle: 0.2, mtbf_h: 1800, mttr_h: 2.0, capex: 25000, maintenance_per_day: 6, footprint_m2: 0.3}
+- {key: pastry_fridge, station: display, slots: 0, warmup_s: 0, kw_active: 0.3, kw_idle: 0.3, mtbf_h: 4000, mttr_h: 6.0, capex: 70000, maintenance_per_day: 10, footprint_m2: 0.6}
+- {key: pass_counter, station: pass, slots: 0, warmup_s: 0, kw_active: 0.0, kw_idle: 0.0, mtbf_h: 100000, mttr_h: 1.0, capex: 0, maintenance_per_day: 0, footprint_m2: 1.0}
+- {key: dishwasher_machine, station: dishpit, slots: 1, warmup_s: 0, kw_active: 2.2, kw_idle: 0.1, mtbf_h: 2000, mttr_h: 4.0, capex: 80000, maintenance_per_day: 14, footprint_m2: 0.7}
+- {key: prep_board, station: prep, slots: 0, warmup_s: 0, kw_active: 0.0, kw_idle: 0.0, mtbf_h: 100000, mttr_h: 1.0, capex: 0, maintenance_per_day: 0, footprint_m2: 1.0}
+- {key: pos_terminal, station: register, slots: 0, warmup_s: 0, kw_active: 0.1, kw_idle: 0.05, mtbf_h: 6000, mttr_h: 1.0, capex: 30000, maintenance_per_day: 4, footprint_m2: 0.2}

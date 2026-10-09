@@ -1,0 +1,57 @@
+# Demo cafe "brew" - Indiranagar, Bengaluru
+key: brew
+name: brew
+area: Indiranagar
+city: Bengaluru
+tz: Asia/Kolkata
+currency: INR
+start_date: "2026-10-03"
+open: "08:00"
+close: "22:00"
+gst_rate: 0.05
+cgst_rate: 0.025
+sgst_rate: 0.025
+cash_start: 18450
+order_no_start: 141
+rent_per_day: 6000
+energy_rate_per_kwh: 9.0
+co2e_kg_per_kwh: 0.7
+auto_serve_delay_s: 20
+cleaning_s: 90
+register_s: [32, 8]
+payment_s: 40
+seat_walk_s: 15
+seat_wait_max_s: 180
+shelf_slots: 6
+acceptance_timeout_s: 90
+manager_tick_s: 900
+bag_s: 25
+depreciation_life_days: 1500
+initial_reputation:
+  offline: {rating: 4.62, n: 120}
+  zomato: {rating: 4.4, n: 60}
+  swiggy: {rating: 4.5, n: 34}
+reputation_prior: {mean: 4.3, weight: 50}
+regulars_pool: 40
+dish_pool: {cup_ceramic_m: 40, plate: 30}
+dishwasher: {rack: 20, wash_s: 120}
+params:
+  balk_a: 0.6
+  balk_b: 1.2
+  queue_patience_rate: 0.6
+  renege_prob: 0.55
+  review_noise: 0.35
+  choice_gamma_featured: 0.35
+  choice_lambda_loss: 1.0
+  choice_delta_weather: 0.4
+  outside_target: 0.05
+  note_prob: 0.12
+  refill_period_s: 2700
+  refill_prob: 0.35
+  lambda_max_factor: 2.0
+  day_noise_sigma: 0.1
+  ref_price_ema_days: 7
+  pause_rank_decay: 0.97
+  pause_rank_recovery: 0.01
+  fatigue_speed_k: 0.25
+  error_load_k: 2.0

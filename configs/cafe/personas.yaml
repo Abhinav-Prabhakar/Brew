@@ -1,0 +1,164 @@
+# arrivals: expected PARTIES per 15-min slot at the listed times, linearly interpolated;
+# tapers to 0 over 30 min outside the listed range. `arrivals_scale` multiplies every rate (calibration knob).
+commuter:
+  name: Commuter
+  icon: briefcase
+  arrivals_scale: 1.5
+  arrivals:
+    weekday: {"08:00": 2.2, "08:30": 3.4, "09:00": 3.0, "09:30": 1.6, "17:30": 1.2, "18:00": 1.4, "18:30": 0.9}
+    weekend: {"09:00": 0.4, "10:00": 0.3}
+  party_size: {1: 0.95, 2: 0.05}
+  channels: {takeaway: 0.7, dine_in: 0.3}
+  price_beta: -1.2
+  patience_s: [240, 80]
+  dwell_min: [8, 4]
+  laptop_prob: 0.0
+  basket: {food_prob: 0.35}
+  balk_q0: 3
+  affinity: {cappuccino: 1.4, flatwhite: 1.1, espresso: 1.2, coldbrew: 0.9, croissant: 1.3, filtercoffee: 1.0, latte: 1.0, sandwich: 0.5, pasta: 0.3, waffle: 0.4, strawberryshake: 0.4, avotoast: 0.7}
+  review_prob: 0.04
+  negativity_bias: 1.3
+student:
+  name: Student
+  icon: books
+  arrivals_scale: 1.4
+  arrivals:
+    weekday: {"11:00": 0.8, "12:30": 1.5, "15:00": 1.8, "17:00": 2.0, "18:30": 1.2, "20:00": 0.5}
+    weekend: {"12:00": 0.8, "16:00": 1.2, "19:00": 0.8}
+  party_size: {1: 0.5, 2: 0.3, 3: 0.2}
+  channels: {dine_in: 0.8, takeaway: 0.2}
+  price_beta: -2.0
+  patience_s: [420, 140]
+  dwell_min: [55, 20]
+  laptop_prob: 0.25
+  basket: {food_prob: 0.5}
+  balk_q0: 5
+  affinity: {chai: 1.4, filtercoffee: 1.3, fries: 1.5, cheesetoast: 1.4, icedlatte: 1.2, strawberryshake: 1.2, coldbrew: 1.1, matcha: 0.5, avotoast: 0.4, cheesecake: 0.7, pasta: 0.9}
+  review_prob: 0.05
+  negativity_bias: 1.2
+leisurely:
+  name: Leisurely
+  icon: cup
+  arrivals_scale: 1.2
+  arrivals:
+    weekday: {"10:00": 0.6, "11:30": 1.0, "13:00": 0.8, "16:00": 1.0, "18:00": 0.9, "20:00": 0.5}
+    weekend: {"09:30": 1.2, "11:00": 2.2, "13:00": 1.8, "16:00": 1.6, "18:30": 1.4, "20:30": 0.8}
+  party_size: {1: 0.3, 2: 0.45, 3: 0.15, 4: 0.1}
+  channels: {dine_in: 0.95, takeaway: 0.05}
+  price_beta: -0.8
+  patience_s: [900, 300]
+  dwell_min: [55, 20]
+  laptop_prob: 0.03
+  basket: {food_prob: 0.65}
+  balk_q0: 6
+  affinity: {flatwhite: 1.3, latte: 1.2, roselatte: 1.5, matcha: 1.4, cheesecake: 1.5, waffle: 1.5, avotoast: 1.3, croissant: 1.2, cinnamon: 1.3, hotchoc: 1.2}
+  review_prob: 0.08
+  negativity_bias: 1.0
+remote_worker:
+  name: Remote worker
+  icon: laptop
+  arrivals_scale: 1.0
+  arrivals:
+    weekday: {"09:00": 0.5, "10:00": 0.5, "11:00": 0.3, "14:00": 0.4, "15:00": 0.3}
+    weekend: {"10:00": 0.3, "14:00": 0.3}
+  party_size: {1: 1.0}
+  channels: {dine_in: 1.0}
+  price_beta: -1.0
+  patience_s: [600, 200]
+  dwell_min: [120, 25]
+  laptop_prob: 1.0
+  basket: {food_prob: 0.4}
+  balk_q0: 5
+  affinity: {cappuccino: 1.2, latte: 1.2, coldbrew: 1.3, flatwhite: 1.2, filtercoffee: 1.0, sandwich: 1.1, croissant: 1.0}
+  review_prob: 0.07
+  negativity_bias: 1.1
+family:
+  name: Family
+  icon: family
+  arrivals_scale: 1.0
+  arrivals:
+    weekday: {"12:30": 0.35, "13:30": 0.35, "18:30": 0.5, "20:00": 0.4}
+    weekend: {"12:00": 1.0, "13:30": 1.0, "19:00": 1.0, "20:30": 0.8}
+  party_size: {3: 0.5, 4: 0.5}
+  channels: {dine_in: 0.9, takeaway: 0.1}
+  price_beta: -1.0
+  patience_s: [600, 200]
+  dwell_min: [50, 15]
+  laptop_prob: 0.0
+  basket: {food_prob: 0.85}
+  balk_q0: 4
+  affinity: {fries: 1.6, pasta: 1.6, hotchoc: 1.5, strawberryshake: 1.6, waffle: 1.5, cheesetoast: 1.3, rosemilk: 1.4, sandwich: 1.2}
+  review_prob: 0.07
+  negativity_bias: 1.4
+office_bulk:
+  name: Office bulk
+  icon: building
+  arrivals_scale: 1.0
+  arrivals:
+    weekday: {"11:30": 0.15, "12:30": 0.25, "13:30": 0.1, "16:00": 0.05}
+    weekend: {"12:00": 0.03}
+  party_size: {1: 1.0}
+  channels: {takeaway: 0.4, zomato: 0.3, swiggy: 0.3}
+  price_beta: -0.6
+  patience_s: [1200, 300]
+  dwell_min: [5, 2]
+  laptop_prob: 0.0
+  basket: {food_prob: 0.5, bulk_items: [8, 20]}
+  balk_q0: 99
+  affinity: {sandwich: 1.6, cheesetoast: 1.4, cappuccino: 1.2, latte: 1.2, filtercoffee: 1.3, chai: 1.3, fries: 1.1}
+  review_prob: 0.05
+  negativity_bias: 1.5
+delivery_home:
+  name: Delivery customer
+  icon: scooter
+  arrivals_scale: 1.5
+  arrivals:
+    weekday: {"12:00": 1.2, "13:00": 1.8, "14:00": 1.0, "19:00": 1.6, "20:00": 2.2, "21:00": 1.4}
+    weekend: {"12:30": 1.8, "14:00": 1.4, "19:30": 2.4, "21:00": 1.8}
+  party_size: {1: 0.6, 2: 0.4}
+  channels: {zomato: 0.55, swiggy: 0.45}
+  price_beta: -1.3
+  patience_s: [2400, 600]
+  dwell_min: [0, 0]
+  laptop_prob: 0.0
+  basket: {food_prob: 0.8}
+  balk_q0: 99
+  affinity: {fries: 1.6, pasta: 1.5, sandwich: 1.5, cheesetoast: 1.3, strawberryshake: 1.1, hotchoc: 1.1, coldbrew: 0.8, cheesecake: 1.2, waffle: 0.7, croissant: 0.7, espresso: 0.4, rosemilk: 0.8}
+  review_prob: 0.06
+  negativity_bias: 1.5
+tourist:
+  name: Tourist
+  icon: camera
+  arrivals_scale: 1.0
+  arrivals:
+    weekday: {"10:00": 0.4, "12:00": 0.5, "14:00": 0.5, "16:00": 0.4}
+    weekend: {"10:00": 0.7, "12:00": 0.9, "14:00": 0.9, "16:00": 0.7}
+  party_size: {1: 0.2, 2: 0.5, 3: 0.2, 4: 0.1}
+  channels: {dine_in: 0.85, takeaway: 0.15}
+  price_beta: -0.5
+  patience_s: [720, 240]
+  dwell_min: [40, 15]
+  laptop_prob: 0.0
+  basket: {food_prob: 0.7}
+  balk_q0: 6
+  affinity: {filtercoffee: 1.4, chai: 1.4, coldbrew: 1.1, avotoast: 1.3, sandwich: 1.2, cheesecake: 1.2, waffle: 1.1, rosemilk: 1.3}
+  review_prob: 0.12
+  negativity_bias: 1.0
+regular:
+  name: Regular
+  icon: heart
+  arrivals_scale: 1.0
+  arrivals:
+    weekday: {"08:00": 0.8, "08:45": 1.2, "09:30": 0.5, "15:30": 0.6, "16:30": 0.8, "17:30": 0.4}
+    weekend: {"09:30": 0.6, "11:00": 0.8}
+  party_size: {1: 0.8, 2: 0.2}
+  channels: {dine_in: 0.5, takeaway: 0.5}
+  price_beta: -0.7
+  patience_s: [420, 140]
+  dwell_min: [25, 10]
+  laptop_prob: 0.1
+  basket: {food_prob: 0.45}
+  balk_q0: 6
+  affinity: {cappuccino: 1.3, flatwhite: 1.3, croissant: 1.2, cinnamon: 1.2, chai: 1.2, latte: 1.1}
+  review_prob: 0.10
+  negativity_bias: 0.8

@@ -1,0 +1,14 @@
+# Hand-written fallback calendar (used when data/synthetic/clean/calendar_bengaluru.jsonl is absent).
+# multipliers: {persona: {...}, channel: {...}, category: {...}}
+- {id: cal-fb-001, date: "2026-10-02", end_date: "2026-10-02", name: Gandhi Jayanti, kind: public_holiday, multipliers: {persona: {commuter: 0.4, leisurely: 1.3, family: 1.3, tourist: 1.2}}}
+- {id: cal-fb-002, date: "2026-10-17", end_date: "2026-10-17", name: Dussehra weekend, kind: festival, multipliers: {persona: {family: 1.5, leisurely: 1.3, commuter: 0.5}, channel: {zomato: 1.2, swiggy: 1.2}}}
+- {id: cal-fb-003, date: "2026-10-31", end_date: "2026-10-31", name: Month-end payday, kind: payday, multipliers: {persona: {student: 1.1, regular: 1.1, leisurely: 1.15}, category: {bakes: 1.1}}}
+- {id: cal-fb-004, date: "2026-11-01", end_date: "2026-11-01", name: Kannada Rajyotsava, kind: public_holiday, multipliers: {persona: {commuter: 0.4, family: 1.4, leisurely: 1.3}}}
+- {id: cal-fb-005, date: "2026-11-08", end_date: "2026-11-10", name: Diwali, kind: festival, multipliers: {persona: {commuter: 0.5, family: 1.4, office_bulk: 0.4}, channel: {zomato: 1.15, swiggy: 1.15}, category: {bakes: 1.3}}}
+- {id: cal-fb-006, date: "2026-11-14", end_date: "2026-11-14", name: Cricket night match at Chinnaswamy, kind: cricket_match, start_time: "18:30", end_time: "23:00", multipliers: {persona: {delivery_home: 1.5, leisurely: 0.8}, channel: {zomato: 1.5, swiggy: 1.5}, category: {plates: 1.3}}}
+- {id: cal-fb-007, date: "2026-11-23", end_date: "2026-12-04", name: Semester exams, kind: exam_season, multipliers: {persona: {student: 1.5, remote_worker: 1.2}, category: {coffee: 1.15}}}
+- {id: cal-fb-008, date: "2026-12-25", end_date: "2026-12-25", name: Christmas, kind: public_holiday, multipliers: {persona: {family: 1.5, tourist: 1.3, commuter: 0.4}, category: {bakes: 1.3}}}
+- {id: cal-fb-009, date: "2026-12-31", end_date: "2026-12-31", name: New Year's Eve, kind: festival, start_time: "17:00", end_time: "23:59", multipliers: {persona: {delivery_home: 1.4, leisurely: 1.3}, channel: {zomato: 1.4, swiggy: 1.4}}}
+- {id: cal-fb-010, date: "2027-01-14", end_date: "2027-01-15", name: Sankranti, kind: festival, multipliers: {persona: {family: 1.3, commuter: 0.6}}}
+- {id: cal-fb-011, date: "2027-01-26", end_date: "2027-01-26", name: Republic Day long weekend, kind: long_weekend, multipliers: {persona: {tourist: 1.3, family: 1.3, commuter: 0.4}}}
+- {id: cal-fb-012, date: "2027-03-14", end_date: "2027-03-14", name: Bengaluru marathon morning, kind: marathon, start_time: "05:00", end_time: "11:00", multipliers: {persona: {commuter: 0.5, tourist: 1.5, regular: 0.7}, category: {coffee: 1.2}}}

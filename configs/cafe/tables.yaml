@@ -1,0 +1,10 @@
+tables:
+  - {id: T1, seats: 2}
+  - {id: T2, seats: 2}
+  - {id: T3, seats: 2}
+  - {id: T4, seats: 2}
+  - {id: T5, seats: 2}
+  - {id: T6, seats: 2}
+combinable:
+  - [T1, T2]
+cleaning_s: 90
