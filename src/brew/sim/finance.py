@@ -168,6 +168,7 @@ class Finance:
             qr=qr,
         )
         w.emit("payment.received", order_no=o.order_no, amount=rc["total"], method=method)
+        w.kpi.pulse()
 
     def refund(self, o: Order) -> None:
         """Reverse a paid order (void / walkout)."""
@@ -179,6 +180,7 @@ class Finance:
         self.cash -= rc["total"]
         o.receipt["refunded"] = True
         self.daily_orders_rev[self.w.day] -= rc["subtotal"] - rc["discount"] + rc["round_off"]
+        self.w.kpi.pulse()
 
     # ------------------------------------------------------------- day close
     def close_day(self, day: int, staff_cost: float) -> None:

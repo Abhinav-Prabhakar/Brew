@@ -25,8 +25,9 @@ class WorldCreate(BaseModel):
 
 
 class ControlRequest(BaseModel):
-    action: Literal["play", "pause", "step"]
+    action: Literal["play", "pause", "step", "speed"]
     step_s: float | None = Field(None, gt=0, le=86_400)
+    rate: float | None = Field(None, description="speed: sim seconds per wall second, one of 1, 5, 20, 60")
 
 
 class PolicyRequest(BaseModel):

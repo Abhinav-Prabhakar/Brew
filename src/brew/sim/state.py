@@ -259,6 +259,8 @@ class MenuState:
     last_change_s: float = -1e9
     chip_dir: str = ""
     chip_text: str = ""
+    drivers: list[dict[str, Any]] = field(default_factory=list)  # why the price moved (short labelled factors)
+    decision_id: str | None = None
     promo: bool = False
     pre_promo_price: float = 0.0
     price_sum: float = 0.0

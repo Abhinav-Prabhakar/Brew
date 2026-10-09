@@ -15,6 +15,7 @@ from typing import Any
 import joblib
 import numpy as np
 
+from brew.analysis.drivers import SHORT_LABELS, short_drivers, short_label  # noqa: F401
 from brew.sim.observation import NAMES
 
 from .actions import (

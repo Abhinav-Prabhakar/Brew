@@ -62,6 +62,9 @@
     /** buy a catalog item: POST /worlds/{id}/invest {catalog_key} */
     invest(key) { return request('POST', worldPath('/invest'), { catalog_key: key }); },
     control(action, step_s) { return request('POST', worldPath('/control'), clean({ action, step_s })); },
+    /** fast-forward this café: POST /worlds/{id}/control {action:'speed', rate} — rate is 1, 5, 20 or 60.
+        The new rate arrives as a world.speed event (state.world.rate / state.world.detached). */
+    speed(rate) { return request('POST', worldPath('/control'), { action: 'speed', rate }); },
     state() { return request('GET', worldPath('/state')); },
     listWorlds() { return request('GET', prefix + '/worlds'); },
     createWorld(spec) { return request('POST', prefix + '/worlds', spec); },

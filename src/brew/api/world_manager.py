@@ -50,6 +50,9 @@ class ManagedWorld:
         self.db_sink: DbWriterSink | None = None
         self.running = False
         self.clock = "open"  # "wall" = locked to the real local time (live café)
+        self.rate = float(settings.live_rate)  # sim seconds per wall second (fast-forward: 1, 5, 20, 60)
+        self.detached = False  # a wall-clock world that was fast-forwarded no longer follows the real clock
+        self.pace_anchor: tuple[float, float] | None = None  # (wall, sim) the pacer extrapolates from; None = re-anchor
         self.status = "paused"
         self.lagging = False
         self.pacer: asyncio.Task[None] | None = None
@@ -166,13 +169,30 @@ class ManagedWorld:
                     raise BadPayload(str(e)) from e
             self.world.advance_to(self.world.now)
 
+    SPEED_RATES = (1.0, 5.0, 20.0, 60.0)
+
+    def set_rate(self, rate: float) -> None:
+        """Change the pace. A wall-clock world leaves the real clock for good on its first rate other than 1."""
+        if rate not in self.SPEED_RATES:
+            raise BadPayload(f"rate must be one of {', '.join(f'{r:g}' for r in self.SPEED_RATES)}")
+        with self.lock:
+            if rate == self.rate and not (self.clock == "wall" and rate != 1.0):
+                return
+            if self.clock == "wall" and rate != 1.0:
+                self.clock = "open"  # detach: sim time can't go backwards, so it just carries on from here
+                self.detached = True
+            self.rate = rate
+            self.world.speed = rate
+            self.pace_anchor = None  # the pacer re-anchors (wall0, sim0) at the next tick: time never jumps
+            self.world.emit("world.speed", rate=rate, detached=self.detached)
+
     def json(self) -> dict[str, Any]:
         w = self.world
         with self.lock:
             return {
                 "id": w.world_id, "kind": self.kind, "scenario": w.scenario.key, "policy": w.policy.code,
                 "strategy": w.manual_strategy, "seed": w.seed, "status": self.status, "clock_mode": self.clock,
-                "lagging": self.lagging, "parent_id": self.parent_id, "created_at": self.created_at.isoformat(),
+                "lagging": self.lagging, "rate": self.rate, "detached": self.detached, "parent_id": self.parent_id, "created_at": self.created_at.isoformat(),
                 "start_date": w.start_date, "clock": rm.clock(w), "last_seq": w.seq,
             }  # fmt: skip
 
@@ -254,7 +274,7 @@ class WorldManager:
             except ValueError as e:
                 raise BadPayload(str(e)) from e
         mw.clock = spec.get("clock") or "open"
-        w.speed = float(s.live_rate)
+        w.speed = mw.rate
         w.advance_to(w.day_start_t(0))  # hydrate: day started, weather set, staff scheduled
         self.worlds[wid] = mw
         return mw

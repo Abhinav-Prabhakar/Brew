@@ -87,7 +87,7 @@ class Combos:
             if announce and old is not None and abs(new - old) > 1e-9:
                 self.w.emit(
                     "price.changed", sku=f"combo:{cid}", old=old, new=new, base=self.compute(cid, base=True),
-                    dir="up" if new > old else "down", reason_text=reason or "a component was repriced", by=by,
+                    dir="up" if new > old else "down", reason_text=reason or "combo repriced", by=by,
                 )  # fmt: skip
 
     # ---------------------------------------------------------------- baskets

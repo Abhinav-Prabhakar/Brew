@@ -106,6 +106,7 @@
           sku: m.sku, name: m.name, cat: m.cat, price: m.price, base: m.base, min_price: m.min_price, max_price: m.max_price,
           staple: m.staple, featured: m.featured, hidden: m.hidden, hidden_reason: m.hidden_reason,
           dir: m.chip ? m.chip.dir : null, note: m.chip ? m.chip.text : '', changed_s: null,
+          drivers: (m.drivers || []).slice(), decision_id: m.decision_id || null,
           desc: m.desc, temp: m.temp, allergens: m.allergens, veg: m.veg, vegan: m.vegan, station: m.station, promo: m.promo,
         };
       }
@@ -161,6 +162,7 @@
         const menu = U.upd(s.menu, d.sku, {
           price: d.new, base: d.base, dir: d.new !== d.base ? d.dir : null,
           note: d.reason_text ? '₹' + U.fmtG(Math.abs(d.new - d.base)) + ' · ' + d.reason_text : '', changed_s: ev.sim_s, by: d.by,
+          drivers: (d.drivers || []).slice(0, 3), decision_id: d.decision_id || null, // why it moved (short labelled factors) + /decisions/{id}/explain
         });
         return { menu, combos: comboRefresh(s, menu, s.combos) };
       }],

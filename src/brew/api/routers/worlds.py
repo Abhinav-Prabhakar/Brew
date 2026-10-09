@@ -58,21 +58,27 @@ def world_state(mw: MW) -> dict[str, Any]:
     with mw.lock:
         mw.refresh_costs()
         s = rm.state(mw.world)
-    s["world"].update({"status": mw.status, "clock_mode": mw.clock, "kind": mw.kind, "lagging": mw.lagging})
+    s["world"].update({"status": mw.status, "clock_mode": mw.clock, "kind": mw.kind, "lagging": mw.lagging,
+                       "rate": mw.rate, "detached": mw.detached})
     return s
 
 
 @router.post("/worlds/{wid}/control")
 async def control(body: ControlRequest, mw: MW) -> dict[str, Any]:
-    """play | pause | step. The café runs live (real time); there are no playback speeds.
+    """play | pause | step | speed. The café runs live (real time); there are no playback speeds.
 
+    ``speed`` {rate: 1|5|20|60} fast-forwards this world (a wall-clock world detaches from the real clock for good).
     ``play`` on a wall-clock world first catches up to the current local time. ``step`` advances ``step_s``
     sim-seconds synchronously (tests and debugging).
     """
     import asyncio
 
     out: dict[str, Any] = {}
-    if body.action == "step":
+    if body.action == "speed":
+        if body.rate is None:
+            raise BadPayload("speed needs a rate (1, 5, 20 or 60)")
+        mw.set_rate(float(body.rate))
+    elif body.action == "step":
         out = await asyncio.to_thread(mw.step, body.step_s or 60.0)
     elif body.action == "pause":
         await stop_pacer(mw)

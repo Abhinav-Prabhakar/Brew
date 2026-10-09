@@ -37,7 +37,9 @@
     now() {
       if (!state) return 0;
       const dt = Math.max(0, (performance.now() - anchor.wall) / 1000);
-      return anchor.sim + Math.min(dt * anchor.rate, 5); // never run far ahead of the last event
+      // interpolate at the world's current rate (fast-forward runs the HUD clock fast); never more than ~2 wall-seconds
+      // (at least 5 sim-seconds) ahead of the last event
+      return anchor.sim + Math.min(dt * anchor.rate, Math.max(5, anchor.rate * 2));
     },
     ingest, ingestMany, boot, refresh, hydrate: applySnapshot, api: Api,
   };
@@ -50,7 +52,8 @@
   function rate() {
     const s = live.source;
     if (s && s.speed !== undefined) return Number.isFinite(s.speed) ? s.speed : 0; // replay
-    return state && state.clock && state.clock.speed ? state.clock.speed : 1; // live: 1 sim-s per second unless dev-accelerated
+    if (state && state.world && state.world.rate) return state.world.rate; // live: the world's fast-forward rate (1, 5, 20, 60)
+    return state && state.clock && state.clock.speed ? state.clock.speed : 1;
   }
 
   function scheduleFrame() {
@@ -78,8 +81,9 @@
     if (!state) return false;
     if (ev.seq != null && ev.seq <= state.seq) return false; // duplicate / replayed
     const before = state.sim_s;
+    const rateBefore = anchor.rate;
     state = Store.reduce(state, ev);
-    if (state.sim_s !== before) setAnchor();
+    if (state.sim_s !== before || rate() !== rateBefore) setAnchor();
     bus.emit(ev.type, ev.data, ev);
     scheduleFrame();
     return true;
@@ -160,7 +164,9 @@
     let id = p.world;
     if (!id) {
       const list = await Api.listWorlds();
-      const w = (list.items || []).find((x) => x.kind !== 'counterfactual' && x.clock_mode === p.clock && x.policy === p.policy && x.status !== 'deleted');
+      // a fast-forwarded wall-clock world has detached (clock_mode 'open', detached true): still our café, keep it
+      const w = (list.items || []).find((x) => x.kind !== 'counterfactual' && x.status !== 'deleted' && x.policy === p.policy
+        && (x.clock_mode === p.clock || (p.clock === 'wall' && x.detached)));
       id = w ? w.id : (await Api.createWorld({ policy: p.policy, clock: p.clock, kind: 'demo' })).id;
     }
     Api.configure({ worldId: id });

@@ -296,7 +296,7 @@
    "handlers": [
     "reduce/lobby.js:menu"
    ],
-   "visual": "menu book price strike + handwritten new price + reason; lectern `[data-lsku]`; combo prices"
+   "visual": "menu book price strike + handwritten new price + short reason + up to 3 driver chips (drivers, decision_id); lectern `[data-lsku]`; combo prices"
   },
   "rail.reordered": {
    "handlers": [
@@ -449,6 +449,12 @@
     "reduce/hud.js:weather"
    ],
    "visual": "sky + rain in the lobby window, HUD weather icon"
+  },
+  "world.speed": {
+   "handlers": [
+    "reduce/hud.js:world"
+   ],
+   "visual": "HUD clock shows the » ×N badge (state.world.rate / detached); the clock interpolates at that rate"
   }
  },
  "all_events_handlers": [

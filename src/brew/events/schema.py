@@ -269,8 +269,10 @@ class PriceChanged(D):
     new: float
     base: float
     dir: Literal["up", "down"]
-    reason_text: str
+    reason_text: str  # short lowercase phrase about this price only (<= 30 chars)
     by: str
+    drivers: list[dict[str, Any]] = []  # up to 3 {name, label, value in -1..1}
+    decision_id: str | None = None  # links to /decisions/{id}/explain when a decision made the change
 
 
 class MenuFeatured(D):
@@ -506,6 +508,11 @@ class PolicyChanged(D):
     previous: str
 
 
+class WorldSpeed(D):
+    rate: float  # sim seconds per wall second: 1, 5, 20 or 60
+    detached: bool  # True once the café has left the real wall clock
+
+
 class ThrottleChanged(D):
     channel: str
     level: str
@@ -595,6 +602,7 @@ EVENT_MODELS: dict[str, type[D]] = {
     "chaos.cost": ChaosCost,
     "strategy.changed": StrategyChanged,
     "policy.changed": PolicyChanged,
+    "world.speed": WorldSpeed,
     "throttle.changed": ThrottleChanged,
     "investment.delivered": InvestmentDelivered,
     "action.applied": ActionApplied,

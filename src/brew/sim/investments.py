@@ -42,6 +42,7 @@ class Investments:
         }  # fmt: skip
         w.invest_log.append(rec)
         w.engine.schedule(at, "INVEST_DELIVER", len(w.invest_log) - 1, P_CLOCK)
+        w.kpi.pulse()
         return {"catalog_key": key, "capex": item.capex, "deliver_s": at}
 
     def deliver(self, idx: int) -> None:

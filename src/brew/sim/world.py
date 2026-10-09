@@ -11,6 +11,7 @@ from typing import Any
 
 import numpy as np
 
+from brew.analysis.drivers import short_drivers
 from brew.analysis.headline import (
     clean,
     compose,
@@ -515,6 +516,7 @@ class World:
             speed=self.speed,
         )
         self.kitchen.on_minute()
+        self.kpi.report_stock()
         self.bn.sample()
         self.loadboard.sample()
         cf = self.cfg.cafe
@@ -689,11 +691,19 @@ class World:
                 if m.cat == cat and not (m.staple and step > 0):
                     price_targets[m.sku] = self.menu[m.sku].price * (1 + step)
         price_targets.update(a.sku_prices)
+        next_did = f"dec-{self.decision_seq + 1:06d}"  # the decision recorded at the end of this call
         for sku, newp in price_targets.items():
             old_p = self.menu[sku].price
+            if sku in a.sku_prices:
+                why_short = "promo price" if a.promotion else "promo over" if a.restore else "price nudge"
+            else:
+                st_ = a.price_steps.get(self.ix.menu[sku].cat, 0.0)
+                nm_ = {"notcoffee": "non-coffee"}.get(self.ix.menu[sku].cat, self.ix.menu[sku].cat)
+                why_short = f"{nm_} {st_ * 100:+.0f}%"
             ok, why = self.set_price(
-                sku, newp, by, reason or "policy", promotion=a.promotion, restore=a.restore
-            )
+                sku, newp, by, why_short, promotion=a.promotion, restore=a.restore,
+                drivers=short_drivers(a.factors, "price_") if a.factors else [], decision_id=next_did,
+            )  # fmt: skip
             if ok:
                 applied.append(f"{sku} -> {self.menu[sku].price:g}")
                 changes.append({"kind": "price", "item": sku, "old": old_p, "new": self.menu[sku].price})
@@ -821,8 +831,15 @@ class World:
         promotion: bool = False,
         restore: bool = False,
         strict: bool = False,
+        drivers: list[dict[str, Any]] | None = None,
+        decision_id: str | None = None,
     ) -> tuple[bool, str]:
-        """Apply a price change through the charter. Returns ``(applied, why_not)``."""
+        """Apply a price change through the charter. Returns ``(applied, why_not)``.
+
+        ``reason`` is a short lowercase phrase about this price only (<= 30 chars); ``drivers`` up to three
+        ``{name, label, value}`` factors and ``decision_id`` the decision it came from (both optional).
+        """
+        reason = reason.strip().lower()[:30].rstrip()
         m = self.menu[sku]
         item = self.ix.menu[sku]
         chk = self.charter.check_price(
@@ -842,15 +859,19 @@ class World:
         d = "up" if m.price > old else "down"
         m.chip_dir = d
         m.chip_text = f"₹{abs(m.price - m.base):g} · {reason}" if reason else ""
+        m.drivers = list(drivers or [])[:3]
+        m.decision_id = decision_id
         self.kpi.price_changes += 1
         self.kpi.cum_price_changes += 1
         self.price_change_times.append(self.now)
         self.price_mult_dirty = True
         self.ctx_dirty = True
+        extra = {"decision_id": decision_id} if decision_id else {}
         self.emit(
-            "price.changed", sku=sku, old=old, new=m.price, base=m.base, dir=d, reason_text=reason, by=by
-        )
-        self.combos.refresh(reason=f"{self.ix.menu[sku].name} repriced", by=by)
+            "price.changed", sku=sku, old=old, new=m.price, base=m.base, dir=d, reason_text=reason, by=by,
+            drivers=m.drivers, **extra,
+        )  # fmt: skip
+        self.combos.refresh(reason="combo repriced", by=by)
         return True, chk.reason
 
     def set_featured(self, sku: str, on: bool, by: str, reason: str = "") -> bool:

@@ -106,6 +106,7 @@ def _restock(w: World, p: dict[str, Any]) -> dict[str, Any]:
         raise InvalidAction("fridge is already at par")
     w.fin.cash -= cost
     w.recheck_availability(w.inv.stock_dirty)
+    w.kpi.pulse()
     return {"added": added, "cost": round2(cost)}
 
 
@@ -115,7 +116,7 @@ def _set_price(w: World, p: dict[str, Any]) -> dict[str, Any]:
     if sku not in w.menu:
         raise UnknownTarget(f"sku {sku!r} not found")
     ok, why = w.set_price(
-        sku, float(p["price"]), "owner", str(p.get("reason", "owner override")), strict=True
+        sku, float(p["price"]), "owner", str(p.get("reason") or "owner set it"), strict=True
     )
     if not ok:
         raise CharterViolation(why)

@@ -23,7 +23,7 @@
       return {
         world: {
           id: w.id, policy: w.policy, strategy: w.strategy, status: w.status, clock_mode: w.clock_mode,
-          lagging: !!w.lagging, start_date: w.start_date, kind: w.kind, scenario: w.scenario, seed: w.seed,
+          lagging: !!w.lagging, rate: w.rate || 1, detached: !!w.detached, start_date: w.start_date, kind: w.kind, scenario: w.scenario, seed: w.seed,
         },
         clock: clockFrom(snap.clock),
         weather: { ...snap.weather },
@@ -60,6 +60,8 @@
         const mm = Math.floor((tod % 3600) / 60);
         return { clock: { ...s.clock, min, hhmm: String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0'), is_open: s.clock.open_tod <= tod && tod < s.clock.close_tod } };
       }],
+      // backend.md 6.3: fast-forward. rate = sim seconds per wall second (1, 5, 20, 60); detached = off the real wall clock
+      'world.speed': ['world', (s, ev) => ({ world: { ...s.world, rate: ev.data.rate, detached: !!ev.data.detached } })],
       'weather.changed': ['weather', (s, ev) => ({ weather: { state: ev.data.state, temp_c: ev.data.temp_c, rain_mm_h: ev.data.rain_mm_h } })],
       'day.started': ['day', (s, ev) => {
         const d = ev.data;

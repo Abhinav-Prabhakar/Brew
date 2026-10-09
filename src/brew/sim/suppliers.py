@@ -137,6 +137,7 @@ class Suppliers:
         w.fin.cash -= paid
         w.emit("po.received", po_id=pid, supplier=po["supplier"], lines=got_lines, short=short)
         w.recheck_availability(w.inv.stock_dirty)
+        w.kpi.pulse()  # the truck was paid for: cash moves on the HUD now
         w.kitchen.request_dispatch()
 
     def open_for(self, ingredient: str) -> float:

@@ -274,7 +274,7 @@ def test_owner_set_price_changes_the_menu(harness):
     )
     assert out["after"] == price == out["items"] and out["before"] != price
     assert out["dir"] == ("down" if price < out["base"] else "up" if price > out["base"] else None)
-    assert "owner override" in out["note"] or out["note"] == ""
+    assert "owner set it" in out["note"] or out["note"] == ""
 
 
 def test_served_order_leaves_the_rail(harness):
@@ -534,3 +534,42 @@ def test_lunch_fixture_fills_load_fatigue_cost_saves_and_rest_models(harness):
     assert out["rest"] == dict.fromkeys(out["rest"], True)
     assert out["lots"] >= 25 and out["usage"] >= 25 and out["inv"] > 20
     assert out["seq"] == out["last"], "rest.* pseudo-events never move state.seq"
+
+
+# -------------------------------------------------------------------- fast-forward + short price reasons
+def test_world_speed_event_and_price_drivers(harness):
+    out = harness.evaluate(
+        """async () => {
+          const fx = await T.load('morning_rush');
+          const base = BrewStore.hydrate(fx.checkpoints[2].data);
+          let n = base.seq;
+          const ev = (type, data, dt = 1) => ({ seq: ++n, sim_s: base.sim_s + dt, t: base.t, type, data });
+          const out = { start: [base.world.rate, base.world.detached] };
+          let s = BrewStore.reduce(base, ev('world.speed', { rate: 20, detached: true }));
+          out.fast = [s.world.rate, s.world.detached];
+          s = BrewStore.reduce(s, ev('world.speed', { rate: 1, detached: true }));
+          out.back = [s.world.rate, s.world.detached];
+          out.handled = BrewStore.HANDLED.includes('world.speed');
+          const hyd = BrewStore.hydrate({ ...fx.checkpoints[2].data, world: { ...fx.checkpoints[2].data.world, rate: 60, detached: true } });
+          out.hyd = [hyd.world.rate, hyd.world.detached];
+          const drivers = [{ name: 'tod_sin', label: 'time of day', value: -0.87 }, { name: 'cash', label: 'cash', value: 0.72 }];
+          const sku = Object.keys(base.menu).find((k) => !base.menu[k].hidden);
+          const m0 = base.menu[sku];
+          s = BrewStore.reduce(base, ev('price.changed', { sku, old: m0.price, new: m0.base + 10, base: m0.base, dir: 'up', reason_text: 'coffee +10%', by: 'D', drivers, decision_id: 'dec-000009' }));
+          out.menu = [s.menu[sku].drivers, s.menu[sku].decision_id, s.menu[sku].note];
+          s = BrewStore.reduce(s, ev('price.changed', { sku, old: m0.base + 10, new: m0.base + 5, base: m0.base, dir: 'down', reason_text: 'owner set it', by: 'owner' }));
+          out.owner = [s.menu[sku].drivers, s.menu[sku].decision_id];
+          const snap = JSON.parse(JSON.stringify(fx.checkpoints[2].data));
+          const row = snap.menu.find((m) => m.sku === sku);
+          Object.assign(row, { price: row.base + 10, chip: { dir: 'up', text: '₹10 · coffee +10%' }, drivers, decision_id: 'dec-000009' });
+          const h = BrewStore.hydrate(snap);
+          out.hydrated = [h.menu[sku].drivers, h.menu[sku].decision_id, h.menu[sku].note];
+          return out;
+        }"""
+    )
+    assert out["start"] == [1, False] and out["fast"] == [20, True] and out["back"] == [1, True] and out["hyd"] == [60, True]
+    assert out["handled"]
+    drv = [{"name": "tod_sin", "label": "time of day", "value": -0.87}, {"name": "cash", "label": "cash", "value": 0.72}]
+    assert out["menu"] == [drv, "dec-000009", "₹10 · coffee +10%"]
+    assert out["owner"] == [[], None]
+    assert out["hydrated"] == [drv, "dec-000009", "₹10 · coffee +10%"]

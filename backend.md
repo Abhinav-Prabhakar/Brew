@@ -166,7 +166,11 @@ GET    /worlds                                  → list
 GET    /worlds/{id}                             → World (status, clock, speed, policy, strategy)
 DELETE /worlds/{id}
 GET    /worlds/{id}/state                       → full hydration snapshot (§6.4)
-POST   /worlds/{id}/control  {action: play|pause|step, step_s?}   # live: real time, no playback speeds
+POST   /worlds/{id}/control  {action: play|pause|step|speed, step_s?, rate?}   # live: real time by default
+       speed {rate: 1|5|20|60} fast-forwards ONE world (anything else: 422 bad_request). Re-anchors the pacer, so the
+       clock never jumps. A `clock:"wall"` world leaves the real clock on its first rate != 1 (clock_mode becomes
+       "open", `detached: true`, permanently: sim time can't run backwards); back at 1 it keeps real-time pace from
+       where it is. The World JSON and the state `world` block carry `rate` and `detached`. Emits `world.speed`.
        (POST /worlds takes clock: "wall" (today, synced to real local time) | "open" (start at opening))
 POST   /worlds/{id}/policy   {policy?: A|B|C|D|E, strategy?: balanced|delivery_first|rush_menu|happy_hour}
 POST   /worlds/{id}/fork     {at?: "now", kind?: counterfactual} → World
@@ -276,7 +280,8 @@ Server → client: **batched frames** every 50–100 ms wall time: `{"frame": n,
 | `receipt.printed` | `order_no, lines[], subtotal, cgst, sgst, round_off, total, payment, qr` | thermal printer |
 | `payment.received` | `order_no, amount, method` | cash fly-out |
 | `review.posted` | `review_id, party_id?, order_no, stars, text, causes{}` | star to HUD (cracks ≤ 2) |
-| `price.changed` | `sku, old, new, base, dir, reason_text, by` | handwritten price edit + chip |
+| `price.changed` | `sku, old, new, base, dir, reason_text, by, drivers[], decision_id?` | handwritten price edit + chip + menu-book reason. `reason_text` is a short lowercase phrase about THIS price only (<= 30 chars: "plates +10%", "happy hour", "owner set it", "promo over", "combo repriced"); `drivers` up to 3 `{name (observation feature), label (2-3 plain words: "time of day", "rain", "kitchen load", "cash"), value (-1..1, sign = direction)}` from the decision's surrogate factors (else `[]`); `decision_id` links to `/decisions/{id}/explain` when a decision made the change. The state `menu[]` rows carry the same `chip.text` (note), `drivers` and `decision_id`. |
+| `world.speed` | `rate (1\|5\|20\|60), detached` | HUD clock shows the » ×N badge; the clock interpolates at `rate` (`state.world.rate`) |
 | `menu.featured` / `menu.hidden` / `menu.restored` | `sku, reason` | sticker / ribbon |
 | `replate.listed` / `replate.marked_down` | `listing_id, sku, lot_id, units, made_at_s, use_by_s, discount_pct, price` | Replate section in menu book, fridge tag |
 | `replate.sold` | `listing_id, order_no, units, price` | rescue counter |

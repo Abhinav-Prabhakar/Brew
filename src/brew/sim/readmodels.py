@@ -69,6 +69,8 @@ def menu(w: World) -> list[dict[str, Any]]:
                 "min_price": m.min_price, "max_price": m.max_price, "staple": m.staple, "featured": ms.featured,
                 "hidden": ms.hidden is not None, "hidden_reason": ms.hidden,
                 "chip": {"dir": ms.chip_dir, "text": ms.chip_text} if ms.chip_dir and ms.price != ms.base else None,
+                "drivers": ms.drivers if ms.price != ms.base else [],
+                "decision_id": ms.decision_id if ms.price != ms.base else None,
                 "desc": m.desc, "temp": m.temp, "allergens": list(m.allergens), "veg": m.veg, "vegan": m.vegan,
                 "station": m.station, "sold_today": ms.sold_today, "promo": ms.promo,
             }

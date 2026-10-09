@@ -50,7 +50,7 @@ visible number goes through one tested path. Where they land:
 ```js
 {
   seq, sim_s, t,
-  world:    {id, policy, strategy, status, clock_mode, lagging, start_date},
+  world:    {id, policy, strategy, status, clock_mode, lagging, rate, detached, start_date},  // rate: fast-forward 1|5|20|60 (BrewApi.speed(rate))
   clock:    {day, hhmm, weekday, date, is_open, open_s, close_s},
   weather:  {state, temp_c, rain_mm_h},
   day:      {day, date, weekday, events[], ended: summary|null},
