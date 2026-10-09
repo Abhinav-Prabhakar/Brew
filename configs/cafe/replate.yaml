@@ -1,5 +1,5 @@
 # Replate (rescue menu): pre-made / made-ahead food nearing the end of its hold window is listed at a
-# heavy, monotone markdown instead of being thrown away. See backend.md 3.11 / technical.md 7.11.
+# heavy, monotone markdown instead of being thrown away. See backend.md 3.11 / docs/implementation-spec.md 7.11.
 modes: ["off", gentle, standard, aggressive]
 # rungs: [fraction of hold time remaining <=, discount %]; last_s: final time-based rung (seconds before use-by)
 ladders:

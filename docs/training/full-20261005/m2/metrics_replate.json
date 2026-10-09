@@ -1,0 +1,9 @@
+{
+  "rows": 249434,
+  "trained": true,
+  "poisson_deviance": 0.47741074764840313,
+  "baseline_deviance": 0.6958883720699135,
+  "mean_rate": 0.16443444401569557,
+  "deviance_improvement_pct": 31.395498644653408,
+  "_wall_s": 3.2
+}

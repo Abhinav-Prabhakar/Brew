@@ -7,10 +7,11 @@
 > |---|---|
 > | `plan.md` (this file) | Vision, scope, experience, art direction, architecture, roadmap, working rules |
 > | `backend.md` | Backend product spec: domain, policies, Replate (§3.11), meal combos (§3.12), REST/WS contract (§6), event list (§6.3) |
-> | `technical.md` | Implementation spec and judges' deep-dive on the simulator and ML/RL (being rewritten; read it for facts) |
+> | `technical.md` | Judges' deep-dive: every design choice, alternatives, algorithms, and the RL manager in depth |
+> | `docs/implementation-spec.md` | The low-level implementation spec the backend was built against (formerly technical.md) |
 > | `context.md` | Session handoff log and history, including the older roadmap |
-> | `frontend-backend-integration.md` | *(to be written)* test suite first, then WS client, hydration, actions, event-to-visual coverage |
-> | `polish.md` | *(to be written)* sound, transitions, camera moves, performance budget, accessibility, offline states, showcase README |
+> | `frontend-backend-integration.md` | Handoff: test suite first, then WS client, hydration, actions, event-to-visual coverage |
+> | `polish.md` | Handoff: sound, transitions, camera moves, performance budget, accessibility, offline states, showcase README |
 >
 > **Precedence:** `backend.md` wins over this file on backend behaviour and the event contract. This file wins on scope, UX and sequencing.
 
@@ -22,7 +23,7 @@
 
 - **Live, not replay.** The café runs in real time (`BREW_LIVE_RATE` = 1.0). There are no playback speeds. A `clock: "wall"` world starts on today's date, synced to the real local time in Asia/Kolkata. Controls are play, pause and step.
 - **Three screens:** **lobby, kitchen, pantry**, on one sliding track, under one shared HUD. The lobby holds the **menu book**; the HUD holds the **profit component** that expands into the D vs A/B/C comparison.
-- **Backend is done and tested** (Python 3.12, uv, FastAPI + WebSocket, about 330 tests, ruff and mypy clean). Policy D is trained and committed.
+- **Backend is done and tested** (Python 3.12, uv, FastAPI + WebSocket, 281 tests, ruff and mypy clean). Policy D is trained and committed.
 - **Frontend is final in design but static or mocked.** Nothing on screen is wired to the backend yet. That is the main job left.
 - **Headline result** (10 seeds x 7 days, same customers for every policy): **A Rs 62.1k, B Rs 73.5k, C Rs 96.9k, D Rs 104.9k profit per day.** D beats C by 8% and A by 69%.
 - **What is left:** (1) a test suite, (2) frontend-backend integration, (3) polish, (4) demo packaging, (5) optional ML follow-ups. See §12.
@@ -244,7 +245,7 @@ Also in `design/brew.html`: steel greys for equipment, and status colours `--ok 
 |  Offline/mock fallback: MockSource (same on(type, fn) contract)                               |
 +---------------------------------------------+-------------------------------------------------+
                                               | WebSocket /api/v1/ws/worlds/{id}?since_seq=
-                                              | REST /api/v1/...  (about 45 endpoints)
+                                              | REST /api/v1/...  (42 routes)
 +---------------------------------------------v-------------------------------------------------+
 | FastAPI app (brew.api)                                                                         |
 |  WorldManager: live wall-clock world + forks (shadow worlds A/B/C for the profit component)   |
@@ -296,9 +297,9 @@ Full spec: [`backend.md`](backend.md). Built, tested and merged to `main`.
 | **Replate** (backend.md §3.11) | Pre-made, prep-backed food listed at monotone markdowns (30%, 50%, 70% off as use-by nears, floored at half unit cost), plus a counter add-on. Unsold sealed bakery goes to donation, the rest to waste. Policy C: waste -47%, profit not lower |
 | **Meal combos** (backend.md §3.12) | Live derived prices and a persona-aware up-sell. Revenue +5%, average ticket Rs 500 to Rs 521 |
 | **Analysis** | Bottleneck analyzer (utilisation, active period, LP shadow prices), investment advisor (counterfactual forks), impact metrics (waste, CO2e, donated kg, overload minutes), explainer with surrogate-tree reasons for D, arena runner with paired bootstrap CIs |
-| **API** | About 45 REST endpoints (`/api/v1`) and a WebSocket with `since_seq` replay. Hydration snapshot at `GET /worlds/{id}/state`. Full event list in backend.md §6.3 |
+| **API** | 42 REST routes (`/api/v1`) and a WebSocket with `since_seq` replay. Hydration snapshot at `GET /worlds/{id}/state`. Full event list in backend.md §6.3 |
 | **Live clock** | `POST /worlds` takes `clock: "wall"` (today's date, synced to real Asia/Kolkata time) or `"open"` (start at opening). `control` is play, pause, step only |
-| **Quality** | About 330 tests pass, with ruff and mypy clean. Tiers: unit, property (Hypothesis), integration, slow (training smoke) |
+| **Quality** | 281 tests pass, with ruff and mypy clean. Tiers: unit, property (Hypothesis), integration, slow (training smoke) |
 
 **Conventions:** sim time is `sim_s` plus an ISO timestamp in Asia/Kolkata; money in INR with 2 decimals; SKUs and modifiers are slugs; UUIDv7 for entities. Opening hours 08:00-22:00. The menu has 23 SKUs in four categories (`coffee`, `notcoffee`, `bakes`, `plates`) plus combos and Replate listings.
 
@@ -397,7 +398,8 @@ Lobby, kitchen and pantry only. The café is **live**: nothing is skipped or fas
 ```
 brew/
 ├── plan.md  backend.md  technical.md  context.md          # docs (see header table)
-├── frontend-backend-integration.md  polish.md             # to be written
+├── frontend-backend-integration.md  polish.md             # phase handoffs
+├── docs/implementation-spec.md  docs/training/            # low-level spec · full-run metrics
 ├── design/                    # FINAL frontend (hand-inked 2D SVG)
 │   ├── brew.html  lobby.js  kitchen.js  pantry.js  menu.js
 │   ├── data/menu.js           # exported from configs/cafe by scripts/export_menu.py
@@ -626,7 +628,7 @@ All figures come from our own runs and are labelled simulated. We state targets 
 10. **Do not monitor training.** Start it, confirm it is running, hand over the morning-check commands, end the session.
 11. **Training and tests make no network calls.** The demo must run offline.
 12. **Do not commit unrelated files.** Stage by path. Do not touch the user's uncommitted work without being asked.
-13. **Update docs as part of the work:** this file for scope and roadmap, `backend.md` for the contract, `technical.md` for implementation facts, `context.md` for handoff notes.
+13. **Update docs as part of the work:** this file for scope and roadmap, `backend.md` for the contract, `technical.md` for the judges' narrative, `docs/implementation-spec.md` for implementation facts, `context.md` for handoff notes.
 14. **Honesty in claims:** every number in a slide, README or video is labelled simulated and traceable to a run.
 
 ---

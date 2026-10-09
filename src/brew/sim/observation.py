@@ -1,4 +1,4 @@
-"""Named observation vector for policies / RL (technical.md 13.2): 183 floats."""
+"""Named observation vector for policies / RL (docs/implementation-spec.md 13.2): 183 floats."""
 
 from __future__ import annotations
 

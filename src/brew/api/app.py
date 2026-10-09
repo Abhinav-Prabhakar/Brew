@@ -1,4 +1,4 @@
-"""FastAPI application factory (technical.md 10.1)."""
+"""FastAPI application factory (docs/implementation-spec.md 10.1)."""
 
 from __future__ import annotations
 

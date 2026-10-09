@@ -1,4 +1,4 @@
-"""Validate human-saved LLM outputs, dedupe, write clean datasets (technical.md 15.3)."""
+"""Validate human-saved LLM outputs, dedupe, write clean datasets (docs/implementation-spec.md 15.3)."""
 
 from __future__ import annotations
 

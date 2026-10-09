@@ -1,4 +1,4 @@
-"""In-memory job registry for arena runs and advisor counterfactuals (technical.md 10.5).
+"""In-memory job registry for arena runs and advisor counterfactuals (docs/implementation-spec.md 10.5).
 
 Jobs run on a small thread pool; arena jobs fan out to a process pool themselves (``workers``)."""
 

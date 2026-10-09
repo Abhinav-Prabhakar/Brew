@@ -60,50 +60,51 @@ function steakGeo(a = 0.085, b = 0.058, h = 0.0135) {
 /* the two looks of the meat, painted in the same planar UV space */
 function steakTextures() {
   const S = 1024, r = rng(41);
-  const n1 = fbm(256, { seed: 44, base: 6, octaves: 5 }), n2 = fbm(256, { seed: 45, base: 24, octaves: 3 });
+  const lo = fbm(256, { seed: 44, base: 3, octaves: 4 }), mid = fbm(256, { seed: 45, base: 12, octaves: 4 }), hi = fbm(256, { seed: 46, base: 48, octaves: 2 });
   const at = (f, u, v) => f[(Math.floor(v * 255) & 255) * 256 + (Math.floor(u * 255) & 255)];
-  // outline in UV space (matches steakGeo): fat cap along one edge
-  const inside = (u, v) => { const x = (u - 0.5) * 2.7, z = (v - 0.5) * 2.7, th = Math.atan2(z, x), R = 1 + 0.1 * Math.sin(2 * th + 0.5) + 0.06 * Math.sin(3 * th + 1.7) + 0.035 * Math.sin(5 * th + 0.3); return Math.hypot(x, z) / R; };
-  const fatW = (u, v) => { const d = inside(u, v); const th = Math.atan2((v - 0.5), (u - 0.5)); const side = Math.max(0, Math.cos(th - 2.4)); return Math.max(0, Math.min(1, (d - (0.86 - side * 0.14)) / 0.06)) * (side > 0.15 ? 1 : 0); };
-
+  const outline = (u, v) => { const x = (u - 0.5) * 2.7, z = (v - 0.5) * 2.7, th = Math.atan2(z, x), R = 1 + 0.1 * Math.sin(2 * th + 0.5) + 0.06 * Math.sin(3 * th + 1.7) + 0.035 * Math.sin(5 * th + 0.3); return [Math.hypot(x, z) / R, th]; };
+  // rendered fat runs along one side of a ribeye
+  const fatW = (u, v) => { const [d, th] = outline(u, v); const side = Math.max(0, Math.cos(th - 2.4)); return side < 0.2 ? 0 : Math.max(0, Math.min(1, (d - (0.88 - side * 0.16)) / 0.05)); };
   const sear = canvas(S), sx = sear.getContext('2d'), si = sx.createImageData(S, S);
   const raw = canvas(S), rx = raw.getContext('2d'), ri = rx.createImageData(S, S);
   const h = new Float32Array(S * S), rough = new Float32Array(S * S);
-  const markA = 0.62, ca = Math.cos(markA), sa = Math.sin(markA);
+  const ang = 0.95, ca = Math.cos(ang), sa = Math.sin(ang);
   for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
     const u = x / S, v = y / S, i = y * S + x;
-    const a = at(n1, u * 2, v * 2), b = at(n2, u * 3, v * 3);
+    const a = at(lo, u, v), b = at(mid, u * 1.5, v * 1.5), c = at(hi, u * 2, v * 2);
     const fat = fatW(u, v);
-    // marbling: thin wavy white veins
-    const marb = Math.pow(Math.max(0, 1 - Math.abs(Math.sin((u * 9 + a * 3.2) * 3.1 + v * 5) ) * 6), 2) * 0.7 + Math.pow(Math.max(0, b - 0.62) * 3, 2) * 0.5;
-    // grill marks: bands across the top in pan-ridge spacing
-    const w = (u * ca + v * sa) * 18.5 + a * 0.6;
-    const band = Math.pow(Math.max(0, Math.cos(w * Math.PI * 2)), 10);
-    // sear: deep mahogany → caramel → char, glistening where fat renders
-    let cr = 70 + (a - 0.5) * 60 + b * 30, cg = 32 + (a - 0.5) * 26 + b * 14, cb = 16 + b * 8;
-    const char = Math.max(0, (b - 0.7) * 2.2) * 0.6 + band * 0.86;
-    cr = cr * (1 - char) + 22 * char; cg = cg * (1 - char) + 12 * char; cb = cb * (1 - char) + 8 * char;
-    const fr = 215 - a * 40, fg = 160 - a * 40, fb = 88 - a * 30; // rendered fat: golden
-    cr = cr * (1 - fat) + fr * fat; cg = cg * (1 - fat) + fg * fat; cb = cb * (1 - fat) + fb * fat;
-    si.data[i * 4] = cr; si.data[i * 4 + 1] = cg; si.data[i * 4 + 2] = cb; si.data[i * 4 + 3] = 255;
-    // raw: deep red with marbling and a creamy fat cap
-    let rr2 = 150 + (a - 0.5) * 40 - b * 20, rg = 30 + (a - 0.5) * 16, rb = 34 + (a - 0.5) * 10;
+    // grill bars: ~11 across the steak, edges wobble, burn depth varies along the bar
+    const w = (u * ca + v * sa) * 10.5 + (b - 0.5) * 0.35;
+    const f = w - Math.floor(w);
+    const bar = Math.max(0, 1 - Math.abs(f - 0.5) / (0.13 + (a - 0.5) * 0.06)) ;
+    const mark = Math.min(1, Math.pow(bar, 0.6) * (0.75 + c * 0.5));
+    // crust: caramel → mahogany → near-black, mottled at two scales, fine grain on top
+    const k = Math.min(1, Math.max(0, (a - 0.3) * 1.4 + (b - 0.5) * 0.6));
+    let R = 98 - k * 60, G = 60 - k * 38, Bc = 36 - k * 23;
+    const grain = (c - 0.5) * 28;
+    R += grain; G += grain * 0.5; Bc += grain * 0.3;
+    R = R * (1 - mark) + 18 * mark; G = G * (1 - mark) + 10 * mark; Bc = Bc * (1 - mark) + 6 * mark;
+    const fr = 160 - a * 40, fg = 112 - a * 36, fb = 58 - a * 24; // fat renders golden
+    R = R * (1 - fat) + fr * fat; G = G * (1 - fat) + fg * fat; Bc = Bc * (1 - fat) + fb * fat;
+    si.data[i * 4] = R; si.data[i * 4 + 1] = G; si.data[i * 4 + 2] = Bc; si.data[i * 4 + 3] = 255;
+    // raw: deep red, irregular intramuscular fat, creamy cap
+    const marb = Math.max(0, Math.pow(Math.max(0, b - 0.56) * 4, 1.5)) * 0.8 + Math.max(0, Math.pow(Math.max(0, c - 0.74) * 4, 2)) * 0.3;
+    let rr2 = 140 + (a - 0.5) * 50, rg = 26 + (a - 0.5) * 14, rb = 30 + (a - 0.5) * 10;
     const mk = Math.min(1, marb + fat);
-    rr2 = rr2 * (1 - mk) + 236 * mk; rg = rg * (1 - mk) + 214 * mk; rb = rb * (1 - mk) + 196 * mk;
+    rr2 = rr2 * (1 - mk) + 232 * mk; rg = rg * (1 - mk) + 208 * mk; rb = rb * (1 - mk) + 190 * mk;
     ri.data[i * 4] = rr2; ri.data[i * 4 + 1] = rg; ri.data[i * 4 + 2] = rb; ri.data[i * 4 + 3] = 255;
-    h[i] = a * 0.4 + b * 0.35 - band * 0.35 + fat * 0.2;
-    rough[i] = 0.62 - fat * 0.38 - (1 - band) * b * 0.15 + char * 0.2;
+    h[i] = b * 0.45 + c * 0.35 - mark * 0.45 + fat * 0.15;
+    rough[i] = 0.72 - fat * 0.42 - (1 - mark) * (1 - k) * 0.18 + mark * 0.1;
   }
   sx.putImageData(si, 0, 0); rx.putImageData(ri, 0, 0);
-  // a few glossy juice beads and pepper flecks on the seared side
-  for (let k = 0; k < 260; k++) { sx.fillStyle = `rgba(20,12,8,${0.4 + r() * 0.5})`; sx.fillRect(S * (0.15 + r() * 0.7), S * (0.15 + r() * 0.7), 2 + r() * 3, 2 + r() * 3); }
-  for (let k = 0; k < 80; k++) { sx.fillStyle = `rgba(240,225,200,${0.25 + r() * 0.3})`; sx.beginPath(); sx.arc(S * (0.15 + r() * 0.7), S * (0.15 + r() * 0.7), 1 + r() * 2.5, 0, 7); sx.fill(); }
-  // downsample height/rough to 512 for the normal + roughness maps
+  // cracked pepper and flaky salt on the seared side
+  for (let k = 0; k < 420; k++) { sx.fillStyle = `rgba(12,8,6,${0.5 + r() * 0.5})`; const s2 = 1.5 + r() * 3.5; sx.fillRect(S * (0.12 + r() * 0.76), S * (0.12 + r() * 0.76), s2, s2 * (0.6 + r())); }
+  for (let k = 0; k < 120; k++) { sx.fillStyle = `rgba(250,240,225,${0.35 + r() * 0.4})`; const s2 = 1.5 + r() * 3; sx.fillRect(S * (0.15 + r() * 0.7), S * (0.15 + r() * 0.7), s2, s2); }
   const H = 512, h2 = new Float32Array(H * H), r2 = new Float32Array(H * H);
   for (let y = 0; y < H; y++) for (let x = 0; x < H; x++) { h2[y * H + x] = h[(y * 2) * S + x * 2]; r2[y * H + x] = rough[(y * 2) * S + x * 2]; }
   return {
     sear: tex(sear, { wrap: false }), raw: tex(raw, { wrap: false }),
-    normal: normalFromHeight(h2, H, 5, { wrap: false }), rough: greyTex(r2, H, (v) => v, { wrap: false }),
+    normal: normalFromHeight(h2, H, 6, { wrap: false }), rough: greyTex(r2, H, (v) => v, { wrap: false }),
   };
 }
 
@@ -111,8 +112,9 @@ function makeSteak() {
   const t = steakTextures();
   const mat = reg(new THREE.MeshPhysicalMaterial({
     map: t.sear, normalMap: t.normal, normalScale: new THREE.Vector2(1.1, 1.1), roughnessMap: t.rough, roughness: 1,
-    clearcoat: 0.55, clearcoatRoughness: 0.32, // rendered fat and juices
-    sheen: 0.25, sheenColor: new THREE.Color('#a0502a'), sheenRoughness: 0.5,
+    color: new THREE.Color(0.75, 0.72, 0.7), specularIntensity: 0.35, // a dry crust: little broad specular
+    clearcoat: 0.25, clearcoatRoughness: 0.2, // …but a tight glaze of rendered fat and juices
+    sheen: 0.15, sheenColor: new THREE.Color('#7a3a1c'), sheenRoughness: 0.5,
   }), 0.8);
   const u = { rawMap: { value: t.raw }, uTop: { value: 0 }, uBot: { value: 0 } };
   mat.userData.cook = u;
@@ -126,7 +128,11 @@ function makeSteak() {
         vec4 rawC = texture2D(rawMap, vMapUv);
         float cookK = mix(uBot, uTop, smoothstep(-0.35, 0.35, vSide));
         // the edge band cooks with whichever face is hotter, a little behind
-        cookK = mix(cookK, max(uTop, uBot) * 0.85, 1.0 - smoothstep(0.2, 0.75, abs(vSide)));
+        float sideK = 1.0 - smoothstep(0.25, 0.8, abs(vSide));
+        cookK = mix(cookK, max(uTop, uBot) * 0.85, sideK);
+        // the planar UVs stretch on the edge band: blend toward a flat sear / raw tone there
+        searC.rgb = mix(searC.rgb, vec3(0.13, 0.05, 0.022) * (0.7 + searC.r * 2.0), sideK * 0.75);
+        rawC.rgb = mix(rawC.rgb, vec3(0.42, 0.06, 0.06), sideK * 0.6);
         diffuseColor *= mix(rawC, searC, smoothstep(0.0, 1.0, cookK));`);
   };
   mat.customProgramCacheKey = () => 'steak';
@@ -145,28 +151,35 @@ function makeSteak() {
 }
 F.setCook = (top, bot) => { const u = F.steak.userData.mesh.material.userData.cook; u.uTop.value = top; u.uBot.value = bot; };
 
-/* rosemary sprigs: a stem with needle pairs (instanced) */
+/* a little thyme scattered over the top + one rosemary sprig, irregular, oil-glossed */
 function herbSprigs() {
   const g = new THREE.Group();
-  const leaf = reg(new THREE.MeshPhysicalMaterial({ color: '#2f5a26', roughness: 0.38, clearcoat: 0.6, clearcoatRoughness: 0.2, sheen: 0.4, sheenColor: new THREE.Color('#a8d080') }), 0.8);
-  const stem = reg(new THREE.MeshStandardMaterial({ color: '#5a4a2a', roughness: 0.7 }), 0.4);
-  const needle = new THREE.CapsuleGeometry(0.0012, 0.011, 2, 5);
-  const r = rng(8);
-  [[-0.02, 0.01, 0.4], [0.025, -0.012, -0.5]].forEach(([x, z, a]) => {
-    const s = group(g, [x, 0, z], [0, a, 0]);
-    m(cyl(0.0012, 0.0012, 0.09, 5), stem, { r: [0, 0, Math.PI / 2], parent: s });
-    const im = new THREE.InstancedMesh(needle, leaf, 44);
-    const mm = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
-    for (let i = 0; i < 44; i++) {
-      const t = (i >> 1) / 22, side = i % 2 ? 1 : -1;
-      e.set(Math.PI / 2 + side * (0.5 + r() * 0.3), 0, side * 0.9 + (r() - 0.5) * 0.3);
-      q.setFromEuler(e);
-      mm.compose(new THREE.Vector3(-0.045 + t * 0.09, 0.002, side * 0.004), q, new THREE.Vector3(1, 1, 1));
-      im.setMatrixAt(i, mm);
-    }
-    im.castShadow = false;
-    s.add(im);
-  });
+  const leaf = reg(new THREE.MeshPhysicalMaterial({ color: '#ffffff', roughness: 0.4, clearcoat: 0.5, clearcoatRoughness: 0.25 }), 0.7);
+  const r = rng(8), mm = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), col = new THREE.Color();
+  // thyme: tiny oval leaves dropped across the crust
+  const tg = new THREE.SphereGeometry(0.0022, 6, 4); tg.scale(1.6, 0.35, 1);
+  const thyme = new THREE.InstancedMesh(tg, leaf, 70);
+  for (let i = 0; i < 70; i++) {
+    const a = r() * 6.28, d = Math.sqrt(r()) * 0.06;
+    e.set(0, r() * 6.28, (r() - 0.5) * 0.4); q.setFromEuler(e);
+    mm.compose(new THREE.Vector3(Math.cos(a) * d * 1.2, 0.001 + r() * 0.002, Math.sin(a) * d * 0.8), q, new THREE.Vector3(1, 1, 1).multiplyScalar(0.7 + r() * 0.6));
+    thyme.setMatrixAt(i, mm);
+    thyme.setColorAt(i, col.set('#3b5a26').lerp(new THREE.Color('#5d7a34'), r()));
+  }
+  g.add(thyme);
+  // one rosemary sprig with uneven needles, lying off-centre
+  const s = group(g, [0.02, 0.002, -0.008], [0, 0.9, 0.04]);
+  m(cyl(0.001, 0.0013, 0.07, 5), reg(new THREE.MeshStandardMaterial({ color: '#4a3e24', roughness: 0.7 }), 0.4), { r: [0, 0, Math.PI / 2], parent: s });
+  const ng = new THREE.CapsuleGeometry(0.0009, 0.008, 2, 4);
+  const needles = new THREE.InstancedMesh(ng, leaf, 26);
+  for (let i = 0; i < 26; i++) {
+    const t = r(), side = r() < 0.5 ? 1 : -1;
+    e.set(Math.PI / 2 + side * (0.4 + r() * 0.6), r() * 0.4, side * (0.6 + r() * 0.6)); q.setFromEuler(e);
+    mm.compose(new THREE.Vector3(-0.034 + t * 0.068, 0.0015, side * 0.003), q, new THREE.Vector3(1, 0.7 + r() * 0.5, 1));
+    needles.setMatrixAt(i, mm);
+    needles.setColorAt(i, col.set('#2c4a20').lerp(new THREE.Color('#4a6a34'), r()));
+  }
+  s.add(needles);
   return g;
 }
 

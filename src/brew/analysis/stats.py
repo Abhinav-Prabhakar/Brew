@@ -1,4 +1,4 @@
-"""Arena statistics: paired bootstrap CIs, Wilcoxon signed-rank, CVaR (technical.md 14.3)."""
+"""Arena statistics: paired bootstrap CIs, Wilcoxon signed-rank, CVaR (docs/implementation-spec.md 14.3)."""
 
 from __future__ import annotations
 

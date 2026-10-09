@@ -1,0 +1,24 @@
+{
+  "backtest": {
+    "folds": 3,
+    "test_days": 7,
+    "rows": 45558,
+    "demand_units": 17884.0,
+    "wape_p50": 0.8961231126275184,
+    "wape_mean": 1.0225811017294286,
+    "wape_seasonal_naive": 1.142026424407959,
+    "wape_moving_average": 1.0453318357467651,
+    "pinball_p10": 0.03925545458536371,
+    "pinball_p50": 0.1758886007532216,
+    "pinball_p90": 0.11964212198692077,
+    "coverage_p10_p90": 0.936015628429694,
+    "bias_p50": -0.545141358625864,
+    "bias_mean": 0.03679240686034309,
+    "improvement_vs_naive_pct": 21.532191070615546,
+    "wape_hourly_mean_model": 0.5686430897804263,
+    "wape_hourly_seasonal_naive": 0.7314918362782376,
+    "wape_hourly_moving_average": 0.6377528213086183
+  },
+  "version": "full",
+  "_wall_s": 227.2
+}

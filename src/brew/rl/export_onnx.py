@@ -1,4 +1,4 @@
-"""ONNX export of the manager policy + parity check + champion directory (technical.md 13.5).
+"""ONNX export of the manager policy + parity check + champion directory (docs/implementation-spec.md 13.5).
 
 The exported graph maps a *normalised* observation to the concatenated logits of all 18 action dimensions
 (``features_extractor -> mlp_extractor.policy_net -> action_net``).  ``obs_norm.json`` carries the VecNormalize

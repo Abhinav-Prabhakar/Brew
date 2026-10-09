@@ -62,8 +62,8 @@ export function buildLights() {
   S.add(shelfL, shelfR);
 
   // the only cool light in the room: the gas flame under the pan
-  const flame = new THREE.PointLight('#3f74ff', 0.18, 0.42, 2);
-  flame.position.set(bx, L.top + 0.06, bz);
+  const flame = new THREE.PointLight('#3f74ff', 0.12, 0.2, 2);
+  flame.position.set(bx, L.top + 0.03, bz);
   S.add(flame);
 
   // pastry cabinet glow

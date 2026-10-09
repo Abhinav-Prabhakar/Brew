@@ -1,4 +1,4 @@
-"""Live pacing: advance a world in step with the wall clock in a worker thread (technical.md 10.3).
+"""Live pacing: advance a world in step with the wall clock in a worker thread (docs/implementation-spec.md 10.3).
 
 There are no playback speeds: the café runs live at ``settings.live_rate`` sim-seconds per wall-second (1.0 = real
 time). ``clock="wall"`` worlds stay locked to the real local time; ``clock="open"`` worlds run on from where they

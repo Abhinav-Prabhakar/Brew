@@ -1,4 +1,4 @@
-"""Fair pricing charter - the hard shield applied to every price change (technical.md 8.3)."""
+"""Fair pricing charter - the hard shield applied to every price change (docs/implementation-spec.md 8.3)."""
 
 from __future__ import annotations
 

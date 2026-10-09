@@ -1,4 +1,4 @@
-"""Row schemas for LLM-generated synthetic datasets (technical.md 15.2)."""
+"""Row schemas for LLM-generated synthetic datasets (docs/implementation-spec.md 15.2)."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""WorldManager: owns live worlds, their pacers, ring buffers and DB writers (technical.md 10.2)."""
+"""WorldManager: owns live worlds, their pacers, ring buffers and DB writers (docs/implementation-spec.md 10.2)."""
 
 from __future__ import annotations
 

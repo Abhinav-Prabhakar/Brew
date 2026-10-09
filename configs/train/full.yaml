@@ -37,7 +37,7 @@ bc:                            # BC on 200 days of Policy C (29 episodes of 7 da
   workers: auto
   scenarios: [weekday_normal, weekend_brunch, rainy_delivery_surge, heatwave, exam_week, festival]
   domain_randomisation: true
-ppo:                           # technical.md 13.5
+ppo:                           # docs/implementation-spec.md 13.5
   total_timesteps: 2000000     # sized for < 12 h on the i5-11400 desktop (~52 steps/s incl. learner); spec target was 5 M
   n_envs: 6                    # measured: 6 workers 112 env-steps/s > 10 workers 98 (6 physical cores, shared cache)
   vec: subproc

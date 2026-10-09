@@ -1,4 +1,4 @@
-"""Surrogate decision trees for explaining Policy D (technical.md 14.4).
+"""Surrogate decision trees for explaining Policy D (docs/implementation-spec.md 14.4).
 
 One depth-4 ``DecisionTreeClassifier`` per action dimension is fitted on ``(observation, chosen action)`` pairs
 from policy rollouts.  A decision is explained by the path its observation takes through the trees of the

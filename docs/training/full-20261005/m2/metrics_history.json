@@ -1,0 +1,40 @@
+{
+  "runs": [
+    {
+      "name": "00_B_201",
+      "policy": "B",
+      "seed": 201,
+      "days": 180,
+      "wall_s": 133.56
+    },
+    {
+      "name": "01_B_202",
+      "policy": "B",
+      "seed": 202,
+      "days": 180,
+      "wall_s": 170.65
+    },
+    {
+      "name": "02_B_203",
+      "policy": "B",
+      "seed": 203,
+      "days": 180,
+      "wall_s": 98.73
+    },
+    {
+      "name": "03_B_204",
+      "policy": "B",
+      "seed": 204,
+      "days": 180,
+      "wall_s": 205.33
+    },
+    {
+      "name": "04_A_205",
+      "policy": "A",
+      "seed": 205,
+      "days": 60,
+      "wall_s": 13.41
+    }
+  ],
+  "_wall_s": 753.75
+}

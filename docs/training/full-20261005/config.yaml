@@ -1,0 +1,188 @@
+name: full
+runs_dir: /home/abhinav/brew/runs/overnight/20261005_063045_cf21a5b/m2
+models_dir: models
+history:
+  scenario: weekday_normal
+  runs:
+  - policy: B
+    seed: 201
+    days: 180
+    scenario: weekday_normal
+  - policy: B
+    seed: 202
+    days: 180
+    scenario: weekend_brunch
+  - policy: B
+    seed: 203
+    days: 180
+    scenario: rainy_delivery_surge
+  - policy: B
+    seed: 204
+    days: 180
+    scenario: festival
+  - policy: A
+    seed: 205
+    days: 60
+    scenario: weekday_normal
+  price_explore_prob: 0.8
+  premake_explore: true
+  ladder_explore: true
+  price_experiment:
+    groups: 60
+    variants: 5
+    seed: 900
+    policy: B
+forecast:
+  n_estimators: 600
+  folds: 3
+  test_days: 7
+  min_history: 7
+elasticity:
+  alpha: 1.0e-06
+  shrink_k: 200.0
+prep_time:
+  n_estimators: 400
+  min_rows: 200
+rider_eta:
+  n_estimators: 400
+  min_rows: 200
+replate_model:
+  n_estimators: 300
+  min_rows: 200
+text:
+  source: clean
+  test_size: 0.2
+  seed: 0
+eval:
+  policies:
+  - A
+  - B
+  - C
+  - E
+  seeds:
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  - 7
+  - 8
+  - 9
+  - 10
+  days: 7
+  scenario: weekday_normal
+  replate_ab: true
+  workers: 6
+bc:
+  days: 200
+  episode_days: 7
+  epochs: 80
+  batch_size: 512
+  lr: 0.001
+  gamma: 0.995
+  seed: 900
+  workers: auto
+  scenarios:
+  - weekday_normal
+  - weekend_brunch
+  - rainy_delivery_surge
+  - heatwave
+  - exam_week
+  - festival
+  domain_randomisation: true
+ppo:
+  total_timesteps: 2000000
+  n_envs: 6
+  vec: subproc
+  n_steps: 512
+  batch_size: 4096
+  n_epochs: 10
+  gamma: 0.995
+  gae_lambda: 0.95
+  lr_start: 0.0003
+  lr_end: 0.0001
+  ent_coef: 0.01
+  clip_range: 0.2
+  vf_coef: 0.5
+  max_grad_norm: 0.5
+  target_kl: null
+  critic_warmup_updates: 0
+  net_arch:
+  - 256
+  - 256
+  curriculum:
+  - days: 1
+    frac: 0.2
+    shaping: 1.0
+  - days: 7
+    frac: 0.4
+    shaping: 0.65
+  - days: 28
+    frac: 0.4
+    shaping: 0.3
+  eval:
+    every: 100000
+    seeds: 10
+    days: 7
+    scenario: weekday_normal
+    base_seed: 1000
+    workers: 4
+  checkpoint_every: 100000
+  scenarios:
+  - weekday_normal
+  - weekend_brunch
+  - rainy_delivery_surge
+  - heatwave
+  - exam_week
+  - festival
+  - chaos_random
+  domain_randomisation: true
+  chaos: random
+  seed: 0
+adversarial:
+  total_timesteps: 150000
+  iterations: 2
+  protagonist_steps: 50000
+  n_envs: 6
+  n_steps: 256
+  batch_size: 2048
+  lr: 0.0003
+  ent_coef: 0.02
+  chaos_mix:
+  - 0.5
+  - 0.3
+  - 0.2
+  scenario: weekday_normal
+  days: 1
+  vec: subproc
+  seed: 7
+export:
+  parity_obs: 256
+  parity_tol: 0.0001
+  surrogate_depth: 4
+  surrogate_days: 7
+  surrogate_seeds: 6
+  version: ''
+final_eval:
+  policies:
+  - A
+  - B
+  - C
+  - D
+  seeds:
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  - 7
+  - 8
+  - 9
+  - 10
+  days:
+  - 7
+  scenario: weekday_normal
+  workers: 6
+device: auto

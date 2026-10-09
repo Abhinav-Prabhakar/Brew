@@ -1,0 +1,1010 @@
+[2026-10-05 06:30:45] training: brew-train all --config configs/train/full.yaml --run-dir /home/abhinav/brew/runs/overnight/20261005_063045_cf21a5b 
+[06:30:46] brew-train: config 'full', run dir /home/abhinav/brew/runs/overnight/20261005_063045_cf21a5b, resume=False, stages=13
+[06:30:48] [1/13] stage history ...
+[06:43:51] [1/13] stage history done in 783.6s
+[06:43:51] [2/13] stage forecast ...
+[06:47:50] [2/13] stage forecast done in 238.7s
+[06:47:50] [3/13] stage elasticity ...
+[06:54:25] [3/13] stage elasticity done in 394.7s
+[06:54:25] [4/13] stage prep_time ...
+[06:57:43] [4/13] stage prep_time done in 198.2s
+[06:57:43] [5/13] stage rider_eta ...
+[06:57:43] [5/13] stage rider_eta done in 0.7s
+[06:57:43] [6/13] stage text ...
+[06:58:28] [6/13] stage text done in 44.1s
+[06:58:28] [7/13] stage replate ...
+[06:58:31] [7/13] stage replate done in 3.2s
+[06:58:31] [8/13] stage eval ...
+[07:34:09] [8/13] stage eval done in 2138.0s
+[07:34:09] [9/13] stage bc ...
+[07:34:09] BC: rolling out Policy C for 200 day(s) in episodes of 7 (10 worker(s))
+[07:37:44]   BC teacher episode 1/29 done (199s)
+[07:38:58]   BC teacher episode 2/29 done (268s)
+[07:38:58]   BC teacher episode 3/29 done (241s)
+[07:38:58]   BC teacher episode 4/29 done (165s)
+[07:38:58]   BC teacher episode 5/29 done (209s)
+[07:38:58]   BC teacher episode 6/29 done (231s)
+[07:38:58]   BC teacher episode 7/29 done (256s)
+[07:38:58]   BC teacher episode 8/29 done (177s)
+[07:38:58]   BC teacher episode 9/29 done (190s)
+[07:38:58]   BC teacher episode 10/29 done (152s)
+[07:41:35]   BC teacher episode 11/29 done (273s)
+[07:41:35]   BC teacher episode 12/29 done (215s)
+[07:41:35]   BC teacher episode 13/29 done (234s)
+[07:41:35]   BC teacher episode 14/29 done (233s)
+[07:41:54]   BC teacher episode 15/29 done (246s)
+[07:41:54]   BC teacher episode 16/29 done (188s)
+[07:42:38]   BC teacher episode 17/29 done (258s)
+[07:42:38]   BC teacher episode 18/29 done (227s)
+[07:42:53]   BC teacher episode 19/29 done (247s)
+[07:42:53]   BC teacher episode 20/29 done (211s)
+[07:45:25]   BC teacher episode 21/29 done (271s)
+[07:45:25]   BC teacher episode 22/29 done (222s)
+[07:45:37]   BC teacher episode 23/29 done (253s)
+[07:45:37]   BC teacher episode 24/29 done (211s)
+[07:45:37]   BC teacher episode 25/29 done (221s)
+[07:45:37]   BC teacher episode 26/29 done (211s)
+[07:45:55]   BC teacher episode 27/29 done (211s)
+[07:45:55]   BC teacher episode 28/29 done (168s)
+[07:45:55]   BC teacher episode 29/29 done (185s)
+[07:45:57] BC: 11571 samples, teacher profit/day 94473
+[07:45:59]   BC epoch 1/80: policy loss 21.000 value loss 0.993 acc 0.860
+[07:46:13]   BC epoch 14/80: policy loss 0.072 value loss 0.057 acc 0.999
+[07:46:28]   BC epoch 27/80: policy loss 0.035 value loss 0.029 acc 1.000
+[07:46:47]   BC epoch 40/80: policy loss 0.022 value loss 0.017 acc 1.000
+[07:47:11]   BC epoch 53/80: policy loss 0.010 value loss 0.013 acc 1.000
+[07:47:36]   BC epoch 66/80: policy loss 0.006 value loss 0.010 acc 1.000
+[07:48:02]   BC epoch 79/80: policy loss 0.004 value loss 0.008 acc 1.000
+[07:48:04]   BC epoch 80/80: policy loss 0.003 value loss 0.008 acc 1.000
+[07:48:04] BC done: policy loss 21.000 -> 0.003, accuracy 1.000
+[07:48:04] [9/13] stage bc done in 835.0s
+[07:48:04] [10/13] stage ppo ...
+[07:48:11] initialised policy weights from bc/bc_model.zip
+[07:48:15] PPO curriculum stage 1/3: 1-day episodes, shaping 1.0, steps 0 -> 1000000, 10 envs (subproc), device cuda
+[07:51:17]   eval @ 0: mean reward 294.319 mean profit/day 95786 (walkouts 72.1, waste 9.7 kg, 182.8s)
+[07:54:23]   ppo step 5120/5000000 (27.58 steps/s, eta 181116.4 s) recent train ep reward 0.45
+[07:57:30]   ppo step 10240/5000000 (27.96 steps/s, eta 178463.5 s) recent train ep reward 14.08
+[08:00:40]   ppo step 15360/5000000 (27.03 steps/s, eta 184404.7 s) recent train ep reward 28.26
+[08:03:45]   ppo step 20480/5000000 (27.9 steps/s, eta 178478.4 s) recent train ep reward 22.06
+[08:06:50]   ppo step 25600/5000000 (27.75 steps/s, eta 179234.3 s) recent train ep reward 24.77
+[08:09:57]   ppo step 30720/5000000 (28.05 steps/s, eta 177152.1 s) recent train ep reward 7.49
+[08:13:06]   ppo step 35840/5000000 (27.6 steps/s, eta 179873.3 s) recent train ep reward 25.73
+[08:16:13]   ppo step 40960/5000000 (27.48 steps/s, eta 180442.8 s) recent train ep reward -3.48
+[08:19:23]   ppo step 46080/5000000 (27.42 steps/s, eta 180645.3 s) recent train ep reward 17.67
+[08:22:28]   ppo step 51200/5000000 (27.68 steps/s, eta 178807.4 s) recent train ep reward 22.12
+[08:25:35]   ppo step 56320/5000000 (27.82 steps/s, eta 177699.7 s) recent train ep reward 14.10
+[08:28:37]   ppo step 61440/5000000 (28.62 steps/s, eta 172576.1 s) recent train ep reward 22.99
+[08:31:45]   ppo step 66560/5000000 (28.11 steps/s, eta 175530.7 s) recent train ep reward 14.14
+[08:34:54]   ppo step 71680/5000000 (27.28 steps/s, eta 180678.1 s) recent train ep reward 20.59
+[08:37:57]   ppo step 76800/5000000 (28.04 steps/s, eta 175557.1 s) recent train ep reward 10.78
+[08:41:11]   ppo step 81920/5000000 (26.71 steps/s, eta 184114.9 s) recent train ep reward 44.23
+[08:44:15]   ppo step 87040/5000000 (28.08 steps/s, eta 174946.4 s) recent train ep reward 10.75
+[08:47:29]   ppo step 92160/5000000 (26.98 steps/s, eta 181913.9 s) recent train ep reward 35.46
+[08:50:33]   ppo step 97280/5000000 (27.66 steps/s, eta 177266.2 s) recent train ep reward 12.27
+[08:53:36]   ppo step 102400/5000000 (27.73 steps/s, eta 176634.1 s) recent train ep reward 36.66
+[08:56:37]   eval @ 102400: mean reward 360.385 mean profit/day 102121 (walkouts 66.7, waste 9.9 kg, 180.4s)
+[08:56:37]   checkpoint saved at step 102400
+[08:59:41]   ppo step 107520/5000000 (28.32 steps/s, eta 172784.6 s) recent train ep reward 27.10
+[09:02:45]   ppo step 112640/5000000 (28.35 steps/s, eta 172365.3 s) recent train ep reward 18.06
+[09:05:49]   ppo step 117760/5000000 (28.07 steps/s, eta 173910.9 s) recent train ep reward 28.45
+[09:08:52]   ppo step 122880/5000000 (27.85 steps/s, eta 175110.7 s) recent train ep reward 19.11
+[09:11:55]   ppo step 128000/5000000 (28.11 steps/s, eta 173324.8 s) recent train ep reward 21.57
+[09:15:01]   ppo step 133120/5000000 (28.44 steps/s, eta 171118.6 s) recent train ep reward 26.40
+[09:18:06]   ppo step 138240/5000000 (27.63 steps/s, eta 175931.3 s) recent train ep reward 34.74
+[09:21:17]   ppo step 143360/5000000 (26.92 steps/s, eta 180415.8 s) recent train ep reward 25.22
+[09:24:24]   ppo step 148480/5000000 (27.43 steps/s, eta 176875.4 s) recent train ep reward 24.10
+[09:27:30]   ppo step 153600/5000000 (27.77 steps/s, eta 174542.7 s) recent train ep reward 33.88
+[09:30:38]   ppo step 158720/5000000 (27.08 steps/s, eta 178793.6 s) recent train ep reward 31.83
+[09:33:44]   ppo step 163840/5000000 (27.62 steps/s, eta 175086.1 s) recent train ep reward 19.99
+[09:36:48]   ppo step 168960/5000000 (27.82 steps/s, eta 173672.4 s) recent train ep reward 15.32
+[09:39:54]   ppo step 174080/5000000 (27.37 steps/s, eta 176301.3 s) recent train ep reward 7.67
+[09:42:59]   ppo step 179200/5000000 (28.07 steps/s, eta 171767.6 s) recent train ep reward 13.84
+[09:46:08]   ppo step 184320/5000000 (27.03 steps/s, eta 178157.6 s) recent train ep reward 29.95
+[09:49:15]   ppo step 189440/5000000 (27.4 steps/s, eta 175592.7 s) recent train ep reward 18.88
+[09:52:20]   ppo step 194560/5000000 (27.6 steps/s, eta 174128.9 s) recent train ep reward 33.30
+[09:55:21]   ppo step 199680/5000000 (28.24 steps/s, eta 170006.9 s) recent train ep reward 25.85
+[09:58:24]   ppo step 204800/5000000 (27.96 steps/s, eta 171519.4 s) recent train ep reward 34.88
+[10:01:21]   eval @ 204800: mean reward 396.561 mean profit/day 105337 (walkouts 63.6, waste 10.3 kg, 176.5s)
+[10:01:21]   checkpoint saved at step 204800
+[10:04:26]   ppo step 209920/5000000 (27.62 steps/s, eta 173437.5 s) recent train ep reward 33.27
+[10:07:35]   ppo step 215040/5000000 (27.11 steps/s, eta 176492.7 s) recent train ep reward 39.62
+[10:10:43]   ppo step 220160/5000000 (27.43 steps/s, eta 174277.1 s) recent train ep reward 17.13
+[10:13:51]   ppo step 225280/5000000 (27.33 steps/s, eta 174683.0 s) recent train ep reward 42.13
+[10:17:02]   ppo step 230400/5000000 (27.09 steps/s, eta 176096.6 s) recent train ep reward 36.51
+[10:20:12]   ppo step 235520/5000000 (27.06 steps/s, eta 176038.7 s) recent train ep reward 36.19
+[10:23:20]   ppo step 240640/5000000 (27.29 steps/s, eta 174423.0 s) recent train ep reward 17.19
+[10:26:29]   ppo step 245760/5000000 (27.23 steps/s, eta 174626.2 s) recent train ep reward 32.28
+[10:29:37]   ppo step 250880/5000000 (27.56 steps/s, eta 172314.7 s) recent train ep reward 26.16
+[10:32:42]   ppo step 256000/5000000 (27.84 steps/s, eta 170401.7 s) recent train ep reward 33.92
+[10:35:50]   ppo step 261120/5000000 (27.41 steps/s, eta 172907.7 s) recent train ep reward 28.50
+[10:38:55]   ppo step 266240/5000000 (27.74 steps/s, eta 170657.9 s) recent train ep reward 28.61
+[10:42:05]   ppo step 271360/5000000 (27.26 steps/s, eta 173442.2 s) recent train ep reward 21.13
+[10:45:12]   ppo step 276480/5000000 (27.43 steps/s, eta 172231.6 s) recent train ep reward 34.87
+[10:48:23]   ppo step 281600/5000000 (27.05 steps/s, eta 174463.4 s) recent train ep reward 39.08
+[10:51:33]   ppo step 286720/5000000 (27.18 steps/s, eta 173440.9 s) recent train ep reward 16.49
+[10:54:40]   ppo step 291840/5000000 (27.74 steps/s, eta 169706.2 s) recent train ep reward 38.19
+[10:57:47]   ppo step 296960/5000000 (27.87 steps/s, eta 168756.4 s) recent train ep reward 32.27
+[11:00:57]   ppo step 302080/5000000 (27.18 steps/s, eta 172860.2 s) recent train ep reward 20.62
+[11:03:57]   eval @ 302080: mean reward 371.657 mean profit/day 102232 (walkouts 64.4, waste 10.5 kg, 180.2s)
+[11:03:57]   checkpoint saved at step 302080
+[11:07:01]   ppo step 307200/5000000 (28.12 steps/s, eta 166870.2 s) recent train ep reward 23.12
+[11:10:11]   ppo step 312320/5000000 (27.32 steps/s, eta 171570.7 s) recent train ep reward 27.73
+[11:13:16]   ppo step 317440/5000000 (28.01 steps/s, eta 167175.2 s) recent train ep reward 6.76
+[11:16:22]   ppo step 322560/5000000 (27.85 steps/s, eta 167940.4 s) recent train ep reward 8.77
+[11:19:27]   ppo step 327680/5000000 (27.97 steps/s, eta 167037.1 s) recent train ep reward 27.20
+[11:22:33]   ppo step 332800/5000000 (27.87 steps/s, eta 167454.5 s) recent train ep reward 24.75
+[11:25:40]   ppo step 337920/5000000 (27.54 steps/s, eta 169266.3 s) recent train ep reward 24.74
+[11:28:47]   ppo step 343040/5000000 (27.75 steps/s, eta 167818.5 s) recent train ep reward 38.26
+[11:31:54]   ppo step 348160/5000000 (27.53 steps/s, eta 168953.3 s) recent train ep reward 27.86
+[11:35:04]   ppo step 353280/5000000 (27.32 steps/s, eta 170090.1 s) recent train ep reward 21.91
+[11:38:10]   ppo step 358400/5000000 (27.83 steps/s, eta 166779.7 s) recent train ep reward 28.61
+[11:41:19]   ppo step 363520/5000000 (27.6 steps/s, eta 168001.6 s) recent train ep reward 38.45
+[11:44:24]   ppo step 368640/5000000 (27.91 steps/s, eta 165957.3 s) recent train ep reward 14.65
+[11:47:32]   ppo step 373760/5000000 (27.33 steps/s, eta 169288.3 s) recent train ep reward 17.75
+[11:50:39]   ppo step 378880/5000000 (27.77 steps/s, eta 166412.2 s) recent train ep reward 33.11
+[11:53:42]   ppo step 384000/5000000 (28.05 steps/s, eta 164541.5 s) recent train ep reward 29.91
+[11:56:52]   ppo step 389120/5000000 (27.14 steps/s, eta 169895.8 s) recent train ep reward 16.51
+[11:59:56]   ppo step 394240/5000000 (28.1 steps/s, eta 163902.5 s) recent train ep reward 44.71
+[12:03:00]   ppo step 399360/5000000 (27.92 steps/s, eta 164779.3 s) recent train ep reward 22.86
+[12:06:01]   ppo step 404480/5000000 (28.36 steps/s, eta 162062.6 s) recent train ep reward 28.87
+[12:09:21]   eval @ 404480: mean reward 362.739 mean profit/day 101288 (walkouts 64.8, waste 10.4 kg, 200.2s)
+[12:09:21]   checkpoint saved at step 404480
+[12:12:31]   ppo step 409600/5000000 (27.31 steps/s, eta 168084.9 s) recent train ep reward 17.86
+[12:15:37]   ppo step 414720/5000000 (27.78 steps/s, eta 165041.4 s) recent train ep reward 21.59
+[12:18:48]   ppo step 419840/5000000 (27.14 steps/s, eta 168784.3 s) recent train ep reward 23.59
+[12:21:51]   ppo step 424960/5000000 (28.03 steps/s, eta 163228.0 s) recent train ep reward 33.10
+[12:24:59]   ppo step 430080/5000000 (27.51 steps/s, eta 166138.6 s) recent train ep reward 29.71
+[12:28:06]   ppo step 435200/5000000 (27.61 steps/s, eta 165328.6 s) recent train ep reward 22.79
+[12:31:16]   ppo step 440320/5000000 (27.26 steps/s, eta 167253.7 s) recent train ep reward 33.08
+[12:34:22]   ppo step 445440/5000000 (27.59 steps/s, eta 165088.8 s) recent train ep reward 29.31
+[12:37:26]   ppo step 450560/5000000 (27.9 steps/s, eta 163052.6 s) recent train ep reward 40.96
+[12:40:32]   ppo step 455680/5000000 (27.57 steps/s, eta 164837.0 s) recent train ep reward 24.68
+[12:43:36]   ppo step 460800/5000000 (27.96 steps/s, eta 162333.1 s) recent train ep reward 42.31
+[12:46:43]   ppo step 465920/5000000 (27.4 steps/s, eta 165480.4 s) recent train ep reward 17.15
+[12:49:51]   ppo step 471040/5000000 (27.41 steps/s, eta 165247.7 s) recent train ep reward 41.87
+[12:53:00]   ppo step 476160/5000000 (27.14 steps/s, eta 166661.5 s) recent train ep reward 42.33
+[2026-10-05 13:30:13] training: brew-train all --config configs/train/full.yaml --run-dir /home/abhinav/brew/runs/overnight/20261005_063045_cf21a5b --resume
+[13:30:14] brew-train: config 'full', run dir /home/abhinav/brew/runs/overnight/20261005_063045_cf21a5b, resume=True, stages=13
+[13:30:16] [1/13] stage history: already complete, skipping
+[13:30:16] [2/13] stage forecast: already complete, skipping
+[13:30:16] [3/13] stage elasticity: already complete, skipping
+[13:30:16] [4/13] stage prep_time: already complete, skipping
+[13:30:16] [5/13] stage rider_eta: already complete, skipping
+[13:30:16] [6/13] stage text: already complete, skipping
+[13:30:16] [7/13] stage replate: already complete, skipping
+[13:30:16] [8/13] stage eval: already complete, skipping
+[13:30:16] [9/13] stage bc: already complete, skipping
+[13:30:16] [10/13] stage ppo ...
+[13:30:16] resuming PPO from ppo_ppo_000404480.zip (step 404480, curriculum stage 0)
+[13:30:24] PPO curriculum stage 1/3: 1-day episodes, shaping 1.0, steps 404480 -> 500000, 6 envs (subproc), device cuda
+[13:31:15]   ppo step 407552/2500000 (60.35 steps/s, eta 34669.9 s) recent train ep reward 32.02
+[13:32:13]   ppo step 410624/2500000 (55.41 steps/s, eta 37708.1 s) recent train ep reward 29.07
+[13:33:12]   ppo step 413696/2500000 (52.53 steps/s, eta 39713.9 s) recent train ep reward 31.35
+[13:34:10]   ppo step 416768/2500000 (52.47 steps/s, eta 39703.2 s) recent train ep reward 32.75
+[13:35:10]   ppo step 419840/2500000 (52.05 steps/s, eta 39967.0 s) recent train ep reward 38.01
+[2026-10-05 13:35:38] training: brew-train all --config configs/train/full.yaml --run-dir /home/abhinav/brew/runs/overnight/20261005_063045_cf21a5b --resume
+[13:35:38] brew-train: config 'full', run dir /home/abhinav/brew/runs/overnight/20261005_063045_cf21a5b, resume=True, stages=13
+[13:35:41] [1/13] stage history: already complete, skipping
+[13:35:41] [2/13] stage forecast: already complete, skipping
+[13:35:41] [3/13] stage elasticity: already complete, skipping
+[13:35:41] [4/13] stage prep_time: already complete, skipping
+[13:35:41] [5/13] stage rider_eta: already complete, skipping
+[13:35:41] [6/13] stage text: already complete, skipping
+[13:35:41] [7/13] stage replate: already complete, skipping
+[13:35:41] [8/13] stage eval: already complete, skipping
+[13:35:41] [9/13] stage bc: already complete, skipping
+[13:35:41] [10/13] stage ppo ...
+[13:35:42] resuming PPO from ppo_ppo_000404480.zip (step 404480, curriculum stage 0)
+[13:35:53] PPO curriculum stage 2/3: 7-day episodes, shaping 0.65, steps 404480 -> 1200000, 6 envs (subproc), device cuda
+[13:36:58]   ppo step 407552/2000000 (47.41 steps/s, eta 33591.3 s) recent train ep reward 263.89
+[13:38:06]   ppo step 410624/2000000 (45.82 steps/s, eta 34687.6 s) recent train ep reward 260.24
+[13:39:18]   ppo step 413696/2000000 (44.05 steps/s, eta 36013.1 s) recent train ep reward 269.97
+[13:40:25]   ppo step 416768/2000000 (44.55 steps/s, eta 35534.5 s) recent train ep reward 253.01
+[13:41:31]   ppo step 419840/2000000 (47.2 steps/s, eta 33477.4 s) recent train ep reward 230.26
+[13:42:35]   ppo step 422912/2000000 (48.32 steps/s, eta 32636.8 s) recent train ep reward 193.17
+[13:43:36]   ppo step 425984/2000000 (49.36 steps/s, eta 31889.9 s) recent train ep reward 232.25
+[13:44:38]   ppo step 429056/2000000 (49.71 steps/s, eta 31599.0 s) recent train ep reward 250.46
+[13:45:43]   ppo step 432128/2000000 (48.35 steps/s, eta 32425.0 s) recent train ep reward 216.50
+[13:46:47]   ppo step 435200/2000000 (47.61 steps/s, eta 32868.6 s) recent train ep reward 154.71
+[13:47:51]   ppo step 438272/2000000 (48.77 steps/s, eta 32024.7 s) recent train ep reward 214.69
+[13:48:53]   ppo step 441344/2000000 (49.08 steps/s, eta 31755.3 s) recent train ep reward 232.37
+[13:49:54]   ppo step 444416/2000000 (50.21 steps/s, eta 30979.1 s) recent train ep reward 262.91
+[13:50:57]   ppo step 447488/2000000 (49.87 steps/s, eta 31128.2 s) recent train ep reward 261.32
+[13:51:59]   ppo step 450560/2000000 (49.35 steps/s, eta 31397.7 s) recent train ep reward 265.67
+[13:53:01]   ppo step 453632/2000000 (49.2 steps/s, eta 31431.0 s) recent train ep reward 263.55
+[13:54:01]   ppo step 456704/2000000 (50.7 steps/s, eta 30439.7 s) recent train ep reward 282.33
+[13:55:06]   ppo step 459776/2000000 (49.27 steps/s, eta 31263.7 s) recent train ep reward 277.96
+[13:56:09]   ppo step 462848/2000000 (48.68 steps/s, eta 31574.0 s) recent train ep reward 267.31
+[13:57:12]   ppo step 465920/2000000 (48.99 steps/s, eta 31312.0 s) recent train ep reward 257.37
+[13:58:14]   ppo step 468992/2000000 (50.38 steps/s, eta 30388.9 s) recent train ep reward 246.28
+[13:59:15]   ppo step 472064/2000000 (50.66 steps/s, eta 30162.4 s) recent train ep reward 252.21
+[14:00:19]   ppo step 475136/2000000 (49.01 steps/s, eta 31111.8 s) recent train ep reward 254.83
+[14:01:22]   ppo step 478208/2000000 (48.21 steps/s, eta 31566.7 s) recent train ep reward 238.33
+[14:02:24]   ppo step 481280/2000000 (48.84 steps/s, eta 31097.8 s) recent train ep reward 257.74
+[14:03:26]   ppo step 484352/2000000 (49.78 steps/s, eta 30443.9 s) recent train ep reward 288.54
+[14:04:29]   ppo step 487424/2000000 (49.5 steps/s, eta 30554.2 s) recent train ep reward 302.44
+[14:05:33]   ppo step 490496/2000000 (48.29 steps/s, eta 31261.0 s) recent train ep reward 288.95
+[14:06:37]   ppo step 493568/2000000 (48.26 steps/s, eta 31215.0 s) recent train ep reward 274.58
+[14:07:40]   ppo step 496640/2000000 (48.32 steps/s, eta 31113.4 s) recent train ep reward 229.88
+[14:08:44]   ppo step 499712/2000000 (48.48 steps/s, eta 30947.9 s) recent train ep reward 220.23
+[14:09:49]   ppo step 502784/2000000 (46.77 steps/s, eta 32009.1 s) recent train ep reward 242.05
+[14:11:27]   eval @ 502784: mean reward 365.239 mean profit/day 101743 (walkouts 62.9, waste 10.9 kg, 97.8s)
+[14:11:27]   checkpoint saved at step 502784
+[14:12:30]   ppo step 505856/2000000 (23.05 steps/s, eta 64831.4 s) recent train ep reward 242.61
+[14:13:33]   ppo step 508928/2000000 (48.86 steps/s, eta 30517.4 s) recent train ep reward 269.71
+[14:14:36]   ppo step 512000/2000000 (49.35 steps/s, eta 30150.7 s) recent train ep reward 263.54
+[14:15:41]   ppo step 515072/2000000 (48.27 steps/s, eta 30764.4 s) recent train ep reward 255.05
+[14:16:41]   ppo step 518144/2000000 (50.03 steps/s, eta 29616.6 s) recent train ep reward 232.67
+[14:17:42]   ppo step 521216/2000000 (50.94 steps/s, eta 29028.3 s) recent train ep reward 236.82
+[14:18:45]   ppo step 524288/2000000 (48.89 steps/s, eta 30182.2 s) recent train ep reward 260.98
+[14:19:48]   ppo step 527360/2000000 (49.02 steps/s, eta 30042.1 s) recent train ep reward 252.00
+[14:20:50]   ppo step 530432/2000000 (50.19 steps/s, eta 29281.2 s) recent train ep reward 263.91
+[14:21:52]   ppo step 533504/2000000 (49.4 steps/s, eta 29686.6 s) recent train ep reward 284.98
+[14:22:54]   ppo step 536576/2000000 (50.05 steps/s, eta 29236.8 s) recent train ep reward 265.52
+[14:23:58]   ppo step 539648/2000000 (49.18 steps/s, eta 29696.5 s) recent train ep reward 264.13
+[14:24:59]   ppo step 542720/2000000 (50.27 steps/s, eta 28986.3 s) recent train ep reward 282.18
+[14:26:02]   ppo step 545792/2000000 (50.25 steps/s, eta 28936.9 s) recent train ep reward 252.87
+[14:27:03]   ppo step 548864/2000000 (50.03 steps/s, eta 29007.8 s) recent train ep reward 244.58
+[14:28:07]   ppo step 551936/2000000 (49.24 steps/s, eta 29406.9 s) recent train ep reward 226.86
+[14:29:09]   ppo step 555008/2000000 (48.76 steps/s, eta 29634.3 s) recent train ep reward 229.40
+[14:30:12]   ppo step 558080/2000000 (49.7 steps/s, eta 29010.6 s) recent train ep reward 232.10
+[14:31:12]   ppo step 561152/2000000 (49.66 steps/s, eta 28974.4 s) recent train ep reward 203.61
+[14:32:16]   ppo step 564224/2000000 (48.88 steps/s, eta 29375.9 s) recent train ep reward 164.09
+[14:33:25]   ppo step 567296/2000000 (45.92 steps/s, eta 31197.0 s) recent train ep reward 156.61
+[14:34:42]   ppo step 570368/2000000 (42.21 steps/s, eta 33873.1 s) recent train ep reward 234.16
+[14:36:07]   ppo step 573440/2000000 (36.13 steps/s, eta 39487.8 s) recent train ep reward 231.57
+[14:37:19]   ppo step 576512/2000000 (39.92 steps/s, eta 35655.4 s) recent train ep reward 262.38
+[14:38:24]   ppo step 579584/2000000 (48.38 steps/s, eta 29361.8 s) recent train ep reward 242.70
+[14:39:47]   ppo step 582656/2000000 (39.32 steps/s, eta 36042.5 s) recent train ep reward 220.09
+[14:41:09]   ppo step 585728/2000000 (36.48 steps/s, eta 38769.3 s) recent train ep reward 209.52
+[14:42:15]   ppo step 588800/2000000 (44.93 steps/s, eta 31407.6 s) recent train ep reward 221.78
+[14:43:39]   ppo step 591872/2000000 (38.25 steps/s, eta 36813.6 s) recent train ep reward 272.70
+[14:45:04]   ppo step 594944/2000000 (36.83 steps/s, eta 38151.2 s) recent train ep reward 266.90
+[14:46:34]   ppo step 598016/2000000 (35.12 steps/s, eta 39918.2 s) recent train ep reward 226.63
+[14:47:45]   ppo step 601088/2000000 (41.08 steps/s, eta 34051.3 s) recent train ep reward 180.70
+[14:49:18]   eval @ 601088: mean reward 347.043 mean profit/day 99856 (walkouts 63.9, waste 10.8 kg, 93.5s)
+[14:49:18]   checkpoint saved at step 601088
+[14:50:46]   ppo step 604160/2000000 (21.14 steps/s, eta 66017.6 s) recent train ep reward 182.87
+[14:52:13]   ppo step 607232/2000000 (35.31 steps/s, eta 39448.5 s) recent train ep reward 197.08
+[14:53:44]   ppo step 610304/2000000 (34.72 steps/s, eta 40022.7 s) recent train ep reward 181.53
+[14:55:05]   ppo step 613376/2000000 (36.24 steps/s, eta 38264.6 s) recent train ep reward 226.65
+[14:56:09]   ppo step 616448/2000000 (45.14 steps/s, eta 30653.4 s) recent train ep reward 256.68
+[14:57:09]   ppo step 619520/2000000 (49.75 steps/s, eta 27749.9 s) recent train ep reward 248.90
+[14:58:24]   ppo step 622592/2000000 (43.92 steps/s, eta 31363.8 s) recent train ep reward 225.55
+[14:59:39]   ppo step 625664/2000000 (39.63 steps/s, eta 34675.1 s) recent train ep reward 217.23
+[15:00:48]   ppo step 628736/2000000 (43.26 steps/s, eta 31701.7 s) recent train ep reward 220.72
+[15:01:51]   ppo step 631808/2000000 (46.49 steps/s, eta 29430.7 s) recent train ep reward 208.08
+[15:02:56]   ppo step 634880/2000000 (47.93 steps/s, eta 28483.8 s) recent train ep reward 203.14
+[15:03:58]   ppo step 637952/2000000 (47.99 steps/s, eta 28381.5 s) recent train ep reward 212.79
+[15:05:00]   ppo step 641024/2000000 (49.64 steps/s, eta 27376.1 s) recent train ep reward 205.04
+[15:06:05]   ppo step 644096/2000000 (47.5 steps/s, eta 28543.9 s) recent train ep reward 188.53
+[15:07:11]   ppo step 647168/2000000 (47.13 steps/s, eta 28703.7 s) recent train ep reward 192.30
+[15:08:19]   ppo step 650240/2000000 (45.98 steps/s, eta 29356.3 s) recent train ep reward 193.26
+[15:09:25]   ppo step 653312/2000000 (45.28 steps/s, eta 29740.3 s) recent train ep reward 216.27
+[15:10:29]   ppo step 656384/2000000 (47.97 steps/s, eta 28009.3 s) recent train ep reward 265.11
+[15:11:31]   ppo step 659456/2000000 (50.13 steps/s, eta 26741.0 s) recent train ep reward 266.28
+[15:12:47]   ppo step 662528/2000000 (42.72 steps/s, eta 31309.7 s) recent train ep reward 261.21
+[15:14:10]   ppo step 665600/2000000 (36.88 steps/s, eta 36184.2 s) recent train ep reward 255.00
+[15:15:18]   ppo step 668672/2000000 (43.01 steps/s, eta 30953.5 s) recent train ep reward 224.57
+[15:16:21]   ppo step 671744/2000000 (49.16 steps/s, eta 27017.7 s) recent train ep reward 225.44
+[15:17:25]   ppo step 674816/2000000 (48.73 steps/s, eta 27195.0 s) recent train ep reward 229.27
+[15:18:30]   ppo step 677888/2000000 (47.17 steps/s, eta 28026.1 s) recent train ep reward 254.39
+[15:19:40]   ppo step 680960/2000000 (44.72 steps/s, eta 29495.2 s) recent train ep reward 248.64
+[15:20:51]   ppo step 684032/2000000 (43.65 steps/s, eta 30146.9 s) recent train ep reward 255.53
+[15:21:57]   ppo step 687104/2000000 (46.39 steps/s, eta 28303.6 s) recent train ep reward 262.86
+[15:23:01]   ppo step 690176/2000000 (47.82 steps/s, eta 27390.1 s) recent train ep reward 262.48
+[15:24:04]   ppo step 693248/2000000 (48.43 steps/s, eta 26984.7 s) recent train ep reward 245.21
+[15:25:09]   ppo step 696320/2000000 (48.81 steps/s, eta 26707.9 s) recent train ep reward 206.52
+[15:26:16]   ppo step 699392/2000000 (46.36 steps/s, eta 28053.2 s) recent train ep reward 140.20
+[15:27:23]   ppo step 702464/2000000 (46.25 steps/s, eta 28054.8 s) recent train ep reward 186.03
+[15:29:04]   eval @ 702464: mean reward 351.477 mean profit/day 100296 (walkouts 64.0, waste 10.6 kg, 101.5s)
+…
+[2026-10-05 06:30:45] training: brew-train all --config configs/train/full.yaml --run-dir /home/abhinav/brew/runs/overnight/20261005_063045_cf21a5b 
+[06:30:46] brew-train: config 'full', run dir /home/abhinav/brew/runs/overnight/20261005_063045_cf21a5b, resume=False, stages=13
+[06:30:48] [1/13] stage history ...
+[06:43:51] [1/13] stage history done in 783.6s
+[06:43:51] [2/13] stage forecast ...
+[06:47:50] [2/13] stage forecast done in 238.7s
+[06:47:50] [3/13] stage elasticity ...
+[06:54:25] [3/13] stage elasticity done in 394.7s
+[06:54:25] [4/13] stage prep_time ...
+[06:57:43] [4/13] stage prep_time done in 198.2s
+[06:57:43] [5/13] stage rider_eta ...
+[06:57:43] [5/13] stage rider_eta done in 0.7s
+[06:57:43] [6/13] stage text ...
+[06:58:28] [6/13] stage text done in 44.1s
+[06:58:28] [7/13] stage replate ...
+[06:58:31] [7/13] stage replate done in 3.2s
+[06:58:31] [8/13] stage eval ...
+[07:34:09] [8/13] stage eval done in 2138.0s
+[07:34:09] [9/13] stage bc ...
+[07:34:09] BC: rolling out Policy C for 200 day(s) in episodes of 7 (10 worker(s))
+[07:37:44]   BC teacher episode 1/29 done (199s)
+[07:38:58]   BC teacher episode 2/29 done (268s)
+[07:38:58]   BC teacher episode 3/29 done (241s)
+[07:38:58]   BC teacher episode 4/29 done (165s)
+[07:38:58]   BC teacher episode 5/29 done (209s)
+[07:38:58]   BC teacher episode 6/29 done (231s)
+[07:38:58]   BC teacher episode 7/29 done (256s)
+[07:38:58]   BC teacher episode 8/29 done (177s)
+[07:38:58]   BC teacher episode 9/29 done (190s)
+[07:38:58]   BC teacher episode 10/29 done (152s)
+[07:41:35]   BC teacher episode 11/29 done (273s)
+[07:41:35]   BC teacher episode 12/29 done (215s)
+[07:41:35]   BC teacher episode 13/29 done (234s)
+[07:41:35]   BC teacher episode 14/29 done (233s)
+[07:41:54]   BC teacher episode 15/29 done (246s)
+[07:41:54]   BC teacher episode 16/29 done (188s)
+[07:42:38]   BC teacher episode 17/29 done (258s)
+[07:42:38]   BC teacher episode 18/29 done (227s)
+[07:42:53]   BC teacher episode 19/29 done (247s)
+[07:42:53]   BC teacher episode 20/29 done (211s)
+[07:45:25]   BC teacher episode 21/29 done (271s)
+[07:45:25]   BC teacher episode 22/29 done (222s)
+[07:45:37]   BC teacher episode 23/29 done (253s)
+[07:45:37]   BC teacher episode 24/29 done (211s)
+[07:45:37]   BC teacher episode 25/29 done (221s)
+[07:45:37]   BC teacher episode 26/29 done (211s)
+[07:45:55]   BC teacher episode 27/29 done (211s)
+[07:45:55]   BC teacher episode 28/29 done (168s)
+[07:45:55]   BC teacher episode 29/29 done (185s)
+[07:45:57] BC: 11571 samples, teacher profit/day 94473
+[07:45:59]   BC epoch 1/80: policy loss 21.000 value loss 0.993 acc 0.860
+[07:46:13]   BC epoch 14/80: policy loss 0.072 value loss 0.057 acc 0.999
+[07:46:28]   BC epoch 27/80: policy loss 0.035 value loss 0.029 acc 1.000
+[07:46:47]   BC epoch 40/80: policy loss 0.022 value loss 0.017 acc 1.000
+[07:47:11]   BC epoch 53/80: policy loss 0.010 value loss 0.013 acc 1.000
+[07:47:36]   BC epoch 66/80: policy loss 0.006 value loss 0.010 acc 1.000
+[07:48:02]   BC epoch 79/80: policy loss 0.004 value loss 0.008 acc 1.000
+[07:48:04]   BC epoch 80/80: policy loss 0.003 value loss 0.008 acc 1.000
+[07:48:04] BC done: policy loss 21.000 -> 0.003, accuracy 1.000
+[07:48:04] [9/13] stage bc done in 835.0s
+[07:48:04] [10/13] stage ppo ...
+[07:48:11] initialised policy weights from bc/bc_model.zip
+[07:48:15] PPO curriculum stage 1/3: 1-day episodes, shaping 1.0, steps 0 -> 1000000, 10 envs (subproc), device cuda
+[07:51:17]   eval @ 0: mean reward 294.319 mean profit/day 95786 (walkouts 72.1, waste 9.7 kg, 182.8s)
+[07:54:23]   ppo step 5120/5000000 (27.58 steps/s, eta 181116.4 s) recent train ep reward 0.45
+[07:57:30]   ppo step 10240/5000000 (27.96 steps/s, eta 178463.5 s) recent train ep reward 14.08
+[08:00:40]   ppo step 15360/5000000 (27.03 steps/s, eta 184404.7 s) recent train ep reward 28.26
+[08:03:45]   ppo step 20480/5000000 (27.9 steps/s, eta 178478.4 s) recent train ep reward 22.06
+[08:06:50]   ppo step 25600/5000000 (27.75 steps/s, eta 179234.3 s) recent train ep reward 24.77
+[08:09:57]   ppo step 30720/5000000 (28.05 steps/s, eta 177152.1 s) recent train ep reward 7.49
+[08:13:06]   ppo step 35840/5000000 (27.6 steps/s, eta 179873.3 s) recent train ep reward 25.73
+[08:16:13]   ppo step 40960/5000000 (27.48 steps/s, eta 180442.8 s) recent train ep reward -3.48
+[08:19:23]   ppo step 46080/5000000 (27.42 steps/s, eta 180645.3 s) recent train ep reward 17.67
+[08:22:28]   ppo step 51200/5000000 (27.68 steps/s, eta 178807.4 s) recent train ep reward 22.12
+[08:25:35]   ppo step 56320/5000000 (27.82 steps/s, eta 177699.7 s) recent train ep reward 14.10
+[08:28:37]   ppo step 61440/5000000 (28.62 steps/s, eta 172576.1 s) recent train ep reward 22.99
+[08:31:45]   ppo step 66560/5000000 (28.11 steps/s, eta 175530.7 s) recent train ep reward 14.14
+[08:34:54]   ppo step 71680/5000000 (27.28 steps/s, eta 180678.1 s) recent train ep reward 20.59
+[08:37:57]   ppo step 76800/5000000 (28.04 steps/s, eta 175557.1 s) recent train ep reward 10.78
+[08:41:11]   ppo step 81920/5000000 (26.71 steps/s, eta 184114.9 s) recent train ep reward 44.23
+[08:44:15]   ppo step 87040/5000000 (28.08 steps/s, eta 174946.4 s) recent train ep reward 10.75
+[08:47:29]   ppo step 92160/5000000 (26.98 steps/s, eta 181913.9 s) recent train ep reward 35.46
+[08:50:33]   ppo step 97280/5000000 (27.66 steps/s, eta 177266.2 s) recent train ep reward 12.27
+[08:53:36]   ppo step 102400/5000000 (27.73 steps/s, eta 176634.1 s) recent train ep reward 36.66
+[08:56:37]   eval @ 102400: mean reward 360.385 mean profit/day 102121 (walkouts 66.7, waste 9.9 kg, 180.4s)
+[08:56:37]   checkpoint saved at step 102400
+[08:59:41]   ppo step 107520/5000000 (28.32 steps/s, eta 172784.6 s) recent train ep reward 27.10
+[09:02:45]   ppo step 112640/5000000 (28.35 steps/s, eta 172365.3 s) recent train ep reward 18.06
+[09:05:49]   ppo step 117760/5000000 (28.07 steps/s, eta 173910.9 s) recent train ep reward 28.45
+[09:08:52]   ppo step 122880/5000000 (27.85 steps/s, eta 175110.7 s) recent train ep reward 19.11
+[09:11:55]   ppo step 128000/5000000 (28.11 steps/s, eta 173324.8 s) recent train ep reward 21.57
+[09:15:01]   ppo step 133120/5000000 (28.44 steps/s, eta 171118.6 s) recent train ep reward 26.40
+[09:18:06]   ppo step 138240/5000000 (27.63 steps/s, eta 175931.3 s) recent train ep reward 34.74
+[09:21:17]   ppo step 143360/5000000 (26.92 steps/s, eta 180415.8 s) recent train ep reward 25.22
+[09:24:24]   ppo step 148480/5000000 (27.43 steps/s, eta 176875.4 s) recent train ep reward 24.10
+[09:27:30]   ppo step 153600/5000000 (27.77 steps/s, eta 174542.7 s) recent train ep reward 33.88
+[09:30:38]   ppo step 158720/5000000 (27.08 steps/s, eta 178793.6 s) recent train ep reward 31.83
+[09:33:44]   ppo step 163840/5000000 (27.62 steps/s, eta 175086.1 s) recent train ep reward 19.99
+[09:36:48]   ppo step 168960/5000000 (27.82 steps/s, eta 173672.4 s) recent train ep reward 15.32
+[09:39:54]   ppo step 174080/5000000 (27.37 steps/s, eta 176301.3 s) recent train ep reward 7.67
+[09:42:59]   ppo step 179200/5000000 (28.07 steps/s, eta 171767.6 s) recent train ep reward 13.84
+[09:46:08]   ppo step 184320/5000000 (27.03 steps/s, eta 178157.6 s) recent train ep reward 29.95
+[09:49:15]   ppo step 189440/5000000 (27.4 steps/s, eta 175592.7 s) recent train ep reward 18.88
+[09:52:20]   ppo step 194560/5000000 (27.6 steps/s, eta 174128.9 s) recent train ep reward 33.30
+[09:55:21]   ppo step 199680/5000000 (28.24 steps/s, eta 170006.9 s) recent train ep reward 25.85
+[09:58:24]   ppo step 204800/5000000 (27.96 steps/s, eta 171519.4 s) recent train ep reward 34.88
+[10:01:21]   eval @ 204800: mean reward 396.561 mean profit/day 105337 (walkouts 63.6, waste 10.3 kg, 176.5s)
+[10:01:21]   checkpoint saved at step 204800
+[10:04:26]   ppo step 209920/5000000 (27.62 steps/s, eta 173437.5 s) recent train ep reward 33.27
+[10:07:35]   ppo step 215040/5000000 (27.11 steps/s, eta 176492.7 s) recent train ep reward 39.62
+[10:10:43]   ppo step 220160/5000000 (27.43 steps/s, eta 174277.1 s) recent train ep reward 17.13
+[10:13:51]   ppo step 225280/5000000 (27.33 steps/s, eta 174683.0 s) recent train ep reward 42.13
+[10:17:02]   ppo step 230400/5000000 (27.09 steps/s, eta 176096.6 s) recent train ep reward 36.51
+[10:20:12]   ppo step 235520/5000000 (27.06 steps/s, eta 176038.7 s) recent train ep reward 36.19
+[10:23:20]   ppo step 240640/5000000 (27.29 steps/s, eta 174423.0 s) recent train ep reward 17.19
+[10:26:29]   ppo step 245760/5000000 (27.23 steps/s, eta 174626.2 s) recent train ep reward 32.28
+[10:29:37]   ppo step 250880/5000000 (27.56 steps/s, eta 172314.7 s) recent train ep reward 26.16
+[10:32:42]   ppo step 256000/5000000 (27.84 steps/s, eta 170401.7 s) recent train ep reward 33.92
+[10:35:50]   ppo step 261120/5000000 (27.41 steps/s, eta 172907.7 s) recent train ep reward 28.50
+[10:38:55]   ppo step 266240/5000000 (27.74 steps/s, eta 170657.9 s) recent train ep reward 28.61
+[10:42:05]   ppo step 271360/5000000 (27.26 steps/s, eta 173442.2 s) recent train ep reward 21.13
+[10:45:12]   ppo step 276480/5000000 (27.43 steps/s, eta 172231.6 s) recent train ep reward 34.87
+[10:48:23]   ppo step 281600/5000000 (27.05 steps/s, eta 174463.4 s) recent train ep reward 39.08
+[10:51:33]   ppo step 286720/5000000 (27.18 steps/s, eta 173440.9 s) recent train ep reward 16.49
+[10:54:40]   ppo step 291840/5000000 (27.74 steps/s, eta 169706.2 s) recent train ep reward 38.19
+[10:57:47]   ppo step 296960/5000000 (27.87 steps/s, eta 168756.4 s) recent train ep reward 32.27
+[11:00:57]   ppo step 302080/5000000 (27.18 steps/s, eta 172860.2 s) recent train ep reward 20.62
+[11:03:57]   eval @ 302080: mean reward 371.657 mean profit/day 102232 (walkouts 64.4, waste 10.5 kg, 180.2s)
+[11:03:57]   checkpoint saved at step 302080
+[11:07:01]   ppo step 307200/5000000 (28.12 steps/s, eta 166870.2 s) recent train ep reward 23.12
+[11:10:11]   ppo step 312320/5000000 (27.32 steps/s, eta 171570.7 s) recent train ep reward 27.73
+[11:13:16]   ppo step 317440/5000000 (28.01 steps/s, eta 167175.2 s) recent train ep reward 6.76
+[11:16:22]   ppo step 322560/5000000 (27.85 steps/s, eta 167940.4 s) recent train ep reward 8.77
+[11:19:27]   ppo step 327680/5000000 (27.97 steps/s, eta 167037.1 s) recent train ep reward 27.20
+[11:22:33]   ppo step 332800/5000000 (27.87 steps/s, eta 167454.5 s) recent train ep reward 24.75
+[11:25:40]   ppo step 337920/5000000 (27.54 steps/s, eta 169266.3 s) recent train ep reward 24.74
+[11:28:47]   ppo step 343040/5000000 (27.75 steps/s, eta 167818.5 s) recent train ep reward 38.26
+[11:31:54]   ppo step 348160/5000000 (27.53 steps/s, eta 168953.3 s) recent train ep reward 27.86
+[11:35:04]   ppo step 353280/5000000 (27.32 steps/s, eta 170090.1 s) recent train ep reward 21.91
+[11:38:10]   ppo step 358400/5000000 (27.83 steps/s, eta 166779.7 s) recent train ep reward 28.61
+[11:41:19]   ppo step 363520/5000000 (27.6 steps/s, eta 168001.6 s) recent train ep reward 38.45
+[11:44:24]   ppo step 368640/5000000 (27.91 steps/s, eta 165957.3 s) recent train ep reward 14.65
+[11:47:32]   ppo step 373760/5000000 (27.33 steps/s, eta 169288.3 s) recent train ep reward 17.75
+[11:50:39]   ppo step 378880/5000000 (27.77 steps/s, eta 166412.2 s) recent train ep reward 33.11
+[11:53:42]   ppo step 384000/5000000 (28.05 steps/s, eta 164541.5 s) recent train ep reward 29.91
+[11:56:52]   ppo step 389120/5000000 (27.14 steps/s, eta 169895.8 s) recent train ep reward 16.51
+[11:59:56]   ppo step 394240/5000000 (28.1 steps/s, eta 163902.5 s) recent train ep reward 44.71
+[12:03:00]   ppo step 399360/5000000 (27.92 steps/s, eta 164779.3 s) recent train ep reward 22.86
+[12:06:01]   ppo step 404480/5000000 (28.36 steps/s, eta 162062.6 s) recent train ep reward 28.87
+[12:09:21]   eval @ 404480: mean reward 362.739 mean profit/day 101288 (walkouts 64.8, waste 10.4 kg, 200.2s)
+[12:09:21]   checkpoint saved at step 404480
+[12:12:31]   ppo step 409600/5000000 (27.31 steps/s, eta 168084.9 s) recent train ep reward 17.86
+[12:15:37]   ppo step 414720/5000000 (27.78 steps/s, eta 165041.4 s) recent train ep reward 21.59
+[12:18:48]   ppo step 419840/5000000 (27.14 steps/s, eta 168784.3 s) recent train ep reward 23.59
+[12:21:51]   ppo step 424960/5000000 (28.03 steps/s, eta 163228.0 s) recent train ep reward 33.10
+[12:24:59]   ppo step 430080/5000000 (27.51 steps/s, eta 166138.6 s) recent train ep reward 29.71
+[12:28:06]   ppo step 435200/5000000 (27.61 steps/s, eta 165328.6 s) recent train ep reward 22.79
+[12:31:16]   ppo step 440320/5000000 (27.26 steps/s, eta 167253.7 s) recent train ep reward 33.08
+[12:34:22]   ppo step 445440/5000000 (27.59 steps/s, eta 165088.8 s) recent train ep reward 29.31
+[12:37:26]   ppo step 450560/5000000 (27.9 steps/s, eta 163052.6 s) recent train ep reward 40.96
+[12:40:32]   ppo step 455680/5000000 (27.57 steps/s, eta 164837.0 s) recent train ep reward 24.68
+[12:43:36]   ppo step 460800/5000000 (27.96 steps/s, eta 162333.1 s) recent train ep reward 42.31
+[12:46:43]   ppo step 465920/5000000 (27.4 steps/s, eta 165480.4 s) recent train ep reward 17.15
+[12:49:51]   ppo step 471040/5000000 (27.41 steps/s, eta 165247.7 s) recent train ep reward 41.87
+[12:53:00]   ppo step 476160/5000000 (27.14 steps/s, eta 166661.5 s) recent train ep reward 42.33
+[2026-10-05 13:30:13] training: brew-train all --config configs/train/full.yaml --run-dir /home/abhinav/brew/runs/overnight/20261005_063045_cf21a5b --resume
+[13:30:14] brew-train: config 'full', run dir /home/abhinav/brew/runs/overnight/20261005_063045_cf21a5b, resume=True, stages=13
+[13:30:16] [1/13] stage history: already complete, skipping
+[13:30:16] [2/13] stage forecast: already complete, skipping
+[13:30:16] [3/13] stage elasticity: already complete, skipping
+[13:30:16] [4/13] stage prep_time: already complete, skipping
+[13:30:16] [5/13] stage rider_eta: already complete, skipping
+[13:30:16] [6/13] stage text: already complete, skipping
+[13:30:16] [7/13] stage replate: already complete, skipping
+[13:30:16] [8/13] stage eval: already complete, skipping
+[13:30:16] [9/13] stage bc: already complete, skipping
+[13:30:16] [10/13] stage ppo ...
+[13:30:16] resuming PPO from ppo_ppo_000404480.zip (step 404480, curriculum stage 0)
+[13:30:24] PPO curriculum stage 1/3: 1-day episodes, shaping 1.0, steps 404480 -> 500000, 6 envs (subproc), device cuda
+[13:31:15]   ppo step 407552/2500000 (60.35 steps/s, eta 34669.9 s) recent train ep reward 32.02
+[13:32:13]   ppo step 410624/2500000 (55.41 steps/s, eta 37708.1 s) recent train ep reward 29.07
+[13:33:12]   ppo step 413696/2500000 (52.53 steps/s, eta 39713.9 s) recent train ep reward 31.35
+[13:34:10]   ppo step 416768/2500000 (52.47 steps/s, eta 39703.2 s) recent train ep reward 32.75
+[13:35:10]   ppo step 419840/2500000 (52.05 steps/s, eta 39967.0 s) recent train ep reward 38.01
+[2026-10-05 13:35:38] training: brew-train all --config configs/train/full.yaml --run-dir /home/abhinav/brew/runs/overnight/20261005_063045_cf21a5b --resume
+[13:35:38] brew-train: config 'full', run dir /home/abhinav/brew/runs/overnight/20261005_063045_cf21a5b, resume=True, stages=13
+[13:35:41] [1/13] stage history: already complete, skipping
+[13:35:41] [2/13] stage forecast: already complete, skipping
+[13:35:41] [3/13] stage elasticity: already complete, skipping
+[13:35:41] [4/13] stage prep_time: already complete, skipping
+[13:35:41] [5/13] stage rider_eta: already complete, skipping
+[13:35:41] [6/13] stage text: already complete, skipping
+[13:35:41] [7/13] stage replate: already complete, skipping
+[13:35:41] [8/13] stage eval: already complete, skipping
+[13:35:41] [9/13] stage bc: already complete, skipping
+[13:35:41] [10/13] stage ppo ...
+[13:35:42] resuming PPO from ppo_ppo_000404480.zip (step 404480, curriculum stage 0)
+[13:35:53] PPO curriculum stage 2/3: 7-day episodes, shaping 0.65, steps 404480 -> 1200000, 6 envs (subproc), device cuda
+[13:36:58]   ppo step 407552/2000000 (47.41 steps/s, eta 33591.3 s) recent train ep reward 263.89
+[13:38:06]   ppo step 410624/2000000 (45.82 steps/s, eta 34687.6 s) recent train ep reward 260.24
+[13:39:18]   ppo step 413696/2000000 (44.05 steps/s, eta 36013.1 s) recent train ep reward 269.97
+[13:40:25]   ppo step 416768/2000000 (44.55 steps/s, eta 35534.5 s) recent train ep reward 253.01
+[13:41:31]   ppo step 419840/2000000 (47.2 steps/s, eta 33477.4 s) recent train ep reward 230.26
+[13:42:35]   ppo step 422912/2000000 (48.32 steps/s, eta 32636.8 s) recent train ep reward 193.17
+[13:43:36]   ppo step 425984/2000000 (49.36 steps/s, eta 31889.9 s) recent train ep reward 232.25
+[13:44:38]   ppo step 429056/2000000 (49.71 steps/s, eta 31599.0 s) recent train ep reward 250.46
+[13:45:43]   ppo step 432128/2000000 (48.35 steps/s, eta 32425.0 s) recent train ep reward 216.50
+[13:46:47]   ppo step 435200/2000000 (47.61 steps/s, eta 32868.6 s) recent train ep reward 154.71
+[13:47:51]   ppo step 438272/2000000 (48.77 steps/s, eta 32024.7 s) recent train ep reward 214.69
+[13:48:53]   ppo step 441344/2000000 (49.08 steps/s, eta 31755.3 s) recent train ep reward 232.37
+[13:49:54]   ppo step 444416/2000000 (50.21 steps/s, eta 30979.1 s) recent train ep reward 262.91
+[13:50:57]   ppo step 447488/2000000 (49.87 steps/s, eta 31128.2 s) recent train ep reward 261.32
+[13:51:59]   ppo step 450560/2000000 (49.35 steps/s, eta 31397.7 s) recent train ep reward 265.67
+[13:53:01]   ppo step 453632/2000000 (49.2 steps/s, eta 31431.0 s) recent train ep reward 263.55
+[13:54:01]   ppo step 456704/2000000 (50.7 steps/s, eta 30439.7 s) recent train ep reward 282.33
+[13:55:06]   ppo step 459776/2000000 (49.27 steps/s, eta 31263.7 s) recent train ep reward 277.96
+[13:56:09]   ppo step 462848/2000000 (48.68 steps/s, eta 31574.0 s) recent train ep reward 267.31
+[13:57:12]   ppo step 465920/2000000 (48.99 steps/s, eta 31312.0 s) recent train ep reward 257.37
+[13:58:14]   ppo step 468992/2000000 (50.38 steps/s, eta 30388.9 s) recent train ep reward 246.28
+[13:59:15]   ppo step 472064/2000000 (50.66 steps/s, eta 30162.4 s) recent train ep reward 252.21
+[14:00:19]   ppo step 475136/2000000 (49.01 steps/s, eta 31111.8 s) recent train ep reward 254.83
+[14:01:22]   ppo step 478208/2000000 (48.21 steps/s, eta 31566.7 s) recent train ep reward 238.33
+[14:02:24]   ppo step 481280/2000000 (48.84 steps/s, eta 31097.8 s) recent train ep reward 257.74
+[14:03:26]   ppo step 484352/2000000 (49.78 steps/s, eta 30443.9 s) recent train ep reward 288.54
+[14:04:29]   ppo step 487424/2000000 (49.5 steps/s, eta 30554.2 s) recent train ep reward 302.44
+[14:05:33]   ppo step 490496/2000000 (48.29 steps/s, eta 31261.0 s) recent train ep reward 288.95
+[14:06:37]   ppo step 493568/2000000 (48.26 steps/s, eta 31215.0 s) recent train ep reward 274.58
+[14:07:40]   ppo step 496640/2000000 (48.32 steps/s, eta 31113.4 s) recent train ep reward 229.88
+[14:08:44]   ppo step 499712/2000000 (48.48 steps/s, eta 30947.9 s) recent train ep reward 220.23
+[14:09:49]   ppo step 502784/2000000 (46.77 steps/s, eta 32009.1 s) recent train ep reward 242.05
+[14:11:27]   eval @ 502784: mean reward 365.239 mean profit/day 101743 (walkouts 62.9, waste 10.9 kg, 97.8s)
+[14:11:27]   checkpoint saved at step 502784
+[14:12:30]   ppo step 505856/2000000 (23.05 steps/s, eta 64831.4 s) recent train ep reward 242.61
+[14:13:33]   ppo step 508928/2000000 (48.86 steps/s, eta 30517.4 s) recent train ep reward 269.71
+[14:14:36]   ppo step 512000/2000000 (49.35 steps/s, eta 30150.7 s) recent train ep reward 263.54
+[14:15:41]   ppo step 515072/2000000 (48.27 steps/s, eta 30764.4 s) recent train ep reward 255.05
+[14:16:41]   ppo step 518144/2000000 (50.03 steps/s, eta 29616.6 s) recent train ep reward 232.67
+[14:17:42]   ppo step 521216/2000000 (50.94 steps/s, eta 29028.3 s) recent train ep reward 236.82
+[14:18:45]   ppo step 524288/2000000 (48.89 steps/s, eta 30182.2 s) recent train ep reward 260.98
+[14:19:48]   ppo step 527360/2000000 (49.02 steps/s, eta 30042.1 s) recent train ep reward 252.00
+[14:20:50]   ppo step 530432/2000000 (50.19 steps/s, eta 29281.2 s) recent train ep reward 263.91
+[14:21:52]   ppo step 533504/2000000 (49.4 steps/s, eta 29686.6 s) recent train ep reward 284.98
+[14:22:54]   ppo step 536576/2000000 (50.05 steps/s, eta 29236.8 s) recent train ep reward 265.52
+[14:23:58]   ppo step 539648/2000000 (49.18 steps/s, eta 29696.5 s) recent train ep reward 264.13
+[14:24:59]   ppo step 542720/2000000 (50.27 steps/s, eta 28986.3 s) recent train ep reward 282.18
+[14:26:02]   ppo step 545792/2000000 (50.25 steps/s, eta 28936.9 s) recent train ep reward 252.87
+[14:27:03]   ppo step 548864/2000000 (50.03 steps/s, eta 29007.8 s) recent train ep reward 244.58
+[14:28:07]   ppo step 551936/2000000 (49.24 steps/s, eta 29406.9 s) recent train ep reward 226.86
+[14:29:09]   ppo step 555008/2000000 (48.76 steps/s, eta 29634.3 s) recent train ep reward 229.40
+[14:30:12]   ppo step 558080/2000000 (49.7 steps/s, eta 29010.6 s) recent train ep reward 232.10
+[14:31:12]   ppo step 561152/2000000 (49.66 steps/s, eta 28974.4 s) recent train ep reward 203.61
+[14:32:16]   ppo step 564224/2000000 (48.88 steps/s, eta 29375.9 s) recent train ep reward 164.09
+[14:33:25]   ppo step 567296/2000000 (45.92 steps/s, eta 31197.0 s) recent train ep reward 156.61
+[14:34:42]   ppo step 570368/2000000 (42.21 steps/s, eta 33873.1 s) recent train ep reward 234.16
+[14:36:07]   ppo step 573440/2000000 (36.13 steps/s, eta 39487.8 s) recent train ep reward 231.57
+[14:37:19]   ppo step 576512/2000000 (39.92 steps/s, eta 35655.4 s) recent train ep reward 262.38
+[14:38:24]   ppo step 579584/2000000 (48.38 steps/s, eta 29361.8 s) recent train ep reward 242.70
+[14:39:47]   ppo step 582656/2000000 (39.32 steps/s, eta 36042.5 s) recent train ep reward 220.09
+[14:41:09]   ppo step 585728/2000000 (36.48 steps/s, eta 38769.3 s) recent train ep reward 209.52
+[14:42:15]   ppo step 588800/2000000 (44.93 steps/s, eta 31407.6 s) recent train ep reward 221.78
+[14:43:39]   ppo step 591872/2000000 (38.25 steps/s, eta 36813.6 s) recent train ep reward 272.70
+[14:45:04]   ppo step 594944/2000000 (36.83 steps/s, eta 38151.2 s) recent train ep reward 266.90
+[14:46:34]   ppo step 598016/2000000 (35.12 steps/s, eta 39918.2 s) recent train ep reward 226.63
+[14:47:45]   ppo step 601088/2000000 (41.08 steps/s, eta 34051.3 s) recent train ep reward 180.70
+[14:49:18]   eval @ 601088: mean reward 347.043 mean profit/day 99856 (walkouts 63.9, waste 10.8 kg, 93.5s)
+[14:49:18]   checkpoint saved at step 601088
+[14:50:46]   ppo step 604160/2000000 (21.14 steps/s, eta 66017.6 s) recent train ep reward 182.87
+[14:52:13]   ppo step 607232/2000000 (35.31 steps/s, eta 39448.5 s) recent train ep reward 197.08
+[14:53:44]   ppo step 610304/2000000 (34.72 steps/s, eta 40022.7 s) recent train ep reward 181.53
+[14:55:05]   ppo step 613376/2000000 (36.24 steps/s, eta 38264.6 s) recent train ep reward 226.65
+[14:56:09]   ppo step 616448/2000000 (45.14 steps/s, eta 30653.4 s) recent train ep reward 256.68
+[14:57:09]   ppo step 619520/2000000 (49.75 steps/s, eta 27749.9 s) recent train ep reward 248.90
+[14:58:24]   ppo step 622592/2000000 (43.92 steps/s, eta 31363.8 s) recent train ep reward 225.55
+[14:59:39]   ppo step 625664/2000000 (39.63 steps/s, eta 34675.1 s) recent train ep reward 217.23
+[15:00:48]   ppo step 628736/2000000 (43.26 steps/s, eta 31701.7 s) recent train ep reward 220.72
+[15:01:51]   ppo step 631808/2000000 (46.49 steps/s, eta 29430.7 s) recent train ep reward 208.08
+[15:02:56]   ppo step 634880/2000000 (47.93 steps/s, eta 28483.8 s) recent train ep reward 203.14
+[15:03:58]   ppo step 637952/2000000 (47.99 steps/s, eta 28381.5 s) recent train ep reward 212.79
+[15:05:00]   ppo step 641024/2000000 (49.64 steps/s, eta 27376.1 s) recent train ep reward 205.04
+[15:06:05]   ppo step 644096/2000000 (47.5 steps/s, eta 28543.9 s) recent train ep reward 188.53
+[15:07:11]   ppo step 647168/2000000 (47.13 steps/s, eta 28703.7 s) recent train ep reward 192.30
+[15:08:19]   ppo step 650240/2000000 (45.98 steps/s, eta 29356.3 s) recent train ep reward 193.26
+[15:09:25]   ppo step 653312/2000000 (45.28 steps/s, eta 29740.3 s) recent train ep reward 216.27
+[15:10:29]   ppo step 656384/2000000 (47.97 steps/s, eta 28009.3 s) recent train ep reward 265.11
+[15:11:31]   ppo step 659456/2000000 (50.13 steps/s, eta 26741.0 s) recent train ep reward 266.28
+[15:12:47]   ppo step 662528/2000000 (42.72 steps/s, eta 31309.7 s) recent train ep reward 261.21
+[15:14:10]   ppo step 665600/2000000 (36.88 steps/s, eta 36184.2 s) recent train ep reward 255.00
+[15:15:18]   ppo step 668672/2000000 (43.01 steps/s, eta 30953.5 s) recent train ep reward 224.57
+[15:16:21]   ppo step 671744/2000000 (49.16 steps/s, eta 27017.7 s) recent train ep reward 225.44
+[15:17:25]   ppo step 674816/2000000 (48.73 steps/s, eta 27195.0 s) recent train ep reward 229.27
+[15:18:30]   ppo step 677888/2000000 (47.17 steps/s, eta 28026.1 s) recent train ep reward 254.39
+[15:19:40]   ppo step 680960/2000000 (44.72 steps/s, eta 29495.2 s) recent train ep reward 248.64
+[15:20:51]   ppo step 684032/2000000 (43.65 steps/s, eta 30146.9 s) recent train ep reward 255.53
+[15:21:57]   ppo step 687104/2000000 (46.39 steps/s, eta 28303.6 s) recent train ep reward 262.86
+[15:23:01]   ppo step 690176/2000000 (47.82 steps/s, eta 27390.1 s) recent train ep reward 262.48
+[15:24:04]   ppo step 693248/2000000 (48.43 steps/s, eta 26984.7 s) recent train ep reward 245.21
+[15:25:09]   ppo step 696320/2000000 (48.81 steps/s, eta 26707.9 s) recent train ep reward 206.52
+[15:26:16]   ppo step 699392/2000000 (46.36 steps/s, eta 28053.2 s) recent train ep reward 140.20
+[15:27:23]   ppo step 702464/2000000 (46.25 steps/s, eta 28054.8 s) recent train ep reward 186.03
+[15:29:04]   eval @ 702464: mean reward 351.477 mean profit/day 100296 (walkouts 64.0, waste 10.6 kg, 101.5s)
+[15:29:04]   checkpoint saved at step 702464
+[15:30:08]   ppo step 705536/2000000 (22.43 steps/s, eta 57699.8 s) recent train ep reward 186.96
+[15:31:20]   ppo step 708608/2000000 (44.63 steps/s, eta 28938.3 s) recent train ep reward 204.27
+[15:32:47]   ppo step 711680/2000000 (35.59 steps/s, eta 36197.8 s) recent train ep reward 224.15
+[15:33:54]   ppo step 714752/2000000 (41.87 steps/s, eta 30699.4 s) recent train ep reward 239.80
+[15:35:02]   ppo step 717824/2000000 (47.61 steps/s, eta 26928.9 s) recent train ep reward 238.74
+[15:36:18]   ppo step 720896/2000000 (40.87 steps/s, eta 31295.5 s) recent train ep reward 256.14
+[15:37:21]   ppo step 723968/2000000 (48.98 steps/s, eta 26053.2 s) recent train ep reward 234.79
+[15:38:23]   ppo step 727040/2000000 (49.97 steps/s, eta 25474.3 s) recent train ep reward 234.16
+[15:39:29]   ppo step 730112/2000000 (48.0 steps/s, eta 26457.4 s) recent train ep reward 195.02
+[15:40:34]   ppo step 733184/2000000 (48.16 steps/s, eta 26305.1 s) recent train ep reward 168.19
+[15:41:38]   ppo step 736256/2000000 (48.64 steps/s, eta 25983.3 s) recent train ep reward 196.22
+[15:42:51]   ppo step 739328/2000000 (43.58 steps/s, eta 28926.2 s) recent train ep reward 180.95
+[15:43:57]   ppo step 742400/2000000 (43.84 steps/s, eta 28687.3 s) recent train ep reward 211.25
+[15:45:03]   ppo step 745472/2000000 (47.04 steps/s, eta 26669.3 s) recent train ep reward 201.26
+[15:46:14]   ppo step 748544/2000000 (44.76 steps/s, eta 27957.0 s) recent train ep reward 207.64
+[15:47:17]   ppo step 751616/2000000 (47.55 steps/s, eta 26254.7 s) recent train ep reward 248.94
+[15:48:21]   ppo step 754688/2000000 (48.28 steps/s, eta 25795.3 s) recent train ep reward 208.18
+[15:49:26]   ppo step 757760/2000000 (48.08 steps/s, eta 25835.2 s) recent train ep reward 225.88
+[15:50:34]   ppo step 760832/2000000 (46.44 steps/s, eta 26683.5 s) recent train ep reward 199.49
+[15:51:37]   ppo step 763904/2000000 (46.76 steps/s, eta 26433.2 s) recent train ep reward 207.89
+[15:52:41]   ppo step 766976/2000000 (48.18 steps/s, eta 25594.4 s) recent train ep reward 198.88
+[15:53:45]   ppo step 770048/2000000 (48.44 steps/s, eta 25389.7 s) recent train ep reward 179.00
+[15:54:50]   ppo step 773120/2000000 (48.35 steps/s, eta 25374.5 s) recent train ep reward 176.43
+[15:55:56]   ppo step 776192/2000000 (46.33 steps/s, eta 26413.1 s) recent train ep reward 202.48
+[15:57:08]   ppo step 779264/2000000 (43.86 steps/s, eta 27832.0 s) recent train ep reward 244.10
+[15:58:12]   ppo step 782336/2000000 (46.97 steps/s, eta 25922.4 s) recent train ep reward 243.75
+[15:59:16]   ppo step 785408/2000000 (47.9 steps/s, eta 25356.9 s) recent train ep reward 261.23
+[16:00:18]   ppo step 788480/2000000 (49.26 steps/s, eta 24596.9 s) recent train ep reward 260.68
+[16:01:25]   ppo step 791552/2000000 (47.44 steps/s, eta 25475.3 s) recent train ep reward 238.75
+[16:02:28]   ppo step 794624/2000000 (48.13 steps/s, eta 25042.7 s) recent train ep reward 232.12
+[16:03:32]   ppo step 797696/2000000 (47.46 steps/s, eta 25332.3 s) recent train ep reward 258.92
+[16:04:40]   ppo step 800768/2000000 (45.33 steps/s, eta 26452.9 s) recent train ep reward 258.68
+[16:06:39]   eval @ 800768: mean reward 356.385 mean profit/day 100090 (walkouts 62.1, waste 10.7 kg, 119.0s)
+[16:06:39]   checkpoint saved at step 800768
+[16:07:45]   ppo step 803840/2000000 (20.28 steps/s, eta 58971.5 s) recent train ep reward 235.62
+[16:08:57]   ppo step 806912/2000000 (43.69 steps/s, eta 27305.3 s) recent train ep reward 224.73
+[16:10:10]   ppo step 809984/2000000 (41.74 steps/s, eta 28513.6 s) recent train ep reward 228.56
+[16:11:17]   ppo step 813056/2000000 (45.75 steps/s, eta 25943.0 s) recent train ep reward 220.62
+[16:12:28]   ppo step 816128/2000000 (44.02 steps/s, eta 26895.9 s) recent train ep reward 179.30
+[16:13:41]   ppo step 819200/2000000 (41.84 steps/s, eta 28223.3 s) recent train ep reward 176.67
+[16:14:50]   ppo step 822272/2000000 (42.15 steps/s, eta 27942.1 s) recent train ep reward 193.76
+[16:16:06]   ppo step 825344/2000000 (41.77 steps/s, eta 28122.6 s) recent train ep reward 278.63
+[16:17:12]   ppo step 828416/2000000 (46.53 steps/s, eta 25178.4 s) recent train ep reward 231.29
+[16:18:20]   ppo step 831488/2000000 (45.63 steps/s, eta 25607.2 s) recent train ep reward 227.20
+[16:19:23]   ppo step 834560/2000000 (49.44 steps/s, eta 23573.8 s) recent train ep reward 235.38
+[16:20:27]   ppo step 837632/2000000 (48.59 steps/s, eta 23922.2 s) recent train ep reward 250.87
+[16:21:34]   ppo step 840704/2000000 (45.67 steps/s, eta 25386.1 s) recent train ep reward 185.38
+[16:22:40]   ppo step 843776/2000000 (45.75 steps/s, eta 25274.9 s) recent train ep reward 203.31
+[16:23:42]   ppo step 846848/2000000 (48.51 steps/s, eta 23770.2 s) recent train ep reward 214.49
+[16:24:46]   ppo step 849920/2000000 (48.41 steps/s, eta 23754.6 s) recent train ep reward 240.60
+[16:25:55]   ppo step 852992/2000000 (45.13 steps/s, eta 25418.4 s) recent train ep reward 226.98
+[16:27:09]   ppo step 856064/2000000 (41.32 steps/s, eta 27682.8 s) recent train ep reward 224.63
+[16:28:13]   ppo step 859136/2000000 (47.94 steps/s, eta 23795.6 s) recent train ep reward 228.20
+[16:29:20]   ppo step 862208/2000000 (47.05 steps/s, eta 24184.9 s) recent train ep reward 223.65
+[16:30:25]   ppo step 865280/2000000 (46.01 steps/s, eta 24661.5 s) recent train ep reward 210.53
+[16:31:29]   ppo step 868352/2000000 (47.99 steps/s, eta 23580.1 s) recent train ep reward 257.55
+[16:32:36]   ppo step 871424/2000000 (47.09 steps/s, eta 23966.2 s) recent train ep reward 275.27
+[16:33:41]   ppo step 874496/2000000 (47.19 steps/s, eta 23851.1 s) recent train ep reward 243.56
+[16:34:44]   ppo step 877568/2000000 (47.87 steps/s, eta 23448.3 s) recent train ep reward 207.07
+[16:35:56]   ppo step 880640/2000000 (44.44 steps/s, eta 25190.5 s) recent train ep reward 176.97
+[16:37:17]   ppo step 883712/2000000 (38.67 steps/s, eta 28867.0 s) recent train ep reward 199.57
+[16:38:38]   ppo step 886784/2000000 (38.01 steps/s, eta 29291.2 s) recent train ep reward 252.62
+[16:39:58]   ppo step 889856/2000000 (38.81 steps/s, eta 28602.6 s) recent train ep reward 265.67
+[16:41:15]   ppo step 892928/2000000 (39.0 steps/s, eta 28386.8 s) recent train ep reward 183.42
+[16:42:23]   ppo step 896000/2000000 (45.8 steps/s, eta 24107.1 s) recent train ep reward 159.94
+[16:43:27]   ppo step 899072/2000000 (47.9 steps/s, eta 22983.8 s) recent train ep reward 191.89
+[16:44:32]   ppo step 902144/2000000 (47.95 steps/s, eta 22895.6 s) recent train ep reward 229.54
+[16:46:35]   eval @ 902144: mean reward 352.836 mean profit/day 99682 (walkouts 62.0, waste 11.2 kg, 123.4s)
+[16:46:35]   checkpoint saved at step 902144
+[16:47:52]   ppo step 905216/2000000 (19.19 steps/s, eta 57062.0 s) recent train ep reward 251.59
+[16:48:54]   ppo step 908288/2000000 (49.02 steps/s, eta 22272.9 s) recent train ep reward 249.04
+[16:50:09]   ppo step 911360/2000000 (43.76 steps/s, eta 24877.1 s) recent train ep reward 219.65
+[16:51:23]   ppo step 914432/2000000 (40.73 steps/s, eta 26653.8 s) recent train ep reward 251.28
+[16:52:26]   ppo step 917504/2000000 (47.8 steps/s, eta 22647.8 s) recent train ep reward 235.90
+[16:53:34]   ppo step 920576/2000000 (46.14 steps/s, eta 23392.1 s) recent train ep reward 197.04
+[16:54:44]   ppo step 923648/2000000 (43.9 steps/s, eta 24515.8 s) recent train ep reward 177.96
+[16:55:52]   ppo step 926720/2000000 (45.49 steps/s, eta 23595.8 s) recent train ep reward 217.41
+[16:57:00]   ppo step 929792/2000000 (45.81 steps/s, eta 23360.3 s) recent train ep reward 257.13
+[16:58:09]   ppo step 932864/2000000 (45.36 steps/s, eta 23524.1 s) recent train ep reward 273.63
+[16:59:20]   ppo step 935936/2000000 (43.55 steps/s, eta 24430.6 s) recent train ep reward 273.04
+[17:00:24]   ppo step 939008/2000000 (46.01 steps/s, eta 23061.1 s) recent train ep reward 247.58
+[17:01:28]   ppo step 942080/2000000 (47.97 steps/s, eta 22055.8 s) recent train ep reward 242.14
+[17:02:31]   ppo step 945152/2000000 (49.15 steps/s, eta 21460.7 s) recent train ep reward 250.40
+[17:03:37]   ppo step 948224/2000000 (47.45 steps/s, eta 22164.8 s) recent train ep reward 259.53
+[17:04:39]   ppo step 951296/2000000 (48.71 steps/s, eta 21527.4 s) recent train ep reward 251.28
+[17:05:45]   ppo step 954368/2000000 (48.01 steps/s, eta 21780.7 s) recent train ep reward 226.49
+[17:06:53]   ppo step 957440/2000000 (44.78 steps/s, eta 23281.8 s) recent train ep reward 226.39
+[17:07:59]   ppo step 960512/2000000 (46.3 steps/s, eta 22450.5 s) recent train ep reward 228.57
+[17:09:13]   ppo step 963584/2000000 (43.2 steps/s, eta 23993.8 s) recent train ep reward 236.40
+[17:10:18]   ppo step 966656/2000000 (45.01 steps/s, eta 22958.5 s) recent train ep reward 235.28
+[17:11:30]   ppo step 969728/2000000 (43.79 steps/s, eta 23529.0 s) recent train ep reward 229.36
+[17:12:45]   ppo step 972800/2000000 (41.95 steps/s, eta 24487.4 s) recent train ep reward 225.86
+[17:13:46]   ppo step 975872/2000000 (49.78 steps/s, eta 20573.4 s) recent train ep reward 219.34
+[17:14:48]   ppo step 978944/2000000 (50.63 steps/s, eta 20168.2 s) recent train ep reward 222.99
+[17:15:50]   ppo step 982016/2000000 (49.25 steps/s, eta 20668.7 s) recent train ep reward 233.93
+[17:16:55]   ppo step 985088/2000000 (47.68 steps/s, eta 21285.7 s) recent train ep reward 225.66
+[17:18:00]   ppo step 988160/2000000 (47.76 steps/s, eta 21186.8 s) recent train ep reward 239.19
+[17:19:05]   ppo step 991232/2000000 (47.18 steps/s, eta 21381.6 s) recent train ep reward 279.35
+[17:20:19]   ppo step 994304/2000000 (43.0 steps/s, eta 23390.7 s) recent train ep reward 249.98
+[17:21:24]   ppo step 997376/2000000 (47.05 steps/s, eta 21310.9 s) recent train ep reward 225.44
+[17:22:28]   ppo step 1000448/2000000 (48.46 steps/s, eta 20626.8 s) recent train ep reward 206.07
+[17:24:05]   eval @ 1000448: mean reward 345.810 mean profit/day 99048 (walkouts 62.3, waste 11.0 kg, 97.0s)
+[17:24:05]   checkpoint saved at step 1000448
+[17:25:12]   ppo step 1003520/2000000 (22.94 steps/s, eta 43442.6 s) recent train ep reward 231.66
+[17:26:19]   ppo step 1006592/2000000 (46.15 steps/s, eta 21523.5 s) recent train ep reward 239.37
+[17:27:37]   ppo step 1009664/2000000 (40.47 steps/s, eta 24471.1 s) recent train ep reward 231.65
+[17:28:46]   ppo step 1012736/2000000 (42.89 steps/s, eta 23020.3 s) recent train ep reward 238.40
+[17:29:57]   ppo step 1015808/2000000 (43.22 steps/s, eta 22769.8 s) recent train ep reward 213.41
+[17:31:01]   ppo step 1018880/2000000 (46.51 steps/s, eta 21095.6 s) recent train ep reward 244.76
+[17:32:08]   ppo step 1021952/2000000 (47.35 steps/s, eta 20654.4 s) recent train ep reward 234.46
+[17:33:14]   ppo step 1025024/2000000 (45.48 steps/s, eta 21437.8 s) recent train ep reward 236.93
+[17:34:22]   ppo step 1028096/2000000 (44.83 steps/s, eta 21681.3 s) recent train ep reward 222.80
+[17:35:26]   ppo step 1031168/2000000 (48.14 steps/s, eta 20125.3 s) recent train ep reward 203.94
+[17:36:29]   ppo step 1034240/2000000 (49.05 steps/s, eta 19687.6 s) recent train ep reward 179.67
+[17:37:31]   ppo step 1037312/2000000 (50.26 steps/s, eta 19154.3 s) recent train ep reward 168.06
+[17:38:32]   ppo step 1040384/2000000 (50.54 steps/s, eta 18986.1 s) recent train ep reward 217.49
+[17:39:35]   ppo step 1043456/2000000 (50.15 steps/s, eta 19073.8 s) recent train ep reward 220.56
+[17:40:45]   ppo step 1046528/2000000 (45.73 steps/s, eta 20848.4 s) recent train ep reward 171.16
+[17:41:57]   ppo step 1049600/2000000 (42.66 steps/s, eta 22276.4 s) recent train ep reward 184.66
+[17:43:07]   ppo step 1052672/2000000 (43.28 steps/s, eta 21886.0 s) recent train ep reward 207.46
+[17:44:26]   ppo step 1055744/2000000 (39.54 steps/s, eta 23880.9 s) recent train ep reward 210.52
+[17:45:34]   ppo step 1058816/2000000 (46.62 steps/s, eta 20188.9 s) recent train ep reward 206.80
+[17:46:37]   ppo step 1061888/2000000 (48.66 steps/s, eta 19277.9 s) recent train ep reward 226.63
+[17:47:41]   ppo step 1064960/2000000 (48.62 steps/s, eta 19232.6 s) recent train ep reward 237.52
+[17:48:53]   ppo step 1068032/2000000 (44.11 steps/s, eta 21126.1 s) recent train ep reward 272.80
+[17:49:58]   ppo step 1071104/2000000 (47.87 steps/s, eta 19406.3 s) recent train ep reward 264.47
+[17:51:02]   ppo step 1074176/2000000 (48.63 steps/s, eta 19036.7 s) recent train ep reward 234.14
+[17:52:11]   ppo step 1077248/2000000 (45.8 steps/s, eta 20148.0 s) recent train ep reward 234.08
+[17:53:23]   ppo step 1080320/2000000 (42.89 steps/s, eta 21444.3 s) recent train ep reward 246.19
+[17:54:29]   ppo step 1083392/2000000 (47.02 steps/s, eta 19492.3 s) recent train ep reward 228.90
+[17:55:36]   ppo step 1086464/2000000 (46.17 steps/s, eta 19784.3 s) recent train ep reward 177.21
+[17:56:57]   ppo step 1089536/2000000 (39.47 steps/s, eta 23066.3 s) recent train ep reward 178.19
+[17:58:03]   ppo step 1092608/2000000 (44.81 steps/s, eta 20250.4 s) recent train ep reward 202.39
+[17:59:07]   ppo step 1095680/2000000 (48.09 steps/s, eta 18805.6 s) recent train ep reward 237.37
+[18:00:19]   ppo step 1098752/2000000 (44.57 steps/s, eta 20221.3 s) recent train ep reward 202.30
+[18:01:23]   ppo step 1101824/2000000 (46.53 steps/s, eta 19303.2 s) recent train ep reward 164.13
+[18:03:05]   eval @ 1101824: mean reward 337.325 mean profit/day 98747 (walkouts 63.6, waste 10.4 kg, 101.6s)
+[18:03:05]   checkpoint saved at step 1101824
+[18:04:08]   ppo step 1104896/2000000 (22.73 steps/s, eta 39386.5 s) recent train ep reward 203.57
+[18:05:12]   ppo step 1107968/2000000 (49.11 steps/s, eta 18164.9 s) recent train ep reward 208.46
+[18:06:16]   ppo step 1111040/2000000 (47.36 steps/s, eta 18770.4 s) recent train ep reward 177.64
+[18:07:36]   ppo step 1114112/2000000 (41.21 steps/s, eta 21494.3 s) recent train ep reward 158.09
+[18:08:55]   ppo step 1117184/2000000 (38.73 steps/s, eta 22791.8 s) recent train ep reward 184.20
+[18:10:19]   ppo step 1120256/2000000 (36.61 steps/s, eta 24028.8 s) recent train ep reward 226.77
+[2026-10-06 04:58:06] training: brew-train all --config configs/train/full.yaml --run-dir /home/abhinav/brew/runs/overnight/20261005_063045_cf21a5b --resume
+[04:58:07] brew-train: config 'full', run dir /home/abhinav/brew/runs/overnight/20261005_063045_cf21a5b, resume=True, stages=13
+[04:58:11] [1/13] stage history: already complete, skipping
+[04:58:11] [2/13] stage forecast: already complete, skipping
+[04:58:11] [3/13] stage elasticity: already complete, skipping
+[04:58:11] [4/13] stage prep_time: already complete, skipping
+[04:58:11] [5/13] stage rider_eta: already complete, skipping
+[04:58:11] [6/13] stage text: already complete, skipping
+[04:58:11] [7/13] stage replate: already complete, skipping
+[04:58:11] [8/13] stage eval: already complete, skipping
+[04:58:11] [9/13] stage bc: already complete, skipping
+[04:58:11] [10/13] stage ppo ...
+[04:58:11] resuming PPO from ppo_ppo_001101824.zip (step 1101824, curriculum stage 1)
+[04:58:20] PPO curriculum stage 2/3: 7-day episodes, shaping 0.65, steps 1101824 -> 1200000, 6 envs (subproc), device cuda
+[04:59:10]   ppo step 1104896/2000000 (61.61 steps/s, eta 14528.8 s) recent train ep reward 235.90
+[05:00:05]   ppo step 1107968/2000000 (56.51 steps/s, eta 15785.1 s) recent train ep reward 244.65
+[05:01:10]   ppo step 1111040/2000000 (49.82 steps/s, eta 17844.6 s) recent train ep reward 250.38
+[05:02:16]   ppo step 1114112/2000000 (48.02 steps/s, eta 18447.1 s) recent train ep reward 227.17
+[05:03:18]   ppo step 1117184/2000000 (48.99 steps/s, eta 18021.8 s) recent train ep reward 204.72
+[05:04:19]   ppo step 1120256/2000000 (50.69 steps/s, eta 17355.2 s) recent train ep reward 173.65
+[05:05:36]   ppo step 1123328/2000000 (42.33 steps/s, eta 20709.6 s) recent train ep reward 208.63
+[05:06:52]   ppo step 1126400/2000000 (39.4 steps/s, eta 22174.4 s) recent train ep reward 226.09
+[05:08:08]   ppo step 1129472/2000000 (40.62 steps/s, eta 21432.3 s) recent train ep reward 205.54
+[05:09:27]   ppo step 1132544/2000000 (38.97 steps/s, eta 22262.2 s) recent train ep reward 138.60
+[05:10:45]   ppo step 1135616/2000000 (39.29 steps/s, eta 22001.2 s) recent train ep reward 181.71
+[05:12:00]   ppo step 1138688/2000000 (40.45 steps/s, eta 21294.7 s) recent train ep reward 191.75
+[05:13:20]   ppo step 1141760/2000000 (38.8 steps/s, eta 22121.9 s) recent train ep reward 228.93
+[05:14:27]   ppo step 1144832/2000000 (46.78 steps/s, eta 18280.0 s) recent train ep reward 224.54
+[05:15:36]   ppo step 1147904/2000000 (45.14 steps/s, eta 18875.6 s) recent train ep reward 220.20
+[05:16:44]   ppo step 1150976/2000000 (44.98 steps/s, eta 18874.4 s) recent train ep reward 211.38
+[05:18:00]   ppo step 1154048/2000000 (41.83 steps/s, eta 20223.7 s) recent train ep reward 237.54
+[05:19:29]   ppo step 1157120/2000000 (36.05 steps/s, eta 23383.7 s) recent train ep reward 222.28
+[05:20:37]   ppo step 1160192/2000000 (41.21 steps/s, eta 20377.2 s) recent train ep reward 213.25
+[05:22:00]   ppo step 1163264/2000000 (39.37 steps/s, eta 21255.0 s) recent train ep reward 220.97
+[05:23:13]   ppo step 1166336/2000000 (40.91 steps/s, eta 20379.5 s) recent train ep reward 204.48
+[05:24:18]   ppo step 1169408/2000000 (46.32 steps/s, eta 17931.5 s) recent train ep reward 203.07
+[05:25:27]   ppo step 1172480/2000000 (46.26 steps/s, eta 17888.2 s) recent train ep reward 206.87
+[05:26:37]   ppo step 1175552/2000000 (44.35 steps/s, eta 18587.9 s) recent train ep reward 189.38
+[05:27:43]   ppo step 1178624/2000000 (45.51 steps/s, eta 18049.6 s) recent train ep reward 203.73
+[05:29:05]   ppo step 1181696/2000000 (39.82 steps/s, eta 20550.1 s) recent train ep reward 233.48
+[05:30:13]   ppo step 1184768/2000000 (42.54 steps/s, eta 19162.1 s) recent train ep reward 260.51
+[05:31:27]   ppo step 1187840/2000000 (42.66 steps/s, eta 19035.9 s) recent train ep reward 256.61
+[05:32:53]   ppo step 1190912/2000000 (35.85 steps/s, eta 22569.4 s) recent train ep reward 221.65
+[05:34:02]   ppo step 1193984/2000000 (41.55 steps/s, eta 19400.8 s) recent train ep reward 171.92
+[05:35:11]   ppo step 1197056/2000000 (44.2 steps/s, eta 18168.2 s) recent train ep reward 171.76
+[05:36:20]   ppo step 1200128/2000000 (43.97 steps/s, eta 18190.5 s) recent train ep reward 194.74
+[05:38:10]   eval @ 1200128: mean reward 333.469 mean profit/day 98778 (walkouts 64.2, waste 10.3 kg, 110.3s)
+[05:38:10]   checkpoint saved at step 1200128
+[05:38:11]   checkpoint saved at step 1200128
+[05:38:17] PPO curriculum stage 3/3: 28-day episodes, shaping 0.3, steps 1200128 -> 2000000, 6 envs (subproc), device cuda
+[05:39:22]   ppo step 1203200/2000000 (19.89 steps/s, eta 40063.5 s) recent train ep reward nan
+[05:40:26]   ppo step 1206272/2000000 (48.02 steps/s, eta 16530.1 s) recent train ep reward nan
+[05:41:36]   ppo step 1209344/2000000 (44.92 steps/s, eta 17600.5 s) recent train ep reward nan
+[05:42:47]   ppo step 1212416/2000000 (43.32 steps/s, eta 18180.6 s) recent train ep reward 736.30
+[05:43:55]   ppo step 1215488/2000000 (45.21 steps/s, eta 17353.4 s) recent train ep reward 736.30
+[05:45:03]   ppo step 1218560/2000000 (45.52 steps/s, eta 17168.2 s) recent train ep reward 736.30
+[05:46:09]   ppo step 1221632/2000000 (45.34 steps/s, eta 17167.3 s) recent train ep reward 908.52
+[05:47:15]   ppo step 1224704/2000000 (46.41 steps/s, eta 16705.3 s) recent train ep reward 908.52
+[05:48:23]   ppo step 1227776/2000000 (46.62 steps/s, eta 16563.7 s) recent train ep reward 908.52
+[05:49:32]   ppo step 1230848/2000000 (44.87 steps/s, eta 17143.7 s) recent train ep reward 953.10
+[05:50:39]   ppo step 1233920/2000000 (46.03 steps/s, eta 16642.0 s) recent train ep reward 953.10
+[05:51:49]   ppo step 1236992/2000000 (44.54 steps/s, eta 17131.1 s) recent train ep reward 953.10
+[05:53:01]   ppo step 1240064/2000000 (43.2 steps/s, eta 17592.5 s) recent train ep reward 1061.29
+[05:54:20]   ppo step 1243136/2000000 (38.99 steps/s, eta 19411.4 s) recent train ep reward 1061.29
+[05:55:36]   ppo step 1246208/2000000 (40.62 steps/s, eta 18559.3 s) recent train ep reward 1061.29
+[05:57:01]   ppo step 1249280/2000000 (37.51 steps/s, eta 20011.9 s) recent train ep reward 1039.24
+[05:58:23]   ppo step 1252352/2000000 (38.28 steps/s, eta 19530.3 s) recent train ep reward 1039.24
+[05:59:30]   ppo step 1255424/2000000 (44.05 steps/s, eta 16902.2 s) recent train ep reward 1039.24
+[06:00:40]   ppo step 1258496/2000000 (45.13 steps/s, eta 16431.8 s) recent train ep reward 1025.73
+[06:01:49]   ppo step 1261568/2000000 (44.63 steps/s, eta 16543.9 s) recent train ep reward 1025.73
+[06:02:56]   ppo step 1264640/2000000 (45.11 steps/s, eta 16301.6 s) recent train ep reward 1025.73
+[06:04:04]   ppo step 1267712/2000000 (45.31 steps/s, eta 16161.2 s) recent train ep reward 1018.00
+[06:05:16]   ppo step 1270784/2000000 (43.47 steps/s, eta 16775.1 s) recent train ep reward 1018.00
+[06:06:25]   ppo step 1273856/2000000 (43.92 steps/s, eta 16533.5 s) recent train ep reward 1018.00
+[06:07:34]   ppo step 1276928/2000000 (45.08 steps/s, eta 16038.6 s) recent train ep reward 1053.02
+[06:08:44]   ppo step 1280000/2000000 (44.13 steps/s, eta 16315.3 s) recent train ep reward 1053.02
+[06:09:55]   ppo step 1283072/2000000 (43.13 steps/s, eta 16620.6 s) recent train ep reward 1053.02
+[06:11:02]   ppo step 1286144/2000000 (45.02 steps/s, eta 15856.7 s) recent train ep reward 1053.02
+[06:12:11]   ppo step 1289216/2000000 (45.36 steps/s, eta 15668.2 s) recent train ep reward 1086.50
+[06:13:19]   ppo step 1292288/2000000 (45.21 steps/s, eta 15653.3 s) recent train ep reward 1086.50
+[06:14:27]   ppo step 1295360/2000000 (44.95 steps/s, eta 15674.8 s) recent train ep reward 1086.50
+[06:15:36]   ppo step 1298432/2000000 (45.03 steps/s, eta 15579.0 s) recent train ep reward 1102.19
+[06:16:49]   ppo step 1301504/2000000 (42.82 steps/s, eta 16313.2 s) recent train ep reward 1102.19
+[06:18:36]   eval @ 1301504: mean reward 332.812 mean profit/day 98687 (walkouts 64.9, waste 10.0 kg, 107.1s)
+[06:18:36]   checkpoint saved at step 1301504
+[06:19:48]   ppo step 1304576/2000000 (20.83 steps/s, eta 33389.0 s) recent train ep reward 1102.19
+[06:21:01]   ppo step 1307648/2000000 (42.48 steps/s, eta 16298.0 s) recent train ep reward 1034.68
+[06:22:07]   ppo step 1310720/2000000 (45.38 steps/s, eta 15187.8 s) recent train ep reward 1034.68
+[06:23:21]   ppo step 1313792/2000000 (42.91 steps/s, eta 15993.0 s) recent train ep reward 1034.68
+[06:24:29]   ppo step 1316864/2000000 (44.76 steps/s, eta 15261.3 s) recent train ep reward 950.83
+[06:25:37]   ppo step 1319936/2000000 (45.13 steps/s, eta 15067.9 s) recent train ep reward 950.83
+[06:26:51]   ppo step 1323008/2000000 (43.08 steps/s, eta 15713.9 s) recent train ep reward 950.83
+[06:28:12]   ppo step 1326080/2000000 (38.14 steps/s, eta 17667.9 s) recent train ep reward 962.24
+[06:29:29]   ppo step 1329152/2000000 (41.32 steps/s, eta 16235.2 s) recent train ep reward 962.24
+[06:30:58]   ppo step 1332224/2000000 (35.0 steps/s, eta 19079.7 s) recent train ep reward 962.24
+[06:32:19]   ppo step 1335296/2000000 (37.83 steps/s, eta 17572.9 s) recent train ep reward 1047.76
+[06:33:37]   ppo step 1338368/2000000 (41.58 steps/s, eta 15912.6 s) recent train ep reward 1047.76
+[06:35:04]   ppo step 1341440/2000000 (35.35 steps/s, eta 18630.9 s) recent train ep reward 1047.76
+[06:36:20]   ppo step 1344512/2000000 (39.59 steps/s, eta 16555.0 s) recent train ep reward 1004.66
+[06:37:43]   ppo step 1347584/2000000 (37.34 steps/s, eta 17472.6 s) recent train ep reward 1004.66
+[06:38:52]   ppo step 1350656/2000000 (42.95 steps/s, eta 15119.8 s) recent train ep reward 1004.66
+[06:40:03]   ppo step 1353728/2000000 (43.91 steps/s, eta 14718.3 s) recent train ep reward 1034.84
+[06:41:10]   ppo step 1356800/2000000 (45.11 steps/s, eta 14259.2 s) recent train ep reward 1034.84
+[06:42:19]   ppo step 1359872/2000000 (45.04 steps/s, eta 14213.5 s) recent train ep reward 1034.84
+[06:43:28]   ppo step 1362944/2000000 (45.14 steps/s, eta 14112.3 s) recent train ep reward 1060.18
+[06:44:37]   ppo step 1366016/2000000 (44.69 steps/s, eta 14185.2 s) recent train ep reward 1060.18
+[06:45:45]   ppo step 1369088/2000000 (44.97 steps/s, eta 14028.3 s) recent train ep reward 1060.18
+[06:46:52]   ppo step 1372160/2000000 (46.41 steps/s, eta 13526.9 s) recent train ep reward 1060.18
+[06:48:02]   ppo step 1375232/2000000 (44.61 steps/s, eta 14005.3 s) recent train ep reward 1035.76
+[06:49:24]   ppo step 1378304/2000000 (38.89 steps/s, eta 15984.4 s) recent train ep reward 1035.76
+[06:50:48]   ppo step 1381376/2000000 (36.37 steps/s, eta 17009.3 s) recent train ep reward 1035.76
+[06:52:18]   ppo step 1384448/2000000 (34.33 steps/s, eta 17931.6 s) recent train ep reward 981.32
+[06:53:46]   ppo step 1387520/2000000 (35.01 steps/s, eta 17495.0 s) recent train ep reward 981.32
+[06:55:06]   ppo step 1390592/2000000 (39.1 steps/s, eta 15586.8 s) recent train ep reward 981.32
+[06:56:28]   ppo step 1393664/2000000 (36.66 steps/s, eta 16538.1 s) recent train ep reward 997.37
+[06:57:40]   ppo step 1396736/2000000 (41.94 steps/s, eta 14383.8 s) recent train ep reward 997.37
+[06:58:51]   ppo step 1399808/2000000 (43.86 steps/s, eta 13682.9 s) recent train ep reward 997.37
+[07:00:00]   ppo step 1402880/2000000 (44.89 steps/s, eta 13301.7 s) recent train ep reward 987.41
+[07:01:50]   eval @ 1402880: mean reward 338.441 mean profit/day 99102 (walkouts 63.8, waste 10.9 kg, 109.8s)
+[07:01:50]   checkpoint saved at step 1402880
+[07:03:05]   ppo step 1405952/2000000 (20.44 steps/s, eta 29060.9 s) recent train ep reward 987.41
+[07:04:11]   ppo step 1409024/2000000 (46.63 steps/s, eta 12673.7 s) recent train ep reward 987.41
+[07:05:19]   ppo step 1412096/2000000 (46.02 steps/s, eta 12774.8 s) recent train ep reward 941.34
+[07:06:34]   ppo step 1415168/2000000 (41.51 steps/s, eta 14088.0 s) recent train ep reward 941.34
+[07:07:43]   ppo step 1418240/2000000 (44.0 steps/s, eta 13221.9 s) recent train ep reward 941.34
+[07:08:51]   ppo step 1421312/2000000 (45.05 steps/s, eta 12845.0 s) recent train ep reward 1041.50
+[07:10:03]   ppo step 1424384/2000000 (43.17 steps/s, eta 13332.2 s) recent train ep reward 1041.50
+[07:11:14]   ppo step 1427456/2000000 (43.89 steps/s, eta 13046.2 s) recent train ep reward 1041.50
+[07:12:43]   ppo step 1430528/2000000 (36.22 steps/s, eta 15722.4 s) recent train ep reward 1089.45
+[07:14:07]   ppo step 1433600/2000000 (34.84 steps/s, eta 16258.5 s) recent train ep reward 1089.45
+[07:15:17]   ppo step 1436672/2000000 (43.68 steps/s, eta 12896.4 s) recent train ep reward 1089.45
+[07:16:30]   ppo step 1439744/2000000 (43.13 steps/s, eta 12990.2 s) recent train ep reward 1058.34
+[07:17:39]   ppo step 1442816/2000000 (43.11 steps/s, eta 12926.0 s) recent train ep reward 1058.34
+[07:18:50]   ppo step 1445888/2000000 (44.13 steps/s, eta 12557.0 s) recent train ep reward 1058.34
+[07:20:02]   ppo step 1448960/2000000 (42.88 steps/s, eta 12851.2 s) recent train ep reward 1058.34
+[07:21:27]   ppo step 1452032/2000000 (37.37 steps/s, eta 14663.4 s) recent train ep reward 1083.90
+[07:22:57]   ppo step 1455104/2000000 (34.15 steps/s, eta 15953.9 s) recent train ep reward 1083.90
+[07:24:11]   ppo step 1458176/2000000 (40.3 steps/s, eta 13444.8 s) recent train ep reward 1083.90
+[07:25:22]   ppo step 1461248/2000000 (42.54 steps/s, eta 12664.2 s) recent train ep reward 1093.80
+[07:26:35]   ppo step 1464320/2000000 (42.43 steps/s, eta 12626.2 s) recent train ep reward 1093.80
+[07:27:43]   ppo step 1467392/2000000 (44.4 steps/s, eta 11996.5 s) recent train ep reward 1093.80
+[07:28:50]   ppo step 1470464/2000000 (45.99 steps/s, eta 11513.1 s) recent train ep reward 1134.35
+[07:29:57]   ppo step 1473536/2000000 (45.8 steps/s, eta 11494.1 s) recent train ep reward 1134.35
+[07:31:03]   ppo step 1476608/2000000 (47.25 steps/s, eta 11076.4 s) recent train ep reward 1134.35
+[07:32:10]   ppo step 1479680/2000000 (46.83 steps/s, eta 11111.4 s) recent train ep reward 1120.39
+[07:33:23]   ppo step 1482752/2000000 (42.93 steps/s, eta 12048.5 s) recent train ep reward 1120.39
+[07:34:31]   ppo step 1485824/2000000 (43.58 steps/s, eta 11797.5 s) recent train ep reward 1120.39
+[07:35:41]   ppo step 1488896/2000000 (44.76 steps/s, eta 11418.1 s) recent train ep reward 1074.37
+[07:36:48]   ppo step 1491968/2000000 (45.17 steps/s, eta 11248.2 s) recent train ep reward 1074.37
+[07:37:57]   ppo step 1495040/2000000 (45.29 steps/s, eta 11150.5 s) recent train ep reward 1074.37
+[07:39:06]   ppo step 1498112/2000000 (44.55 steps/s, eta 11266.2 s) recent train ep reward 1044.29
+[07:40:28]   ppo step 1501184/2000000 (39.8 steps/s, eta 12531.7 s) recent train ep reward 1044.29
+[07:42:33]   eval @ 1501184: mean reward 337.007 mean profit/day 99034 (walkouts 63.1, waste 12.0 kg, 124.5s)
+[07:42:33]   checkpoint saved at step 1501184
+[07:43:53]   ppo step 1504256/2000000 (18.01 steps/s, eta 27524.1 s) recent train ep reward 1044.29
+[07:45:00]   ppo step 1507328/2000000 (45.36 steps/s, eta 10861.0 s) recent train ep reward 1037.88
+[07:46:11]   ppo step 1510400/2000000 (44.67 steps/s, eta 10959.6 s) recent train ep reward 1037.88
+[07:47:23]   ppo step 1513472/2000000 (42.51 steps/s, eta 11445.9 s) recent train ep reward 1037.88
+[07:48:36]   ppo step 1516544/2000000 (42.9 steps/s, eta 11269.6 s) recent train ep reward 1053.69
+[07:49:50]   ppo step 1519616/2000000 (41.25 steps/s, eta 11645.4 s) recent train ep reward 1053.69
+[07:51:00]   ppo step 1522688/2000000 (43.08 steps/s, eta 11079.0 s) recent train ep reward 1053.69
+[07:52:06]   ppo step 1525760/2000000 (46.33 steps/s, eta 10235.1 s) recent train ep reward 1057.80
+[07:53:16]   ppo step 1528832/2000000 (44.46 steps/s, eta 10596.9 s) recent train ep reward 1057.80
+[07:54:28]   ppo step 1531904/2000000 (43.17 steps/s, eta 10842.0 s) recent train ep reward 1057.80
+[07:55:35]   ppo step 1534976/2000000 (45.3 steps/s, eta 10266.2 s) recent train ep reward 1057.80
+[07:56:48]   ppo step 1538048/2000000 (43.14 steps/s, eta 10708.0 s) recent train ep reward 1127.61
+[07:58:03]   ppo step 1541120/2000000 (41.09 steps/s, eta 11166.4 s) recent train ep reward 1127.61
+[07:59:16]   ppo step 1544192/2000000 (41.8 steps/s, eta 10905.0 s) recent train ep reward 1127.61
+[08:00:30]   ppo step 1547264/2000000 (42.22 steps/s, eta 10722.3 s) recent train ep reward 1073.05
+[08:01:41]   ppo step 1550336/2000000 (42.48 steps/s, eta 10584.6 s) recent train ep reward 1073.05
+[08:02:50]   ppo step 1553408/2000000 (45.26 steps/s, eta 9867.5 s) recent train ep reward 1073.05
+[08:04:03]   ppo step 1556480/2000000 (43.66 steps/s, eta 10158.7 s) recent train ep reward 1076.44
+[08:05:25]   ppo step 1559552/2000000 (37.93 steps/s, eta 11612.0 s) recent train ep reward 1076.44
+[08:06:36]   ppo step 1562624/2000000 (42.24 steps/s, eta 10355.2 s) recent train ep reward 1076.44
+[08:08:10]   ppo step 1565696/2000000 (35.29 steps/s, eta 12308.3 s) recent train ep reward 987.63
+[08:09:31]   ppo step 1568768/2000000 (36.12 steps/s, eta 11938.1 s) recent train ep reward 987.63
+[08:10:40]   ppo step 1571840/2000000 (42.66 steps/s, eta 10035.4 s) recent train ep reward 987.63
+[08:11:54]   ppo step 1574912/2000000 (42.02 steps/s, eta 10116.4 s) recent train ep reward 1007.83
+[08:13:05]   ppo step 1577984/2000000 (43.11 steps/s, eta 9788.2 s) recent train ep reward 1007.83
+[08:14:12]   ppo step 1581056/2000000 (46.05 steps/s, eta 9097.7 s) recent train ep reward 1007.83
+[08:15:20]   ppo step 1584128/2000000 (45.76 steps/s, eta 9089.0 s) recent train ep reward 978.59
+[08:16:30]   ppo step 1587200/2000000 (45.29 steps/s, eta 9113.8 s) recent train ep reward 978.59
+[08:17:47]   ppo step 1590272/2000000 (41.11 steps/s, eta 9967.8 s) recent train ep reward 978.59
+[08:18:55]   ppo step 1593344/2000000 (45.23 steps/s, eta 8990.4 s) recent train ep reward 1051.50
+[08:20:04]   ppo step 1596416/2000000 (45.11 steps/s, eta 8946.6 s) recent train ep reward 1051.50
+[08:21:25]   ppo step 1599488/2000000 (39.54 steps/s, eta 10128.4 s) recent train ep reward 1051.50
+[08:22:56]   ppo step 1602560/2000000 (34.11 steps/s, eta 11651.6 s) recent train ep reward 1071.79
+[08:24:50]   eval @ 1602560: mean reward 330.080 mean profit/day 98287 (walkouts 64.0, waste 11.8 kg, 113.6s)
+[08:24:50]   checkpoint saved at step 1602560
+[08:26:10]   ppo step 1605632/2000000 (18.54 steps/s, eta 21276.4 s) recent train ep reward 1071.79
+[08:27:21]   ppo step 1608704/2000000 (41.46 steps/s, eta 9438.6 s) recent train ep reward 1071.79
+[08:28:29]   ppo step 1611776/2000000 (45.06 steps/s, eta 8615.3 s) recent train ep reward 1071.79
+[08:29:39]   ppo step 1614848/2000000 (44.35 steps/s, eta 8685.1 s) recent train ep reward 1045.58
+[08:30:46]   ppo step 1617920/2000000 (44.7 steps/s, eta 8547.1 s) recent train ep reward 1045.58
+[08:31:59]   ppo step 1620992/2000000 (42.75 steps/s, eta 8865.9 s) recent train ep reward 1045.58
+[08:33:06]   ppo step 1624064/2000000 (44.85 steps/s, eta 8382.5 s) recent train ep reward 1055.17
+[08:34:14]   ppo step 1627136/2000000 (45.68 steps/s, eta 8161.8 s) recent train ep reward 1055.17
+[08:35:22]   ppo step 1630208/2000000 (45.26 steps/s, eta 8171.2 s) recent train ep reward 1055.17
+[08:36:34]   ppo step 1633280/2000000 (43.15 steps/s, eta 8498.9 s) recent train ep reward 1028.60
+[08:37:44]   ppo step 1636352/2000000 (43.57 steps/s, eta 8347.2 s) recent train ep reward 1028.60
+[08:38:53]   ppo step 1639424/2000000 (43.66 steps/s, eta 8259.7 s) recent train ep reward 1028.60
+[08:39:59]   ppo step 1642496/2000000 (46.22 steps/s, eta 7734.2 s) recent train ep reward 1040.23
+[08:41:06]   ppo step 1645568/2000000 (46.74 steps/s, eta 7582.7 s) recent train ep reward 1040.23
+[08:42:11]   ppo step 1648640/2000000 (46.6 steps/s, eta 7539.9 s) recent train ep reward 1040.23
+[08:43:16]   ppo step 1651712/2000000 (47.38 steps/s, eta 7350.3 s) recent train ep reward 1021.16
+[08:44:20]   ppo step 1654784/2000000 (48.28 steps/s, eta 7150.2 s) recent train ep reward 1021.16
+[08:45:22]   ppo step 1657856/2000000 (49.45 steps/s, eta 6919.5 s) recent train ep reward 1021.16
+[08:46:25]   ppo step 1660928/2000000 (49.16 steps/s, eta 6896.6 s) recent train ep reward 1041.43
+[08:47:33]   ppo step 1664000/2000000 (46.95 steps/s, eta 7155.8 s) recent train ep reward 1041.43
+[08:48:38]   ppo step 1667072/2000000 (46.39 steps/s, eta 7176.9 s) recent train ep reward 1041.43
+[08:49:42]   ppo step 1670144/2000000 (48.07 steps/s, eta 6861.7 s) recent train ep reward 1052.90
+[08:51:00]   ppo step 1673216/2000000 (41.68 steps/s, eta 7840.1 s) recent train ep reward 1052.90
+[08:52:16]   ppo step 1676288/2000000 (39.7 steps/s, eta 8153.0 s) recent train ep reward 1052.90
+[08:53:26]   ppo step 1679360/2000000 (44.55 steps/s, eta 7197.9 s) recent train ep reward 1003.33
+[08:54:31]   ppo step 1682432/2000000 (47.09 steps/s, eta 6744.2 s) recent train ep reward 1003.33
+[08:55:42]   ppo step 1685504/2000000 (44.86 steps/s, eta 7010.6 s) recent train ep reward 1003.33
+[08:56:49]   ppo step 1688576/2000000 (44.12 steps/s, eta 7058.7 s) recent train ep reward 934.60
+[08:57:56]   ppo step 1691648/2000000 (46.04 steps/s, eta 6697.6 s) recent train ep reward 934.60
+[2026-10-06 08:59:07] training: brew-train all --config configs/train/full.yaml --run-dir /home/abhinav/brew/runs/overnight/20261005_063045_cf21a5b --resume
+[08:59:07] brew-train: config 'full', run dir /home/abhinav/brew/runs/overnight/20261005_063045_cf21a5b, resume=True, stages=13
+[08:59:12] [1/13] stage history: already complete, skipping
+[08:59:12] [2/13] stage forecast: already complete, skipping
+[08:59:12] [3/13] stage elasticity: already complete, skipping
+[08:59:12] [4/13] stage prep_time: already complete, skipping
+[08:59:12] [5/13] stage rider_eta: already complete, skipping
+[08:59:12] [6/13] stage text: already complete, skipping
+[08:59:12] [7/13] stage replate: already complete, skipping
+[08:59:12] [8/13] stage eval: already complete, skipping
+[08:59:12] [9/13] stage bc: already complete, skipping
+[08:59:12] [10/13] stage ppo: already complete, skipping
+[08:59:12] [11/13] stage adversarial: already complete, skipping
+[08:59:12] [12/13] stage export ...
+[09:02:08]   candidate ppo_best: calm reward 396.15 (profit 105152), chaos reward 314.88 (profit 96842)
+[09:04:58]   candidate ppo_final: calm reward 330.08 (profit 98287), chaos reward 267.24 (profit 91568)
+[09:04:58] champion candidate: ppo_best
+[09:06:30] ONNX parity: max |logit diff| = 5.72e-06 (tol 0.0001) -> OK; argmax agreement 1.000
+[09:06:31] surrogate tree (depth 4): mean fidelity 0.977 on 2394 decisions
+[09:06:31] registered champion models/rl_policy/D/full-5033b06
+[09:06:31] [12/13] stage export done in 439.0s
+[09:06:31] [13/13] stage arena ...
+[09:13:07] arena weekday_normal seeds=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10] days=7 (396s) mean profit/day: A: 62112 | B: 73465 | C: 96948 | D: 104885
+[09:13:07] [13/13] stage arena done in 396.2s
+[09:13:07] FAILED:
+Traceback (most recent call last):
+  File "/home/abhinav/brew/src/brew/rl/pipeline.py", line 473, in run_pipeline
+    allm["summary"] = summarize(allm)
+                      ^^^^^^^^^^^^^^^
+  File "/home/abhinav/brew/src/brew/rl/pipeline.py", line 497, in summarize
+    lines.append(f"PPO: eval reward {p['first_eval']['mean_reward']:.3f} -> {p['last_eval']['mean_reward']:.3f} (best {p['best']['mean_reward']:.3f}); {p['total_steps']} steps")
+                                     ~^^^^^^^^^^^^^^
+KeyError: 'first_eval'
+
+Traceback (most recent call last):
+  File "/home/abhinav/brew/src/brew/cli.py", line 250, in train_stage
+    res = run_pipeline(cfg, rd, stages, resume=resume)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/abhinav/brew/src/brew/rl/pipeline.py", line 473, in run_pipeline
+    allm["summary"] = summarize(allm)
+                      ^^^^^^^^^^^^^^^
+  File "/home/abhinav/brew/src/brew/rl/pipeline.py", line 497, in summarize
+    lines.append(f"PPO: eval reward {p['first_eval']['mean_reward']:.3f} -> {p['last_eval']['mean_reward']:.3f} (best {p['best']['mean_reward']:.3f}); {p['total_steps']} steps")
+                                     ~^^^^^^^^^^^^^^
+KeyError: 'first_eval'
+[2026-10-06 09:13:08] finished rc=1 after 0h14m

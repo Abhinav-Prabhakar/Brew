@@ -82,7 +82,7 @@ def test_env_step_time_budget():
         n += 1
         if term:
             break
-    assert (time.perf_counter() - t0) / n < 0.040  # technical.md 17: env step < 40 ms average
+    assert (time.perf_counter() - t0) / n < 0.040  # docs/implementation-spec.md 17: env step < 40 ms average
 
 
 def test_domain_randomisation_and_chaos_modes_change_the_world():

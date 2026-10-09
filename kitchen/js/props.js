@@ -42,10 +42,10 @@ function pan(root) {
   const prof = [[0, 0], [0.128, 0], [0.135, 0.004], [0.146, 0.04], [0.151, 0.047], [0.149, 0.05], [0.143, 0.047], [0.132, 0.014], [0.124, 0.009], [0, 0.009]];
   m(lathe(prof, 72), iron, { parent: g, cast: true });
   // grill ridges + an oil film that catches the key light
-  const ridges = group(g, [0, 0.009, 0]);
+  const ridges = group(g, [0, 0.009, 0], [0, 0.6, 0]);
   for (let i = -5; i <= 5; i++) {
-    const half = Math.sqrt(Math.max(0, 0.122 ** 2 - (i * 0.021) ** 2));
-    m(rbox(0.008, 0.007, half * 2, 0.003, 2), iron, { p: [i * 0.021, 0.003, 0], r: [0, 0.6, 0], parent: ridges });
+    const half = Math.sqrt(Math.max(0, 0.118 ** 2 - (i * 0.021) ** 2)) - 0.004;
+    if (half > 0.01) m(rbox(0.007, 0.006, half * 2, 0.003, 2), iron, { p: [i * 0.021, 0.002, 0], parent: ridges });
   }
   const oil = new THREE.MeshPhysicalMaterial({ color: '#2a1a0c', roughness: 0.08, metalness: 0.2, transparent: true, opacity: 0.55, clearcoat: 1, clearcoatRoughness: 0.03, depthWrite: false });
   oil.userData.envBase = oil.envMapIntensity = 1.2; envMats.push(oil);

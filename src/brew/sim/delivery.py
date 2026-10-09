@@ -1,5 +1,5 @@
 """Aggregator delivery: acceptance, throttles, promises, riders, pickup shelf, platform score
-(technical.md 7.7)."""
+(docs/implementation-spec.md 7.7)."""
 
 from __future__ import annotations
 

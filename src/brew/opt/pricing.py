@@ -1,4 +1,4 @@
-"""Pricing ladder search (technical.md 12.2): per category step in {-10,-5,0,+5,+10 %} with elasticity.
+"""Pricing ladder search (docs/implementation-spec.md 12.2): per category step in {-10,-5,0,+5,+10 %} with elasticity.
 
 For every combination of category steps (5^4 = 625) the expected profit of the next planning window is
 ``sum_i (p_i - c_i) * q_i(p_i) - capacity_penalty`` with

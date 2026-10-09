@@ -1,4 +1,4 @@
-"""Hourly Markov weather and temperature curve (technical.md 7.1)."""
+"""Hourly Markov weather and temperature curve (docs/implementation-spec.md 7.1)."""
 
 from __future__ import annotations
 

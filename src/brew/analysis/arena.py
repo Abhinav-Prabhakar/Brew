@@ -1,4 +1,4 @@
-"""Policy Arena: policies x seeds x days headless, with CRN pairing and statistics (technical.md 14.3)."""
+"""Policy Arena: policies x seeds x days headless, with CRN pairing and statistics (docs/implementation-spec.md 14.3)."""
 
 from __future__ import annotations
 

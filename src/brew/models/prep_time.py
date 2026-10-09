@@ -1,4 +1,4 @@
-"""Prep-time model: LightGBM quantiles of task duration from task telemetry (technical.md 12.6)."""
+"""Prep-time model: LightGBM quantiles of task duration from task telemetry (docs/implementation-spec.md 12.6)."""
 
 from __future__ import annotations
 

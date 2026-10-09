@@ -1,4 +1,4 @@
-"""Bottleneck analyzer (technical.md 14.1).
+"""Bottleneck analyzer (docs/implementation-spec.md 14.1).
 
 Every sim minute the analyzer samples each resource (stations incl. register / prep, tables, the dish pool,
 the delivery shelf).  Over a trailing 30-minute window it reports per resource

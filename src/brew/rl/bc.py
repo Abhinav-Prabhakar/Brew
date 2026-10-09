@@ -1,4 +1,4 @@
-"""Behaviour cloning from Policy C (technical.md 13.5).
+"""Behaviour cloning from Policy C (docs/implementation-spec.md 13.5).
 
 1. Roll out the real Policy C (CP-SAT, custom Replate, pricing ladder, newsvendor) for N days in the same
    worlds the env builds, recording ``(observation, action vector, mask, reward)`` at every manager tick.

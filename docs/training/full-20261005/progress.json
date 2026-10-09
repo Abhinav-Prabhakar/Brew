@@ -1,0 +1,17 @@
+{
+  "stage": "arena",
+  "stage_index": 12,
+  "n_stages": 13,
+  "step": 0,
+  "total_steps": 0,
+  "steps_per_s": 0.0,
+  "eta_s": null,
+  "last_eval": {
+    "mean_reward": null,
+    "mean_profit": null
+  },
+  "updated": "2026-10-06T09:13:07.541411+00:00",
+  "started": "2026-10-06T08:59:07.892570+00:00",
+  "status": "failed",
+  "elapsed_s": 839.6
+}

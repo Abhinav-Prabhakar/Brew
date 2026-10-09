@@ -73,7 +73,7 @@ class EvalCfg(_C):
 
 
 class BCCfg(_C):
-    """Behaviour cloning of Policy C (technical.md 13.5)."""
+    """Behaviour cloning of Policy C (docs/implementation-spec.md 13.5)."""
 
     days: int = 5  # days of Policy C rolled out (smoke 5, full 200)
     episode_days: int = 5
@@ -132,7 +132,7 @@ class PPOCfg(_C):
 
 
 class AdvCfg(_C):
-    """RARL: alternate k adversary / protagonist iterations (technical.md 13.5)."""
+    """RARL: alternate k adversary / protagonist iterations (docs/implementation-spec.md 13.5)."""
 
     total_timesteps: int = 5000  # adversary env steps over all iterations
     iterations: int = 2  # k

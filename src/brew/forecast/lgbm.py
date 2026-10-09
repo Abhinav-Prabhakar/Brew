@@ -1,4 +1,4 @@
-"""Global LightGBM quantile demand forecaster (+ Poisson mean model) - technical.md 12.1."""
+"""Global LightGBM quantile demand forecaster (+ Poisson mean model) - docs/implementation-spec.md 12.1."""
 
 from __future__ import annotations
 

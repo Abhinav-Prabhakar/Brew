@@ -1,4 +1,4 @@
-"""Policy D - learned RL manager (technical.md 8.4, 13).
+"""Policy D - learned RL manager (docs/implementation-spec.md 8.4, 13).
 
 ``ManagerExecutor`` is Policy C's machinery parametrised by an 18-dimensional RL action:
 

@@ -1,4 +1,4 @@
-"""Replate (rescue menu): make-ahead stock, markdown ladder, listings (technical.md 7.11, backend.md 3.11).
+"""Replate (rescue menu): make-ahead stock, markdown ladder, listings (docs/implementation-spec.md 7.11, backend.md 3.11).
 
 Food that was made ahead of demand and nears the end of its safe hold window is listed at a heavy,
 monotone markdown instead of being thrown away.  Two kinds of lots are tracked:

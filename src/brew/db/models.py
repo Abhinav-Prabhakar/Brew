@@ -1,4 +1,4 @@
-"""SQLAlchemy 2.0 models (technical.md 10.6). Portable types only: String ids, JSON, Numeric, Float."""
+"""SQLAlchemy 2.0 models (docs/implementation-spec.md 10.6). Portable types only: String ids, JSON, Numeric, Float."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Baseline demand forecasts and shared metrics (technical.md 12.1)."""
+"""Baseline demand forecasts and shared metrics (docs/implementation-spec.md 12.1)."""
 
 from __future__ import annotations
 

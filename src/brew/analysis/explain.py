@@ -1,4 +1,4 @@
-"""Decision explainer (technical.md 14.4): top factors + a natural-language note from the template bank.
+"""Decision explainer (docs/implementation-spec.md 14.4): top factors + a natural-language note from the template bank.
 
 Templates come from the LLM-generated ``explanations`` dataset (``data/synthetic/clean``) with built-in
 fallbacks.  A template is only used when every ``{slot}`` it contains can be filled from the decision's

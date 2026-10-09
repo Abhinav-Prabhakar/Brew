@@ -1,4 +1,4 @@
-"""Review-cause tagger: TF-IDF (1-2 grams) + one-vs-rest logistic regression (technical.md 12.7)."""
+"""Review-cause tagger: TF-IDF (1-2 grams) + one-vs-rest logistic regression (docs/implementation-spec.md 12.7)."""
 
 from __future__ import annotations
 

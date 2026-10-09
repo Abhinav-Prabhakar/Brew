@@ -1,4 +1,4 @@
-"""KPI counters: rolling kpi.tick payload and daily summaries (technical.md 7.11)."""
+"""KPI counters: rolling kpi.tick payload and daily summaries (docs/implementation-spec.md 7.11)."""
 
 from __future__ import annotations
 

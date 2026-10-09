@@ -1,4 +1,4 @@
-"""Impact metrics (technical.md 14.5): economic / environmental / social scoreboard, absolute and vs a
+"""Impact metrics (docs/implementation-spec.md 14.5): economic / environmental / social scoreboard, absolute and vs a
 baseline, plus the Replate cannibalisation counterfactual (CRN fork with ``replate_mode = off``)."""
 
 from __future__ import annotations

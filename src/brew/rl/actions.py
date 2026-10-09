@@ -1,4 +1,4 @@
-"""RL action space (technical.md 13.3): ``MultiDiscrete([5,5,5,5, 5,5,5,5, 6, 4,4, 4, 24, 2,2,2, 4, 4])``.
+"""RL action space (docs/implementation-spec.md 13.3): ``MultiDiscrete([5,5,5,5, 5,5,5,5, 6, 4,4, 4, 24, 2,2,2, 4, 4])``.
 
 ``decode_action`` turns a vector into the RL-controlled part of a :class:`ManagerAction`; the make-ahead level
 and the prep quantiles are carried out by the executor (``policies/D_rl.py``) with Policy C's machinery.

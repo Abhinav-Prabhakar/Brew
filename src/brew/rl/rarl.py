@@ -1,4 +1,4 @@
-"""Adversarial training: RARL alternation of adversary and protagonist (technical.md 13.5).
+"""Adversarial training: RARL alternation of adversary and protagonist (docs/implementation-spec.md 13.5).
 
 Iteration ``i`` (``k`` iterations): (1) train the adversary (MaskablePPO over ``[kind, target, slot]``, reward
 ``-protagonist profit``) against the *frozen* protagonist; (2) fine-tune the protagonist with PPO in envs whose

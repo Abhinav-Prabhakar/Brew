@@ -1,4 +1,4 @@
-"""Rider-ETA model: LightGBM quantiles of rider arrival time from delivery telemetry (technical.md 12.6)."""
+"""Rider-ETA model: LightGBM quantiles of rider arrival time from delivery telemetry (docs/implementation-spec.md 12.6)."""
 
 from __future__ import annotations
 

@@ -1,5 +1,5 @@
 """Customers in the venue: arrival, balk, queue, order, patience, seating, dwell, pay, leave
-(technical.md 7.3). Aggregator customers are order-only (no party)."""
+(docs/implementation-spec.md 7.3). Aggregator customers are order-only (no party)."""
 
 from __future__ import annotations
 

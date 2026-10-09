@@ -1,4 +1,4 @@
-"""Manager reward (technical.md 13.4), evaluated between two manager ticks.
+"""Manager reward (docs/implementation-spec.md 13.4), evaluated between two manager ticks.
 
 ``r = d_profit - shape*lam_late*sum(w_persona*late_min) - lam_walk*sum(LTV_persona*walkouts)
       - shape*lam_price*price_changes - lam_waste*(waste_inr + co2e_shadow*co2e_kg) - shape*lam_staff*overload_min``

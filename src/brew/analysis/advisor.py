@@ -1,4 +1,4 @@
-"""Investment advisor (technical.md 14.2): counterfactual forks with common random numbers.
+"""Investment advisor (docs/implementation-spec.md 14.2): counterfactual forks with common random numbers.
 
 For each catalog item (pre-screened by the bottleneck report) the live world is forked ``K`` times with
 seeds ``s_1..s_K``; every seed is run twice - once as is and once with the investment's effect applied - for

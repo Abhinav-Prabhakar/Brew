@@ -1,4 +1,4 @@
-"""Multinomial-logit menu choice with loss aversion (technical.md 7.4)."""
+"""Multinomial-logit menu choice with loss aversion (docs/implementation-spec.md 7.4)."""
 
 from __future__ import annotations
 
@@ -60,7 +60,7 @@ class ChoiceModel:
         self.wfit = np.zeros(self.J)
         self.cal = np.zeros(self.J)
         self._cache: dict[tuple[str, str], np.ndarray] = {}
-        # replate alternatives (extra choice-set members, technical.md 7.11)
+        # replate alternatives (extra choice-set members, docs/implementation-spec.md 7.11)
         rc = cfg.replate
         self.rho = {k: float(rc.affinity.get(k, 0.0)) for k in cfg.personas}
         self.phi = rc.phi

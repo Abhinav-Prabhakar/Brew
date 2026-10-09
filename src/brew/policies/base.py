@@ -1,4 +1,4 @@
-"""Policy protocol and shared decision dataclasses (technical.md 8.1)."""
+"""Policy protocol and shared decision dataclasses (docs/implementation-spec.md 8.1)."""
 
 from __future__ import annotations
 

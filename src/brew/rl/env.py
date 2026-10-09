@@ -1,4 +1,4 @@
-"""``BrewManagerEnv``: the manager as a Gymnasium environment (technical.md 13.1).
+"""``BrewManagerEnv``: the manager as a Gymnasium environment (docs/implementation-spec.md 13.1).
 
 One step = one manager tick (900 sim-s).  ``reset`` builds a :class:`World` whose policy is the
 :class:`~brew.policies.D_rl.ManagerExecutor` (Policy C's scheduler / newsvendor machinery parametrised by the

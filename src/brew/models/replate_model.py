@@ -1,4 +1,4 @@
-"""Replate sell-through model (technical.md 7.11): expected units sold per 5-minute tick of a listing.
+"""Replate sell-through model (docs/implementation-spec.md 7.11): expected units sold per 5-minute tick of a listing.
 
 A LightGBM Poisson regressor on listing telemetry (``replate_obs.parquet``): features ``frac_left,
 discount_pct, price_ratio, hour, weather, footfall, n_competing, remaining, sku``.  ``p_any = 1 - exp(-rate)``

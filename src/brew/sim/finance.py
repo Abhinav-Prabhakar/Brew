@@ -1,4 +1,4 @@
-"""Ledger, receipts and GST (technical.md 7.9)."""
+"""Ledger, receipts and GST (docs/implementation-spec.md 7.9)."""
 
 from __future__ import annotations
 

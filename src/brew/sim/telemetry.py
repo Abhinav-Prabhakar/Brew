@@ -1,4 +1,4 @@
-"""Telemetry buffers + Parquet writers (technical.md section 11).
+"""Telemetry buffers + Parquet writers (docs/implementation-spec.md section 11).
 
 The simulator only appends tuples to :class:`TeleBuf`; :func:`write_run` does the I/O and is called
 by the CLI / API outside ``sim`` hot paths.

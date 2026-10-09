@@ -1,4 +1,4 @@
-"""Newsvendor quantities for prep, make-ahead and purchasing (technical.md 12.3).
+"""Newsvendor quantities for prep, make-ahead and purchasing (docs/implementation-spec.md 12.3).
 
 ``q* = F^-1(c_u / (c_u + c_o))``.  Demand over a horizon is modelled as a negative binomial with mean
 ``mu`` and variance ``phi * mu`` (``phi >= 1`` captures the day-level shocks the Poisson model ignores);
@@ -79,7 +79,7 @@ class PrepClassCosts:
 def replate_adjusted_overage(
     unit_cost: float, recovery_price: float, p_sell: float, co2e_shadow: float = 0.0
 ) -> float:
-    """Expected loss of a leftover unit once replate recovers part of it (technical.md 7.11).
+    """Expected loss of a leftover unit once replate recovers part of it (docs/implementation-spec.md 7.11).
 
     ``c_o' = unit_cost - E[replate revenue] + CO2e shadow``; ``E[revenue] = p_sell * recovery_price``.
     """

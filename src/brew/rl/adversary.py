@@ -1,4 +1,4 @@
-"""Adversary for RARL (technical.md 13.5).
+"""Adversary for RARL (docs/implementation-spec.md 13.5).
 
 The adversary is an RL agent that injects disruptions against the (frozen) protagonist manager.  At every
 manager tick it picks ``(kind, target, start slot)`` -- ``kind`` has one extra 'none' value so that it can

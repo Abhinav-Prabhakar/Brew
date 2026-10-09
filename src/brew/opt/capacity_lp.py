@@ -1,4 +1,4 @@
-"""Fluid capacity LP with shadow prices (technical.md 12.5, 14.1).
+"""Fluid capacity LP with shadow prices (docs/implementation-spec.md 12.5, 14.1).
 
 Maximise ``sum_j m_j x_j`` (margin x units served in the horizon) subject to
 ``sum_j t_{j,r} x_j <= cap_r`` for every resource ``r`` and ``0 <= x_j <= D_j``.  The duals of the resource

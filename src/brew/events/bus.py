@@ -1,4 +1,4 @@
-"""Event record, envelope and sinks (technical.md section 9)."""
+"""Event record, envelope and sinks (docs/implementation-spec.md section 9)."""
 
 from __future__ import annotations
 

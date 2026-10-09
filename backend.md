@@ -1,8 +1,8 @@
 # Brew backend — product & build spec
 
 > **Status:** v1 · October 2026 · source of truth for the Python backend (simulator, ML/RL, API).
-> **Companion docs:** `technical.md` (how to implement it), `plan.md` (the master plan this derives from).
-> **Rule of precedence:** if `plan.md` and this file disagree, **this file wins**. If this file and `technical.md` disagree on an implementation detail, `technical.md` wins.
+> **Companion docs:** `docs/implementation-spec.md` (how to implement it), `technical.md` (the judges' deep-dive), `plan.md` (the master plan).
+> **Rule of precedence:** if `plan.md` and this file disagree, **this file wins**. If this file and `docs/implementation-spec.md` disagree on an implementation detail, `docs/implementation-spec.md` wins.
 
 ---
 
@@ -46,7 +46,7 @@ Brew is an operating system for independent cafes packaged as a cozy restaurant 
 
 ## 3. Domain model (what the sim knows about)
 
-All seed data lives in YAML under `configs/cafe/` and is validated by Pydantic at load. Full field lists are in `technical.md §5`. Summary:
+All seed data lives in YAML under `configs/cafe/` and is validated by Pydantic at load. Full field lists are in `docs/implementation-spec.md §5`. Summary:
 
 ### 3.1 Cafe & time
 - Demo cafe **"brew", Indiranagar, Bengaluru**. Timezone `Asia/Kolkata`. Currency INR. GST 5% (split CGST 2.5% + SGST 2.5% on receipts).
@@ -224,7 +224,7 @@ Mirrors what the lobby lets you do today plus owner overrides. Every action prod
 ### 6.3 WebSocket `/api/v1/ws/worlds/{id}?since_seq=`
 Server → client: **batched frames** every 50–100 ms wall time: `{"frame": n, "events": [Event, ...]}`. Each event: `{"seq", "sim_s", "t", "type", "data"}`. Client → server: `{"op": "ping"}`, `{"op": "subscribe", "types": [...]}` (optional filter). On reconnect the client fetches `/state` and resumes with `since_seq` (server keeps a ring buffer of the last 10 000 events per world).
 
-**Event types** (complete list; payload schemas are Pydantic models in `brew.events`, see `technical.md §9`). The right column is the lobby visual each must be able to drive:
+**Event types** (complete list; payload schemas are Pydantic models in `brew.events`, see `docs/implementation-spec.md §9`). The right column is the lobby visual each must be able to drive:
 
 | Type | Key payload fields | Drives (frontend) |
 |---|---|---|
@@ -329,7 +329,7 @@ All training is driven by `uv run brew-train <stage> --config configs/train/<smo
 | `eval` | Arena: A–E × seeds × scenarios, CIs | 3 seeds × 1 day × 1 scenario | 30 seeds × 14 days × 8 scenarios |
 | `export` | ONNX export + parity check + registry | yes | yes |
 
-`uv run brew-train all --config configs/train/smoke.yaml` runs the entire pipeline end to end and must finish in **< 20 min** on the laptop. Full runs happen later over SSH on the desktop (Linux, RTX 3050); see `technical.md §13` for device handling, run directories, resumability and how artifacts come back.
+`uv run brew-train all --config configs/train/smoke.yaml` runs the entire pipeline end to end and must finish in **< 20 min** on the laptop. Full runs happen later over SSH on the desktop (Linux, RTX 3050); see `docs/implementation-spec.md §13` for device handling, run directories, resumability and how artifacts come back.
 
 ---
 
@@ -367,7 +367,7 @@ The build is done by sub-agents in this order. Each milestone ends with green te
 
 ## 11. Quality bar
 
-- `uv run pytest -q` green; `uv run ruff check` clean; `uv run mypy src/brew` passes for `sim/`, `events/`, `api/` (strict-ish, see technical.md).
+- `uv run pytest -q` green; `uv run ruff check` clean; `uv run mypy src/brew` passes for `sim/`, `events/`, `api/` (strict-ish, see docs/implementation-spec.md).
 - Coverage ≥ 85 % on `sim/`, `policies/`, `api/`; ≥ 70 % overall.
 - Test tiers: `unit` (fast, default), `property` (Hypothesis), `integration` (API/WS/DB), `slow` (training smoke; run with `-m slow`). Default `uv run pytest` runs everything except `slow` in < 3 min.
 - No network access in tests. No GPU required for tests.

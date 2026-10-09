@@ -1,5 +1,5 @@
 """Kitchen: task DAGs, stations, equipment slots, staff attention/fatigue/breaks, dispatch, batching,
-errors/remakes, dish pit, prep jobs (technical.md 7.5)."""
+errors/remakes, dish pit, prep jobs (docs/implementation-spec.md 7.5)."""
 
 from __future__ import annotations
 

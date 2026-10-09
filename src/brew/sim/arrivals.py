@@ -1,4 +1,4 @@
-"""NHPP arrivals via thinning with common random numbers (technical.md 7.2)."""
+"""NHPP arrivals via thinning with common random numbers (docs/implementation-spec.md 7.2)."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Policy E - perfect-information oracle (upper bound; never used live) - technical.md 8.4.
+"""Policy E - perfect-information oracle (upper bound; never used live) - docs/implementation-spec.md 8.4.
 
 E is policy C with ``forecast = truth``: it reads the day's pre-sampled arrival plan (the CRN draws that
 define who the customers are), thins it with the current multipliers, runs the choice model on every

@@ -1,4 +1,4 @@
-"""The World: owns every subsystem and state; run / advance / fork (technical.md 6)."""
+"""The World: owns every subsystem and state; run / advance / fork (docs/implementation-spec.md 6)."""
 
 from __future__ import annotations
 

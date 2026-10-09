@@ -1,4 +1,4 @@
-"""Disruptions / chaos: scenario schedules, manual triggers, random failures (technical.md 7.10)."""
+"""Disruptions / chaos: scenario schedules, manual triggers, random failures (docs/implementation-spec.md 7.10)."""
 
 from __future__ import annotations
 

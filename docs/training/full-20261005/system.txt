@@ -1,0 +1,28 @@
+== system
+Linux Abhi 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
+CPU(s):                               12
+Model name:                           11th Gen Intel(R) Core(TM) i5-11400 @ 2.60GHz
+               total        used        free      shared  buff/cache   available
+Mem:            10Gi       666Mi       8.9Gi       3.5Mi       1.3Gi        10Gi
+Tue Oct  6 08:59:07 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 570.124.06             Driver Version: 572.70         CUDA Version: 12.8     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA GeForce RTX 3050        On  |   00000000:01:00.0  On |                  N/A |
+|  0%   52C    P8             13W /  130W |     383MiB /   8192MiB |      2%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|    0   N/A  N/A              35      G   /Xwayland                             N/A      |
++-----------------------------------------------------------------------------------------+
+uv 0.8.5
+5033b06 docs: context — run resumed after env speed fix

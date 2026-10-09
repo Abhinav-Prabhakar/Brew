@@ -1,4 +1,4 @@
-"""Pydantic schemas for the YAML seed data (technical.md section 5). All frozen."""
+"""Pydantic schemas for the YAML seed data (docs/implementation-spec.md section 5). All frozen."""
 
 from __future__ import annotations
 

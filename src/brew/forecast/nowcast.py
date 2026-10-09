@@ -1,4 +1,4 @@
-"""Gamma-Poisson intraday nowcast of the demand level multiplier (technical.md 12.1)."""
+"""Gamma-Poisson intraday nowcast of the demand level multiplier (docs/implementation-spec.md 12.1)."""
 
 from __future__ import annotations
 

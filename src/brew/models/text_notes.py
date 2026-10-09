@@ -1,4 +1,4 @@
-"""Ticket-note parser: high-precision rules + TF-IDF logistic regression (technical.md 12.7).
+"""Ticket-note parser: high-precision rules + TF-IDF logistic regression (docs/implementation-spec.md 12.7).
 
 Maps a free-text special instruction to intents (``allergy, modifier, rush, gift_message, packaging,
 cutlery, spice_level, other``), modifier ids, an allergen, an urgency score and a gift name.

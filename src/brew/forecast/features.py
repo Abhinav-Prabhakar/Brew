@@ -1,4 +1,4 @@
-"""Forecast feature construction (technical.md 12.1) shared by training, backtests and live inference.
+"""Forecast feature construction (docs/implementation-spec.md 12.1) shared by training, backtests and live inference.
 
 One row = ``(day, open slot, sku, channel group)``.  Features: categorical ``sku, cat, fg, weather``;
 numeric slot/dow/weather/temperature/rain, calendar flags, ``price_ratio``, ``featured``, ``hidden``,

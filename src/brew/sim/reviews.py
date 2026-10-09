@@ -1,4 +1,4 @@
-"""Satisfaction, reviews, Bayesian reputation, loyalty (technical.md 7.8)."""
+"""Satisfaction, reviews, Bayesian reputation, loyalty (docs/implementation-spec.md 7.8)."""
 
 from __future__ import annotations
 

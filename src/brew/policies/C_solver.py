@@ -1,4 +1,4 @@
-"""Policy C - optimised: forecasts + newsvendor + pricing ladder + CP-SAT rolling plan (technical.md 8.4).
+"""Policy C - optimised: forecasts + newsvendor + pricing ladder + CP-SAT rolling plan (docs/implementation-spec.md 8.4).
 
 * **Prep / make-ahead**: newsvendor quantile of forecast demand over each item's coverage window; make-ahead
   plates use the replate-adjusted overage cost (leftovers are partly recovered through the rescue menu).
