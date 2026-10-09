@@ -1,3 +1,31 @@
-# Placeholder - filled in M2/M3.
+# Full configuration for the training desktop (RTX 3050, Linux). 180 days x 4 scenarios of history.
 name: full
-history: {days: 180, seeds: 4}
+runs_dir: data/runs/full
+models_dir: models
+history:
+  scenario: weekday_normal
+  runs:
+    - {policy: B, seed: 201, days: 180, scenario: weekday_normal}
+    - {policy: B, seed: 202, days: 180, scenario: weekend_brunch}
+    - {policy: B, seed: 203, days: 180, scenario: rainy_delivery_surge}
+    - {policy: B, seed: 204, days: 180, scenario: festival}
+    - {policy: A, seed: 205, days: 60, scenario: weekday_normal}
+  price_explore_prob: 0.8
+  price_experiment: {groups: 60, variants: 5, seed: 900, policy: B}
+forecast: {n_estimators: 600, folds: 3, test_days: 7, min_history: 7}
+elasticity: {alpha: 1.0e-6, shrink_k: 200}
+prep_time: {n_estimators: 400}
+rider_eta: {n_estimators: 400}
+replate_model: {n_estimators: 300}
+text: {source: clean, test_size: 0.2, seed: 0}
+eval:
+  policies: [A, B, C, E]
+  seeds: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+  days: 14
+  scenario: weekday_normal
+  replate_ab: true
+  workers: 0
+# M3 (reserved)
+bc: {days: 200}
+ppo: {total_timesteps: 5000000, n_envs: 14, episode_days: 28}
+adversarial: {total_timesteps: 1000000}

@@ -7,6 +7,7 @@ from collections import deque
 from typing import TYPE_CHECKING, Any
 
 from brew.domain.money import round2
+from brew.domain.timeutil import tod_s
 
 from .engine import P_DONE
 from .replate import RP
@@ -32,6 +33,7 @@ class Orders:
         self.pack_short: set[int] = set()
         self.ready_now: set[int] = set()
         self.crit: dict[str, float] = {}
+        self.sku_idx = {m.sku: i for i, m in enumerate(w.cfg.menu)}
 
     # ------------------------------------------------------------------ helpers
     def critical_path(self, sku: str) -> float:
@@ -178,8 +180,10 @@ class Orders:
         o.promised_s = self.estimate_promise(o, extra_promise)
         self.open[o.order_no] = o
         w.kitchen.build_order_tasks(o)
+        slot = int(tod_s(w.now) // 900)
         for ln in o.lines:
             w.menu[ln["sku"]].sold_today += ln["qty"]
+            w.dlog.add(self.sku_idx[ln["sku"]], o.channel, slot, ln["qty"], ln["replate"])
         w.kpi.on_order_placed(o)
         if w.tele is not None:
             w.tele.order_placed(w, o)
