@@ -112,3 +112,13 @@
   3. Copy the champion under `models/rl_policy/D/<version>/` together with its registry entry.
   4. Commit.
 - If the desktop rebooted mid-run, continue with `bash scripts/desktop/overnight.sh start --resume`.
+
+## Update (2026-10-05 13:40 UTC): run resumed after a speed fix
+- **First attempt was too slow:** 27 steps/s, an ETA of about 46 h. LightGBM forecast predict was about 2/3 of every env step, and the workers thrashed the shared cache.
+- **Fix:** the RL training env now re-predicts hourly (`EnvConfig.forecast_refresh_slots=4`, applied in `PolicyC.reset`). Policies and the arena still predict every tick; the hourly refresh would cost C about 2.3% profit.
+- **Desktop measurements:** one env 87 → 27 ms/step; 6 workers reach 112 env-steps/s.
+- **full.yaml trimmed for the < 12 h budget:**
+  - PPO 2.0M steps (the spec said 5M), `n_envs` 6.
+  - RARL 150k adversary steps and 2×50k protagonist steps.
+- **Same run** `20261005_063045_cf21a5b`, resumed with `--resume --push-model` from the 404k checkpoint. It runs at about 46 steps/s. ETA ≈ 11–11.5 h, finishing around 01:00 UTC on 2026-10-06 (≈ 06:30 IST).
+- **Do not monitor.** The user will ping when it's done.
