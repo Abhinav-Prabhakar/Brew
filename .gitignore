@@ -25,3 +25,4 @@ kitchen/assets/_src/
 # desktop overnight runner state (logs worktree, pid files)
 .overnight/
 design/dev/
+.claude/worktrees/

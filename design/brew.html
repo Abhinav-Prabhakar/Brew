@@ -366,6 +366,9 @@
   @keyframes write{from{clip-path:inset(0 100% 0 0);transform:translateY(-2px) rotate(-3deg)}to{clip-path:inset(0 0 0 0);transform:none}}
   @keyframes fadeOld{to{opacity:0;width:0;margin-right:-8px}}
   .row.up .now{color:var(--terra)} .row.down .now{color:#4f7a45}
+  .row .ribbon{display:none}
+  .row.hidden86 > :not(.ribbon){opacity:.45}
+  .row.hidden86 .ribbon{display:block;position:absolute;right:18px;top:50%;z-index:2;translate:0 -50%;rotate:-7deg;font-family:var(--hand);font-size:20px;color:#fff;background:var(--terra);border:2.5px solid var(--ink);border-radius:6px;padding:0 12px;box-shadow:2px 2px 0 var(--ink)}
 
   .card-c{position:relative;display:grid;grid-template-columns:142px 1fr auto;align-items:center;gap:10px;padding:6px 10px;border:2.5px solid var(--ink);border-radius:14px 18px 12px 16px;background:#fff;box-shadow:3px 3px 0 var(--ink)}
   .cards{gap:11px}
