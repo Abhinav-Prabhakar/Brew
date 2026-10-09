@@ -28,7 +28,7 @@ from .train_ppo import PPOTrainer
 def prior_from_pkl(path: Path | str) -> dict[str, Any]:
     """VecNormalize statistics of a saved run as a ``build_venv`` prior."""
     with open(path, "rb") as f:
-        vn = pickle.load(f)
+        vn: Any = pickle.load(f)
     return {
         "obs_mean": np.asarray(vn.obs_rms.mean).tolist(), "obs_var": np.asarray(vn.obs_rms.var).tolist(),
         "ret_scale": float(np.sqrt(float(vn.ret_rms.var) + 1e-8)), "count": float(vn.obs_rms.count),
@@ -45,8 +45,8 @@ def train_adversary_phase(
 
     from .adversary import make_adv_env
 
-    fns = [partial(make_adv_env, env_cfg.replace(seed=env_cfg.seed + 7001 * (i + 1)), proto_files) for i in range(resolve_n_envs(cfg.n_envs))]
-    raw = SubprocVecEnv(fns, start_method="spawn") if cfg.vec == "subproc" and len(fns) > 1 else DummyVecEnv(fns)
+    fns: Any = [partial(make_adv_env, env_cfg.replace(seed=env_cfg.seed + 7001 * (i + 1)), proto_files) for i in range(resolve_n_envs(cfg.n_envs))]
+    raw: Any = SubprocVecEnv(fns, start_method="spawn") if cfg.vec == "subproc" and len(fns) > 1 else DummyVecEnv(fns)
     venv = VecNormalize(VecMonitor(raw), gamma=0.99, clip_obs=10.0)
     if model is None:
         model = MaskablePPO(
@@ -75,7 +75,8 @@ def train_adversary_phase(
     model.learn(total_timesteps=steps, callback=Cb(), reset_num_timesteps=False, progress_bar=False, tb_log_name="adversary")
     out_dir.mkdir(parents=True, exist_ok=True)
     model.save(str(out_dir / "adversary.zip"))
-    np.savez(out_dir / "adv_vecnormalize.npz", mean=venv.obs_rms.mean, var=venv.obs_rms.var)
+    rms: Any = venv.obs_rms
+    np.savez(out_dir / "adv_vecnormalize.npz", mean=rms.mean, var=rms.var)
     venv.close()
     stats = {
         "steps": int(model.num_timesteps), "episodes": len(rewards),

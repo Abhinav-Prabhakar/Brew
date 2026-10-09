@@ -39,14 +39,17 @@ ppo:                           # MaskablePPO, 20k steps, 1-day episodes
   batch_size: 256
   gamma: 0.99
   gae_lambda: 0.95
-  lr_start: 3.0e-4
-  lr_end: 3.0e-4
+  lr_start: 1.0e-4            # conservative: the policy starts from the BC weights
+  lr_end: 1.0e-4
+  n_epochs: 4
+  target_kl: 0.03
+  critic_warmup_updates: 4    # value head only, right after BC
   ent_coef: 0.01
   clip_range: 0.2
   net_arch: [256, 256]
   curriculum:
     - {days: 1, frac: 1.0, shaping: 1.0}
-  eval: {every: 5000, seeds: 3, days: 1, scenario: weekday_normal, base_seed: 1000, workers: 1}
+  eval: {every: 5000, seeds: 5, days: 1, scenario: weekday_normal, base_seed: 1000, workers: 1}
   checkpoint_every: 10000
 adversarial:                   # RARL: 5k adversary steps in k=2 iterations
   total_timesteps: 5000

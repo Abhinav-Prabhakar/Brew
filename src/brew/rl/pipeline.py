@@ -284,12 +284,12 @@ def stage_adversarial(ctx: Ctx) -> dict[str, Any]:
 
 def _candidate_paths(run_dir: Path) -> dict[str, tuple[Path, Path]]:
     c: dict[str, tuple[Path, Path]] = {}
-    for tag, d, m, v in (
+    for tag, dn, m, v in (
         ("ppo_best", "ppo", "best_model.zip", "best_vecnormalize.pkl"),
         ("ppo_final", "ppo", "final_model.zip", "final_vecnormalize.pkl"),
     ):
-        if (run_dir / d / m).exists():
-            c[tag] = (run_dir / d / m, run_dir / d / v)
+        if (run_dir / dn / m).exists():
+            c[tag] = (run_dir / dn / m, run_dir / dn / v)
     rarl = sorted(run_dir.glob("rarl*/final_model.zip"))
     if rarl:
         d = rarl[-1].parent

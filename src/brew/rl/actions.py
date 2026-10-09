@@ -122,7 +122,7 @@ def nearest(values: tuple[float, ...], x: float, lo: int = 0) -> int:
 
 def encode_teacher(
     kappa_ratio: dict[str, float], premake_ratio: list[float], price_steps: dict[str, float],
-    batch_window_s: float, replate_idx: int = 2,
+    batch_window_s: float, replate_idx: int = 1,
 ) -> np.ndarray:  # fmt: skip
     """Nearest action vector for what Policy C decided this tick (behaviour-cloning label).
 

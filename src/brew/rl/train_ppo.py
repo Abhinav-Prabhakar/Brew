@@ -37,8 +37,8 @@ def make_venv(base: EnvConfig, n_envs: int, kind: str = "dummy") -> Any:
 
     fns = [partial(make_env, c) for c in _env_cfgs(base, n_envs)]
     if kind == "subproc" and n_envs > 1:
-        return SubprocVecEnv(fns, start_method="spawn")
-    return DummyVecEnv(fns)
+        return SubprocVecEnv(fns, start_method="spawn")  # type: ignore[arg-type]
+    return DummyVecEnv(fns)  # type: ignore[arg-type]
 
 
 def build_venv(
@@ -50,12 +50,13 @@ def build_venv(
     from stable_baselines3.common.vec_env import VecMonitor, VecNormalize
 
     v = VecNormalize(VecMonitor(make_venv(base, n_envs, kind)), norm_obs=True, norm_reward=True, clip_obs=10.0, clip_reward=10.0, gamma=gamma)
+    obs_rms: Any = v.obs_rms
     if carry is not None:
         v.obs_rms, v.ret_rms = carry.obs_rms, carry.ret_rms
     elif prior is not None:
-        v.obs_rms.mean = np.asarray(prior["obs_mean"], dtype=np.float64)
-        v.obs_rms.var = np.asarray(prior["obs_var"], dtype=np.float64)
-        v.obs_rms.count = float(prior.get("count", 100))
+        obs_rms.mean = np.asarray(prior["obs_mean"], dtype=np.float64)
+        obs_rms.var = np.asarray(prior["obs_var"], dtype=np.float64)
+        obs_rms.count = float(prior.get("count", 100))
         v.ret_rms.var = np.asarray(float(prior["ret_scale"]) ** 2, dtype=np.float64)
         v.ret_rms.count = float(prior.get("count", 100))
     return v
@@ -438,7 +439,8 @@ def load_policy(model_zip: Path | str, vecnorm_pkl: Path | str, device: str = "c
 def rollout_policy(model: Any, norm: Any, env: BrewManagerEnv, seed: int, options: dict[str, Any] | None = None) -> dict[str, Any]:
     """One deterministic episode; returns reward / kpis."""
     obs, _ = env.reset(seed=seed, options=options)
-    total, done, info = 0.0, False, {}
+    total, done = 0.0, False
+    info: dict[str, Any] = {}
     while not done:
         a, _ = model.predict(norm(obs[None]), action_masks=env.action_masks()[None], deterministic=True)
         obs, r, term, trunc, info = env.step(a[0])
