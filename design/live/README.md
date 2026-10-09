@@ -30,8 +30,8 @@ goes through one tested path.
 ## Store
 - `BrewStore.hydrate(snapshot) → state` from `GET /worlds/{id}/state`.
 - `BrewStore.reduce(state, ev) → state`. **Pure**: never mutates its inputs (tests deep-freeze them), no
-  `Date.now()`, no randomness. Unknown types return `state` unchanged. Events with `seq <= state.seq` are ignored
-  (replay/reconnect dedupe); pseudo-events (`seq: null`) are always applied.
+  `Date.now()`, no randomness. Event types without a handler only advance `seq` / `sim_s` / `t` (so resume points stay right). Events with `seq <= state.seq` are ignored
+  (replay/reconnect dedupe); pseudo-events (`seq: null`) are always applied and never move `state.seq`.
 - Slice reducers live in `reduce/hud.js`, `reduce/lobby.js`, `reduce/kitchen.js`, `reduce/pantry.js` and are
   composed by `store.js`. `BrewStore.HANDLED` lists every event type with a reducer; `BrewStore.IGNORED` maps
   type → reason. Together they cover every type in `GET /api/v1/events/schema` (asserted by tests).
@@ -130,3 +130,31 @@ goes through one tested path.
 | chaos buttons | `#kitchen .chaos [data-chaos="<kind>"]` |
 | pantry item / lot | `#pantry [data-item="<key>"]`, lot tags `[data-lot="<lot_id>"]` with class `fresh`/`soon`/`bad` |
 | action buttons | `[data-action="<kind>"]` |
+
+
+## Implementation notes (the client layer as built; tests in `tests/frontend/`, see its README)
+- **Registry.** Each `reduce/*.js` calls `BrewStore.register(file, {hydrate(snapshot, state) -> patch, on: {type: [slice, fn] | [[slice, fn], ...]}})`;
+  a handler returns a patch of top-level keys. `BrewStore.describe()` is the source of truth for **`design/contract.json`**
+  (regenerate with `uv run python scripts/build_contract.py`); `'*'` handlers run for every stream event (the HUD clock).
+- **Customer states** are the contract's plus `seat_wait` (served at the counter, waiting for a table: no event, derived from
+  `order.served`). The snapshot's `arriving` / `queueing` are normalised to `arrived` / `queued`. `reneged` is kept when
+  `customer.left` follows it. `patience_frac` is a step function (1 -> .6 -> .3 -> .1): for a smooth ring use
+  `patience_deadline_s` with `BrewLive.now()`.
+- **Clock.** `clock.hhmm` / `is_open` follow `sim_s` of every event (the sim sends no `clock.tick` overnight); `day` / `date` /
+  `weekday` follow `clock.tick` / `day.started` (the sim's day counter flips at 07:00). Extra internal keys: `clock.min`,
+  `open_tod`, `close_tod`.
+- **Orders.** A ticket stays in `orders` (status `served` / `voided` / `rejected`, `gone_s`) for 90 sim-s but leaves `rail`
+  at once. Aggregator orders announce their lines before acceptance; the receipt printed at acceptance corrects `items`.
+  `batches` only keep groups that are on the rail (`rail.reordered` drops the rest); a one-order batch (3 units) has no
+  paperclip. `select.rail()` puts `.batch = {id, order_nos, size, index}` on tickets only when 2+ of the group are on the rail.
+- **Tables** have no "cleaned" event: `dirty -> free` is inferred from a finished `pass/clean` task (FIFO).
+- **Staff** `station` / `task` come from the active `tasks`; `state` is `absent | off | break | working | idle`; `break_due_s` /
+  `break_end_s` and `fatigue` only fill in with `staff.status` (pending backend) or `rest.staff`.
+- **Shelf** also carries `riders` (rider.assigned/arrived arrive before the bag exists) and `waiting_for_slot`.
+- **Internal keys** (not for renderers): `_next_prune_s`, `_dirty_tables`.
+- **Pseudo events** `rest.<name>` (listed above) and `client.status` (`{lagging}`, from boot.js).
+- **Pending backend** (reducers exist; mark in `contract.json`): `station.load`, `staff.status`, `chaos.cost`, `saves_s` on `batch.*`.
+- **Boot params**: `?source=ws|replay &api= &world=<id> &clock=wall|open &policy=D &play=0 &fixture=<name> &replay=<url> &speed=<n> &loop=1`;
+  `window.BREW_LIVE_AUTOBOOT = false` skips auto boot (`BrewLive.boot(params)` by hand). Statuses: `booting | live | reconnecting |
+  replay | offline-demo | closed`; bus also emits `hydrate`, `frame`, `status`. `BrewLive.refresh(name, arg)` fetches a read model
+  and feeds it through the reducer as `rest.<name>`.

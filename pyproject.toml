@@ -57,7 +57,7 @@ build-backend = "hatchling.build"
 packages = ["src/brew"]
 
 [tool.pytest.ini_options]
-markers = ["slow: training / long-running tests", "property: Hypothesis invariants", "integration: API / WS / DB tests"]
+markers = ["slow: training / long-running tests", "property: Hypothesis invariants", "integration: API / WS / DB tests", "frontend: tests of the design/live client layer (golden streams, headless Chromium via Python Playwright)"]
 addopts = "-q -m 'not slow' --timeout=180"
 asyncio_mode = "auto"
 testpaths = ["tests"]
@@ -94,6 +94,7 @@ dev = [
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
     "pytest-cov>=7.1.0",
+    "pytest-playwright>=0.9.0",
     "pytest-timeout>=2.4.0",
     "ruff>=0.16.10",
 ]

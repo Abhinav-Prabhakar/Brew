@@ -1,0 +1,21 @@
+<!doctype html>
+<!-- Test harness: loads only the live client layer (no rooms, no CSS). Used by tests/frontend/*.
+     Boots automatically only when the URL has ?source=ws|replay (see boot.js); otherwise the page just exposes
+     BrewStore / BrewSources / BrewApi / BrewLive for page.evaluate. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>brew live harness</title>
+<script>window.BREW_LIVE_AUTOBOOT = new URLSearchParams(location.search).has('source');</script>
+<script src="bus.js"></script>
+<script src="store.js"></script>
+<script src="reduce/hud.js"></script>
+<script src="reduce/lobby.js"></script>
+<script src="reduce/kitchen.js"></script>
+<script src="reduce/pantry.js"></script>
+<script src="sources.js"></script>
+<script src="api.js"></script>
+<script src="boot.js"></script>
+</head>
+<body>brew live harness</body>
+</html>

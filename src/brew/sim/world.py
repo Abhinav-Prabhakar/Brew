@@ -1040,7 +1040,7 @@ class World:
         inv = self.inv
         if not keys:
             return
-        keys = list(keys)
+        keys = sorted(keys)  # set order varies with str-hash randomisation: sort for a deterministic event order
         inv.stock_dirty.clear()
         seen: set[str] = set()
         for k in keys:
