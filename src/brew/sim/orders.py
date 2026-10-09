@@ -131,7 +131,11 @@ class Orders:
         rp = w.replate
         real = tuple(m for m in u.mods if m != RP)
         premade = False
-        if not remake and not real and rp.premade_units_avail(u.sku) >= 1.0 - 1e-9:
+        backed = None
+        if RP in u.mods and not remake:
+            lst = rp.listing(u.sku)
+            backed = lst if lst is not None and lst.backed else None
+        if not remake and not real and backed is None and rp.premade_units_avail(u.sku) >= 1.0 - 1e-9:
             bom = w.inv.bom_premade(u.sku, carry)
             premade = True
         else:
@@ -143,6 +147,7 @@ class Orders:
         qmin = 1.0
         rp.ctx = "remake" if remake else ("replate" if RP in u.mods else "full")
         rp.last_lot_id = ""
+        rp.prefer = backed.lot_id if backed is not None else ""
         for k, q, pack in bom:
             got, c, qual = w.inv.consume(k, q, w.now, partial=True)
             if pack and got < q - 1e-9:
@@ -152,6 +157,7 @@ class Orders:
             if not pack and got > 0:
                 qmin = min(qmin, qual)
         rp.ctx = "full"
+        rp.prefer = ""
         u.cost += cost
         o.cogs += cost
         u.ing_quality = qmin

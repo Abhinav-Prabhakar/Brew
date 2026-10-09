@@ -90,9 +90,10 @@ class DemandLog:
         cur = self.cur
         if cur is None:
             return
-        cur.counts[slot, sku_idx, fg_index(channel)] += qty
-        if replate:
+        if replate:  # rescue-menu units are policy-induced: kept apart from the full-price demand history
             cur.rp[slot, sku_idx] += qty
+        else:
+            cur.counts[slot, sku_idx, fg_index(channel)] += qty
 
     def snapshot(self, w: World) -> None:
         """Record the live context at the start of the current 15-min slot."""

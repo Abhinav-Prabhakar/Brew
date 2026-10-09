@@ -108,8 +108,8 @@ def test_only_made_ahead_stock_is_listed_never_made_to_order():
     w = premake_day("aggressive")
     w.run(1)
     listed_skus = {e.data["sku"] for e in w.test_sink.events if e.type == "replate.listed"}
-    assert listed_skus <= set(w.replate.sku_key)
-    assert not listed_skus & {"cappuccino", "latte", "fries", "waffle", "espresso", "chai"}
+    assert listed_skus <= set(w.replate.active)
+    assert not listed_skus & {"cappuccino", "latte", "waffle", "espresso", "matcha"}  # no backing lot, never listed
     # every listing references a lot that was created by pre-making / finished goods stock
     lots = {pl.lot_id: pl for pl in all_lots(w)}
     for e in w.test_sink.events:
@@ -273,7 +273,8 @@ def test_replate_lines_carry_flag_and_discounted_price():
     assert rp_lines
     for it in rp_lines:
         assert RP not in it["mods"]
-        assert it["unit_price"] < w.cfg.menu[[m.sku for m in w.cfg.menu].index(it["sku"])].max_price
+        base = w.cfg.menu[[m.sku for m in w.cfg.menu].index(it["sku"])].base_price
+        assert it["unit_price"] - w.mod_delta(tuple(it["mods"])) < base
     sold = [e for e in w.sink.events if e.type == "replate.sold"]  # type: ignore[union-attr]
     assert len(sold) == w.daily_kpis[0]["replate_units_sold"]
 

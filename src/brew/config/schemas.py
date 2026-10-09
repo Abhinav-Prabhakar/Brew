@@ -371,6 +371,15 @@ class ReplateConfig(_M):
     affinity: dict[str, float] = {}
     min_ladder_gap_pct: float = 1.0
     max_premake_job: int = 8
+    prep_backed: dict[str, str] = {}  # prepped intermediate / perishable key -> dish SKU listed from it
+    backed_frac: float = 0.5  # a prep-backed lot becomes listable once its remaining hold fraction is <= this
+    backed_raw_s: float = 10800.0  # ... a raw perishable once it has less than this many seconds left
+    surplus_only: bool = True  # ladder modes list only units beyond the full-price demand expected before use-by
+    surplus_z: float = 0.5  # safety margin (in sqrt-units) added to that expected demand
+    choice_alt: bool = True  # listings are extra alternatives in the customer's choice set (backend.md 3.11)
+    addon_enabled: bool = True  # counter impulse add-on: after choosing, a customer may add one listed rescue unit
+    addon_beta: float = 2.4  # impulse sensitivity to the discount depth d = -ln(listing price / reference price)
+    addon_kappa: float = 2.75  # utility of "no add-on" (higher = fewer add-ons)
 
 
 class CafeConfig(_M):

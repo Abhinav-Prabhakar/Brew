@@ -1,49 +1,6 @@
 [
   {
     "champion": true,
-    "created_at": "2026-10-04T09:22:08.548686+00:00",
-    "git_sha": "9f6d1b2",
-    "kind": "forecast",
-    "lineage": {
-      "config": "smoke",
-      "history": [
-        "00_B_101",
-        "01_B_102",
-        "02_A_103"
-      ]
-    },
-    "metrics": {
-      "bias_mean": -0.08070308602151828,
-      "bias_p50": -0.6744627407677354,
-      "coverage_p10_p90": 0.9157894736842105,
-      "demand_units": 5356.0,
-      "folds": 3,
-      "improvement_vs_naive_pct": 18.675985150115636,
-      "pinball_p10": 0.042711323763955346,
-      "pinball_p50": 0.2030830498208152,
-      "pinball_p90": 0.14162736419595376,
-      "rows": 12540,
-      "test_days": 2,
-      "wape_hourly_mean_model": 0.6301431496303195,
-      "wape_hourly_moving_average": 0.672810200735359,
-      "wape_hourly_seasonal_naive": 0.7533607169529499,
-      "wape_mean": 1.100830619547176,
-      "wape_moving_average": 1.0907659530639648,
-      "wape_p50": 0.9509564767561698,
-      "wape_seasonal_naive": 1.1693427562713623
-    },
-    "name": "lgbm",
-    "params": {
-      "folds": 3,
-      "min_history": 7,
-      "n_estimators": 120,
-      "test_days": 2
-    },
-    "path": "forecast/lgbm/smoke",
-    "version": "smoke"
-  },
-  {
-    "champion": true,
     "created_at": "2026-10-04T09:22:23.032955+00:00",
     "git_sha": "9f6d1b2",
     "kind": "elasticity",
@@ -78,62 +35,6 @@
       "shrink_k": 200.0
     },
     "path": "elasticity/poisson_glm/smoke",
-    "version": "smoke"
-  },
-  {
-    "champion": true,
-    "created_at": "2026-10-04T09:22:25.987710+00:00",
-    "git_sha": "58733fe",
-    "kind": "prep_time",
-    "lineage": {
-      "config": "smoke",
-      "history": [
-        "00_B_101",
-        "01_B_102",
-        "02_A_103"
-      ]
-    },
-    "metrics": {
-      "coverage_p10_p90": 0.8341313924535529,
-      "naive_mae_s": 9.953518483049224,
-      "p50_mae_pct": 0.14394216644547672,
-      "p50_mae_s": 7.047896691759333,
-      "rows_test": 36547
-    },
-    "name": "lgbm_quantile",
-    "params": {
-      "min_rows": 200,
-      "n_estimators": 80
-    },
-    "path": "prep_time/lgbm_quantile/smoke",
-    "version": "smoke"
-  },
-  {
-    "champion": true,
-    "created_at": "2026-10-04T09:22:26.695762+00:00",
-    "git_sha": "58733fe",
-    "kind": "rider_eta",
-    "lineage": {
-      "config": "smoke",
-      "history": [
-        "00_B_101",
-        "01_B_102",
-        "02_A_103"
-      ]
-    },
-    "metrics": {
-      "coverage_p10_p90": 0.782559456398641,
-      "p50_mae_s": 170.60892858481432,
-      "p90_coverage": 0.9003397508493771,
-      "platform_pred_mae_s": 169.88129327480257,
-      "rows_test": 883
-    },
-    "name": "lgbm_quantile",
-    "params": {
-      "min_rows": 200,
-      "n_estimators": 80
-    },
-    "path": "rider_eta/lgbm_quantile/smoke",
     "version": "smoke"
   },
   {
@@ -226,8 +127,107 @@
   },
   {
     "champion": true,
-    "created_at": "2026-10-04T09:22:28.003285+00:00",
-    "git_sha": "58733fe",
+    "created_at": "2026-10-04T14:48:07.914722+00:00",
+    "git_sha": "adac2b5",
+    "kind": "forecast",
+    "lineage": {
+      "config": "smoke",
+      "history": [
+        "00_B_101",
+        "01_B_102",
+        "02_A_103"
+      ]
+    },
+    "metrics": {
+      "bias_mean": -0.14353825401778475,
+      "bias_p50": -0.6364393672041535,
+      "coverage_p10_p90": 0.9050812687391511,
+      "demand_units": 5696.0,
+      "folds": 3,
+      "improvement_vs_naive_pct": 17.57330664114669,
+      "pinball_p10": 0.044942401767397826,
+      "pinball_p50": 0.2081804120607623,
+      "pinball_p90": 0.14335927240327037,
+      "rows": 12674,
+      "test_days": 2,
+      "wape_hourly_mean_model": 0.6157942671831703,
+      "wape_hourly_moving_average": 0.6613162123347015,
+      "wape_hourly_seasonal_naive": 0.7401685393258427,
+      "wape_mean": 1.054862714148538,
+      "wape_moving_average": 1.0609952211380005,
+      "wape_p50": 0.9264320724923109,
+      "wape_seasonal_naive": 1.1239466667175293
+    },
+    "name": "lgbm",
+    "params": {
+      "folds": 3,
+      "min_history": 7,
+      "n_estimators": 120,
+      "test_days": 2
+    },
+    "path": "forecast/lgbm/smoke",
+    "version": "smoke"
+  },
+  {
+    "champion": true,
+    "created_at": "2026-10-04T14:48:13.577400+00:00",
+    "git_sha": "adac2b5",
+    "kind": "prep_time",
+    "lineage": {
+      "config": "smoke",
+      "history": [
+        "00_B_101",
+        "01_B_102",
+        "02_A_103"
+      ]
+    },
+    "metrics": {
+      "coverage_p10_p90": 0.8397357992073976,
+      "naive_mae_s": 10.342909907529723,
+      "p50_mae_pct": 0.13893610053176142,
+      "p50_mae_s": 7.095703230951753,
+      "rows_test": 37850
+    },
+    "name": "lgbm_quantile",
+    "params": {
+      "min_rows": 200,
+      "n_estimators": 80
+    },
+    "path": "prep_time/lgbm_quantile/smoke",
+    "version": "smoke"
+  },
+  {
+    "champion": true,
+    "created_at": "2026-10-04T14:48:17.433472+00:00",
+    "git_sha": "adac2b5",
+    "kind": "rider_eta",
+    "lineage": {
+      "config": "smoke",
+      "history": [
+        "00_B_101",
+        "01_B_102",
+        "02_A_103"
+      ]
+    },
+    "metrics": {
+      "coverage_p10_p90": 0.7894144144144144,
+      "p50_mae_s": 164.69158957947315,
+      "p90_coverage": 0.9009009009009009,
+      "platform_pred_mae_s": 167.19317795372052,
+      "rows_test": 888
+    },
+    "name": "lgbm_quantile",
+    "params": {
+      "min_rows": 200,
+      "n_estimators": 80
+    },
+    "path": "rider_eta/lgbm_quantile/smoke",
+    "version": "smoke"
+  },
+  {
+    "champion": true,
+    "created_at": "2026-10-04T14:48:20.937285+00:00",
+    "git_sha": "adac2b5",
     "kind": "replate",
     "lineage": {
       "config": "smoke",
@@ -238,11 +238,11 @@
       ]
     },
     "metrics": {
-      "baseline_deviance": 0.24811501993118978,
-      "deviance_improvement_pct": 15.914680726113218,
-      "mean_rate": 0.043453900267695945,
-      "poisson_deviance": 0.20862830667560875,
-      "rows": 20079,
+      "baseline_deviance": 0.7612592894692747,
+      "deviance_improvement_pct": 16.794972170581413,
+      "mean_rate": 0.16455735823464968,
+      "poisson_deviance": 0.6334060036569442,
+      "rows": 23962,
       "trained": true
     },
     "name": "sellthrough",

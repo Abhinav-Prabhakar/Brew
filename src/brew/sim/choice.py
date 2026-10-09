@@ -143,6 +143,28 @@ class ChoiceModel:
         self._rp_cache[ck] = u
         return u
 
+    def addon_choice(
+        self, persona: str, g_row: np.ndarray, g_out: float, rp_allowed: np.ndarray | None = None
+    ) -> int:
+        """Counter impulse add-on: the listed SKU index the customer adds on top of the basket, or -1.
+
+        Gumbel-max over the listed rescue SKUs plus "nothing" (utility ``addon_kappa``); the utility of a
+        listing grows with its discount depth, persona affinity and shelf quality (CRN: pre-drawn noise).
+        """
+        if self.rp_mask is None:
+            return -1
+        rc = self.cfg.replate
+        d = np.maximum(0.0, -self.rp_lnr)
+        u = rc.addon_beta * d + self.aff[persona] + self.rho[persona] - self.phi * (1.0 - self.rp_q)
+        mask = self.rp_mask & self.visible
+        if rp_allowed is not None:
+            mask = mask & rp_allowed
+        v = np.where(mask, u + g_row, NEG)
+        j = int(np.argmax(v))
+        if v[j] <= NEG / 2 or v[j] <= rc.addon_kappa + g_out:
+            return -1
+        return j
+
     def probs(self, persona: str, kind: str = "drink", with_outside: bool = True) -> tuple[float, np.ndarray]:
         """``(p_outside, p_sku[J])`` summing to 1 (outside only counted if ``with_outside``)."""
         u = self.utilities(persona, kind)
@@ -178,7 +200,7 @@ class ChoiceModel:
         best = float(u[j])
         if best <= NEG / 2:
             j = -1
-        if gumbel_rp_row is not None and self.rp_mask is not None:
+        if gumbel_rp_row is not None and self.rp_mask is not None and self.cfg.replate.choice_alt:
             ur = self.utilities_rp(persona, kind)
             if ur is not None:
                 if rp_allowed is not None:

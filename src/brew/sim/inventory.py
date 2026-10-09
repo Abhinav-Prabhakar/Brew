@@ -96,6 +96,9 @@ class Inventory:
             self.tracked.add(key)
             self.premade_key[m.sku] = key
             self.key_skus.setdefault(key, []).append(m.sku)
+        for bk in cfg.replate.prep_backed:  # prep-backed listings draw on (and track) these lots
+            if bk in self.mov:
+                self.tracked.add(bk)
 
     def _register(
         self, key: str, sealed_h: float, opened_h: float, cost: float, pack: bool, wt: float
@@ -217,7 +220,10 @@ class Inventory:
         qsum = 0.0
         reorder = False
         rp = getattr(self.w, "replate", None) if key in self.tracked and self.w is not None else None
-        for lt in list(lots):
+        seq = list(lots)
+        if rp is not None and rp.prefer:  # replate sale of a prep-backed listing: draw the expiring lot first
+            seq.sort(key=lambda lt: lt.lot_id != rp.prefer)
+        for lt in seq:
             if need <= EPS:
                 break
             if lt.expires_s <= now or lt.qty <= 0:

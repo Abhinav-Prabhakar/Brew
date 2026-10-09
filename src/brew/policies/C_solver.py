@@ -55,8 +55,10 @@ DEFAULTS: dict[str, Any] = {
     "prep": {"max_batches_per_tick": 2, "underage_floor": 0.25, "waste_shadow_inr_per_kg": 20.0},
     "premake": {"enabled": True, "window_min": 120, "speed_value_inr": 60, "kitchen_load_max": 1.0, "max_units": 8,
                 "start_h": 10.0, "stop_h": 20.5, "waste_penalty_inr": 8, "min_window_demand": 1.2, "busy_floor": 0.0},
-    "replate": {"custom": True, "levels_pct": [0, 20, 30, 40, 50, 60, 70], "waste_value_inr": 12, "recovery_prior": 0.0,
-                "max_hours_before_list": 0.75, "max_hold_frac": 0.25, "surplus_quantile": 0.35, "min_surplus_units": 2.0},
+    "replate": {"custom": True, "levels_pct": [0, 20, 30, 40], "waste_value_inr": 12, "recovery_prior": 0.0, "recovery_scale": 0.0,
+                "max_hours_before_list": 2.0, "list_frac": 0.5, "surplus_quantile": 0.35, "min_surplus_units": 1.0,
+                "skus": None, "kinds": None},
+    "salvage": {"enabled": True, "window_h": 4.0, "max_stock_batches": 4.0},
     "pricing": {"enabled": True, "every_min": 60, "first_h": 9.0, "last_h": 20.0, "min_gain_inr": 120,
                 "util_threshold": 0.9, "default_beta": -1.1, "default_loss": 1.0},
     "purchasing": {"z": 1.4, "cv": 0.35, "shelf_cap_frac": 0.7, "min_cover_days": 1.2, "late_buffer_days": 0.45},
@@ -108,6 +110,7 @@ class PolicyC:
         self.sku_stations: dict[str, tuple[str, ...]] = {}
         self.sku_step_min: dict[str, dict[str, float]] = {}
         self.unit_cost: dict[str, float] = {}
+        self.key_users: dict[str, list[tuple[str, float]]] = {}
         self.decisions: list[dict[str, Any]] = []
 
     # ------------------------------------------------------------------ fork support
@@ -157,6 +160,11 @@ class PolicyC:
                 mins[s.station] = mins.get(s.station, 0.0) + s.duration[0] * s.attention / 60.0
             self.sku_step_min[m.sku] = mins
             self.unit_cost[m.sku] = view.unit_cost(m.sku)
+        self.key_users = {}
+        for m in cfg.menu:
+            for k, q, pack in view.bom(m.sku, False):
+                if not pack:
+                    self.key_users.setdefault(k, []).append((m.sku, q))
 
     # ------------------------------------------------------------ small helpers
     def _fc(self, view: WorldView) -> Any:
@@ -178,6 +186,7 @@ class PolicyC:
         if view.tod_s >= CLOSE_S - 1800:
             return act
         self._prep(view, act)
+        self._salvage(view, act)
         if self.P["premake"]["enabled"]:
             self._premake(view, act)
         if self.P["replate"]["custom"]:
@@ -270,6 +279,31 @@ class PolicyC:
         if started:
             act.reason = "newsvendor prep: " + ", ".join(started)
 
+    def _salvage(self, view: WorldView, act: ManagerAction) -> None:
+        """Bake-and-list: a finished-good prep item (croissants) is started from a whole batch of a short-life
+        ingredient (dough) that would otherwise expire unused; the batch ends up on the shelf, on the rescue
+        menu or - if sealed bakery is left at closing - donated instead of wasted."""
+        Ps = self.P["salvage"]
+        if not Ps["enabled"] or view.replate_mode == "off":
+            return
+        now = view.now
+        close_in = CLOSE_S - view.tod_s
+        for p in view.config.prep_items:
+            if not p.finished_good or p.key in act.prep_now:
+                continue
+            lead_s = p.lead_time_min * 60.0
+            if close_in < lead_s + 1800.0 or view.usable(p.key) + view.prep_inflight(p.key) >= Ps["max_stock_batches"] * p.batch_size:
+                continue
+            for c in p.components:
+                if view._w.inv.shelf_opened.get(c.ingredient, 1e9) > 48.0:
+                    continue
+                for qty, exp in view.lots(c.ingredient):
+                    left = exp - now
+                    if qty >= c.qty - 1e-9 and lead_s < left <= lead_s + Ps["window_h"] * 3600.0:
+                        act.prep_now[p.key] = float(p.batch_size)
+                        self._note(act, view, f"salvage {c.ingredient} into {p.key}", lot_qty=qty, hours_left=left / 3600.0)
+                        return
+
     def _prep_cost(self, view: WorldView, key: str) -> float:
         inv = view._w.inv
         return float(inv.unit_cost.get(key, 0.1))
@@ -302,8 +336,8 @@ class PolicyC:
             stock = view.stock_units(sku) + view.premake_inflight(sku)
             cost = self.unit_cost[sku]
             if mode_on:
-                p_sell = self.P["replate"]["recovery_prior"]
-                rec_price = 0.5 * view.price(sku)
+                p_sell = self._recovery(view, sku, hold_s)
+                rec_price = 0.7 * view.price(sku)
                 co = max(5.0, cost - p_sell * rec_price) + Pm["waste_penalty_inr"] * (1 - p_sell)
             else:
                 co = cost + Pm["waste_penalty_inr"]
@@ -320,6 +354,28 @@ class PolicyC:
                 self._note(act, view, f"make ahead {sku}", demand=mu, stock=stock, target=q, overage_cost=co)
         if parts:
             act.reason = (act.reason + "; " if act.reason else "") + "make ahead: " + ", ".join(parts)
+
+    def _recovery(self, view: WorldView, sku: str, hold_s: float) -> float:
+        """Probability that a leftover make-ahead unit is recovered on the rescue menu before its use-by.
+
+        From the sell-through model: expected rescue sales over the second half of the hold window at a typical
+        30 % markdown; a leftover unit is recovered if at least two units sell (the leftover is rarely alone),
+        shrunk by ``recovery_scale``.  ``recovery_prior`` > 0 overrides it with a fixed share.
+        """
+        Pr = self.P["replate"]
+        if Pr["recovery_prior"] > 0:
+            return float(Pr["recovery_prior"])
+        st = self.bundle.sellthrough
+        if st is None or Pr["recovery_scale"] <= 0:
+            return 0.0
+        try:
+            rate = st.rate(
+                sku, 0.3, 30.0, 0.7, view.hour, view.weather, float(view._w.customers.arrived_today), 0, 2.0
+            )  # fmt: skip
+        except Exception:
+            return 0.0
+        lam = rate * max(1.0, 0.5 * hold_s / 300.0)
+        return float(Pr["recovery_scale"] * (1.0 - math.exp(-lam) * (1.0 + lam)))
 
     def _expected_load(self, view: WorldView) -> float:
         """Kitchen load (0-1) expected over the premake window: blend of now and forecast demand intensity."""
@@ -355,6 +411,10 @@ class PolicyC:
         parts: list[str] = []
         by_sku: dict[str, list[dict[str, Any]]] = defaultdict(list)
         for lot in lots:
+            if Pr.get("skus") is not None and lot["sku"] not in Pr["skus"]:
+                continue
+            if Pr.get("kinds") is not None and lot["kind"] not in Pr["kinds"]:
+                continue
             by_sku[lot["sku"]].append(lot)
         n_listed = sum(1 for x in lots if x["listed"])
         for sku, group in by_sku.items():
@@ -365,11 +425,16 @@ class PolicyC:
                 left_s = lot["use_by_s"] - now
                 if units < 1 or left_s <= 0:
                     continue
-                f_mu = d.units_until(sku, min(lot["use_by_s"], now - tod + CLOSE_S), now)
-                reach = max(0.0, f_mu - ahead)
-                ahead += units
-                hold_s = max(1.0, lot["use_by_s"] - lot["made_at_s"])
-                if left_s > min(Pr["max_hours_before_list"] * 3600.0, Pr.get("max_hold_frac", 0.35) * hold_s):
+                until = min(lot["use_by_s"], now - tod + CLOSE_S)
+                if lot["kind"] == "backed":  # all dishes that draw on the backing key compete for the lot
+                    f_mu = sum(q * d.units_until(s2, until, now) for s2, q in self.key_users.get(lot["key"], ())) / lot["per_unit"]
+                    ahead_u = sum(qty for qty, exp in view.lots(lot["key"]) if exp < lot["expires_s"] - 1e-6) / lot["per_unit"]
+                    reach = max(0.0, f_mu - ahead_u)
+                else:
+                    f_mu = d.units_until(sku, until, now)
+                    reach = max(0.0, f_mu - ahead)
+                    ahead += units
+                if lot["frac_left"] > Pr["list_frac"] + 1e-9 or left_s > Pr["max_hours_before_list"] * 3600.0:
                     continue
                 full_q = demand_quantile(reach, Pr["surplus_quantile"], phi) if reach > 0 else 0.0
                 surplus = units - full_q
@@ -385,8 +450,8 @@ class PolicyC:
                     if st is not None:
                         try:
                             rate = st.rate(
-                                sku, lot["frac_left"], pct, price / max(1.0, base), view.hour, view.weather, 0.0,
-                                n_listed, units,
+                                sku, lot["frac_left"], pct, price / max(1.0, base), view.hour, view.weather,
+                                float(view._w.customers.arrived_today), n_listed, units,
                             )  # fmt: skip
                         except Exception:
                             rate = 0.04 * (1 + pct / 30.0)

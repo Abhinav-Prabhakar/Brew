@@ -73,6 +73,9 @@ class PreLot:
     marks: int = 0
     revenue: float = 0.0
     mark_by: str = ""
+    per_unit: float = 1.0  # backing-lot quantity per dish unit (prep-backed lots; 1 for finished goods)
+    backed: bool = False  # prep-backed listing: the lot is a prepped intermediate / perishable, not the dish
+    window_s: float = 0.0  # hold window the markdown ladder runs over (backed lots)
     _snap: float = 0.0  # replate units sold at the previous telemetry tick
 
     @property
@@ -81,7 +84,7 @@ class PreLot:
 
     @property
     def remaining(self) -> float:
-        return 0.0 if self.retired else max(0.0, self.lot.qty)
+        return 0.0 if self.retired else max(0.0, self.lot.qty) / self.per_unit
 
     @property
     def hold_s(self) -> float:
@@ -117,6 +120,8 @@ class Replate:
         self.last_lot_id = ""
         self.sku_key: dict[str, str] = {}
         self.key_sku: dict[str, str] = {}
+        self.backed: dict[str, str] = {}  # backing key -> dish sku (prep-backed listings)
+        self.backed_use: dict[str, float] = {}  # backing key -> qty of the key per dish unit
         self.premake_skus: list[str] = []
         for m in cfg.menu:
             rp = m.replate
@@ -128,8 +133,14 @@ class Replate:
                 self.sku_key[m.sku] = PM_PREFIX + m.sku
                 self.premake_skus.append(m.sku)
             self.key_sku[self.sku_key[m.sku]] = m.sku
+        for key, bsku in self.rc.prep_backed.items():
+            use = dict(w.inv.sku_keys.get(bsku, ())).get(key, 0.0)
+            if use > 0 and key in w.inv.lots:
+                self.backed[key] = bsku
+                self.backed_use[key] = use
+        self.prefer = ""  # lot id a replate sale draws first (FEFO override for prep-backed listings)
         self.lots: dict[str, PreLot] = {}
-        self.active: dict[str, list[PreLot]] = {s: [] for s in self.sku_key}
+        self.active: dict[str, list[PreLot]] = {s: [] for s in (*self.sku_key, *self.backed.values())}
         self.jobs: dict[int, dict[str, Any]] = {}
         self.job_seq = 0
         self.dirty = True
@@ -145,10 +156,15 @@ class Replate:
         self.obs_rows: list[tuple] = []  # sell-through telemetry (filled when tele is on)
         self._pending_obs: dict[str, list] = {}
         self.last_tick_s = -1.0
+        self._prof: dict[str, Any] = {}
+
+    def rescuable_keys(self) -> set[str]:
+        """Inventory keys whose leftovers Replate can list (make-ahead, finished goods, prep-backed)."""
+        return set(self.sku_key.values()) | set(self.backed)
 
     # ------------------------------------------------------------------ queries
     def eligible(self, sku: str) -> bool:
-        return sku in self.sku_key
+        return sku in self.active
 
     def tracks(self, key: str) -> bool:
         return key in self.key_sku
@@ -160,20 +176,28 @@ class Replate:
     def head(self, sku: str) -> PreLot | None:
         """Oldest lot with units left (the one FEFO draws from)."""
         for pl in self.active.get(sku, ()):
-            if not pl.retired and pl.lot.qty >= 1 - EPS:
+            if not pl.retired and not pl.backed and pl.remaining >= 1 - EPS:
                 return pl
         return None
 
+    def _offerable(self, pl: PreLot) -> bool:
+        """Listed, food-safe, inside its window, units left under the rescue-bag cap."""
+        if not pl.listed or pl.retired or pl.sell_by <= self.w.now or pl.remaining < 1 - EPS:
+            return False
+        if shelf_quality(pl.frac_left(self.w.now)) < self.w.ix.menu[pl.sku].replate.min_quality - EPS:
+            return False
+        return pl.sold_replate < pl.cap_until - EPS
+
     def listing(self, sku: str) -> PreLot | None:
-        """The head lot if it is on the replate menu (listed, food-safe, units left)."""
+        """The replate listing a customer sees for ``sku``: the head make-ahead / finished-goods lot when it
+        is listed, else the cheapest listed prep-backed lot."""
         pl = self.head(sku)
-        if pl is None or not pl.listed or pl.sell_by <= self.w.now:
-            return None
-        if shelf_quality(pl.frac_left(self.w.now)) < self.w.ix.menu[sku].replate.min_quality - EPS:
-            return None
-        if pl.sold_replate >= pl.cap_until - EPS:
-            return None
-        return pl
+        best = pl if pl is not None and self._offerable(pl) else None
+        if self.backed:
+            for b in self.active.get(sku, ()):
+                if b.backed and self._offerable(b) and (best is None or b.price < best.price - EPS):
+                    best = b
+        return best
 
     def price(self, sku: str) -> float:
         pl = self.listing(sku)
@@ -181,7 +205,7 @@ class Replate:
 
     def listed_units(self, sku: str) -> float:
         pl = self.listing(sku)
-        return min(pl.remaining, pl.cap_until - pl.sold_replate) if pl is not None else 0.0
+        return math.floor(min(pl.remaining, pl.cap_until - pl.sold_replate) + EPS) if pl is not None else 0.0
 
     def premade_units_avail(self, sku: str) -> float:
         k = self.pm_key(sku)
@@ -225,12 +249,13 @@ class Replate:
             "base_price": self.w.menu[pl.sku].price, "floor": self.floor_price(pl),
             "unit_cost": round(pl.unit_cost, 2), "sold_full": pl.sold_full, "sold_replate": pl.sold_replate,
             "donated": pl.donated, "wasted": pl.wasted, "quality": round(shelf_quality(pl.frac_left(now)), 3),
-            "kind": "premade" if pl.key.startswith(PM_PREFIX) else "stock",
+            "kind": "backed" if pl.backed else ("premade" if pl.key.startswith(PM_PREFIX) else "stock"),
+            "key": pl.key, "per_unit": pl.per_unit, "expires_s": round(pl.lot.expires_s, 1), "cap": None if pl.cap_until > 1e17 else round(pl.cap_until, 2),
         }  # fmt: skip
 
     def lots_view(self, listed_only: bool = False) -> list[dict[str, Any]]:
         out = []
-        for sku in self.sku_key:
+        for sku in self.active:
             for pl in self.active[sku]:
                 if pl.retired or pl.remaining < EPS:
                     continue
@@ -241,6 +266,8 @@ class Replate:
 
     # --------------------------------------------------------- inventory hooks
     def on_lot_added(self, key: str, lot: Lot) -> None:
+        if key not in self.key_sku:  # prep-backed keys are tracked only once they near their use-by
+            return
         sku = self.key_sku[key]
         cost = lot.unit_cost
         pl = PreLot(lot.lot_id, sku, key, lot.qty0, lot.received_s, cost, lot)
@@ -277,15 +304,16 @@ class Replate:
             return
         self.last_lot_id = lot.lot_id
         c = self.ctx
+        units = take / pl.per_unit
         if c == "replate":
-            pl.sold_replate += take
+            pl.sold_replate += units
         elif c == "remake":
-            pl.remade += take
+            pl.remade += units
         else:
-            pl.sold_full += take
+            pl.sold_full += units
         if lot.qty <= EPS and not pl.retired:
             self.on_depleted(lot)
-        elif pl.listed and lot.qty < 1 - EPS:
+        elif pl.listed and (pl.remaining < 1 - EPS or pl.backed or pl.sold_replate >= pl.cap_until - EPS):
             self.w.ctx_dirty = True
 
     def lot_is_listed(self, lot: Lot) -> bool:
@@ -297,6 +325,7 @@ class Replate:
         pl = self.lots.get(lot.lot_id)
         if pl is None or pl.retired:
             return
+        units /= pl.per_unit
         if outcome == "donated":
             pl.donated += units
         else:
@@ -327,6 +356,126 @@ class Replate:
         self._close(pl, "sold_out", 0.0)
 
     # ------------------------------------------------------------ listing tick
+    # ------------------------------------------------- prep-backed lots / surplus
+    def _scan_backed(self) -> None:
+        """Start tracking lots of mapped prepped intermediates / perishables that are nearing their use-by.
+
+        A prep item qualifies once its remaining hold fraction is <= ``backed_frac``; a raw perishable once it
+        has < ``backed_raw_s`` left.  Lots that survive the night into the next service are not at risk yet.
+        """
+        from brew.domain.timeutil import DAY_S
+
+        w = self.w
+        now = w.now
+        cafe = w.cfg.cafe
+        d = int(now // DAY_S)
+        close = float(d * DAY_S + cafe.close_s)
+        nxt_open = float((d + 1) * DAY_S + cafe.open_s)
+        inv = w.inv
+        for key, sku in self.backed.items():
+            use = self.backed_use[key]
+            prep = key in w.ix.prep
+            for lot in inv.lots[key]:
+                if lot.lot_id in self.lots or lot.qty < use - EPS or lot.expires_s <= now:
+                    continue
+                exp = lot.expires_s
+                if exp > close:
+                    if exp > nxt_open + 3600.0:
+                        continue
+                    sell_by = close
+                else:
+                    sell_by = exp
+                if sell_by <= now + 300.0:
+                    continue
+                window = max(900.0, exp - lot.received_s) if prep else self.rc.backed_raw_s
+                left = sell_by - now
+                if (left / window > self.rc.backed_frac + EPS) if prep else (left > window + EPS):
+                    continue
+                cost = float(sum(q * inv.unit_cost[k] for k, q in inv.sku_keys[sku]))
+                pl = PreLot(lot.lot_id, sku, key, lot.qty / use, sell_by - window, cost, lot)
+                pl.sell_by = sell_by
+                pl.per_unit = use
+                pl.backed = True
+                pl.window_s = window
+                self.lots[lot.lot_id] = pl
+                al = self.active[sku]
+                al.append(pl)
+                al.sort(key=lambda p: (p.backed, p.lot.expires_s, p.made_s, p.lot_id))
+                self.dirty = True
+                w.ctx_dirty = True
+
+    def _profile(self, sku: str) -> Any:
+        """Mean full-price units per 15-min slot of ``sku`` over the recent days (None without history)."""
+        import numpy as np
+
+        log = self.w.dlog
+        days = log.days[-14:]
+        if not days:
+            return None
+        j = log.skus.index(sku)
+        hit = self._prof.get(sku)
+        if hit is not None and hit[0] == (len(log.days), days[-1].day):
+            return hit[1]
+        prof = np.mean([d.counts[:, j, :].sum(axis=1) for d in days], axis=0)
+        self._prof[sku] = ((len(log.days), days[-1].day), prof)
+        return prof
+
+    def expected_units(self, sku: str, until_s: float) -> float:
+        """Units of ``sku`` the café expects to sell at full price between now and ``until_s``."""
+        w = self.w
+        now = w.now
+        span = until_s - now
+        if span <= 0:
+            return 0.0
+        s0 = tod_s(now) / 900.0
+        s1 = min(96.0, s0 + span / 900.0)
+        prof = self._profile(sku)
+        log = w.dlog
+        if prof is not None:
+            tot = 0.0
+            k = int(s0)
+            while k < s1:
+                lo, hi = max(s0, float(k)), min(s1, float(k + 1))
+                tot += float(prof[k]) * (hi - lo)
+                k += 1
+            cur = log.cur
+            if cur is not None and s0 > 8:
+                j = log.skus.index(sku)
+                hist_sofar = float(prof[: int(s0)].sum())
+                got = float(cur.counts[: int(s0), j, :].sum())
+                tot *= max(0.6, min(1.6, (got + 2.0) / (hist_sofar + 2.0)))
+            return tot
+        cur = log.cur
+        if cur is None:
+            return 0.0
+        j = log.skus.index(sku)
+        got = float(cur.counts[: int(s0), j, :].sum())
+        open_slots = max(8.0, s0 - w.cfg.cafe.open_s / 900.0)
+        return got / open_slots * (s1 - s0)
+
+    def _surplus_room(self, pl: PreLot) -> float:
+        """Units of ``pl`` beyond the full-price demand expected to reach it before its sell-by."""
+        if pl.backed:  # key-level: every dish that draws on the key competes for the lot
+            inv = self.w.inv
+            use = 0.0
+            for s2 in inv.key_skus.get(pl.key, ()):
+                q = dict(inv.sku_keys[s2]).get(pl.key, 0.0)
+                use += q * self.expected_units(s2, pl.sell_by)
+            ahead_q = sum(lt.qty for lt in inv.lots[pl.key] if lt.expires_s < pl.lot.expires_s - EPS)
+            reach_q = max(0.0, use - ahead_q)
+            reach_q += self.rc.surplus_z * math.sqrt(reach_q * pl.per_unit)
+            return float(math.floor((pl.lot.qty - reach_q) / pl.per_unit + EPS))
+        mu = self.expected_units(pl.sku, pl.sell_by)
+        ahead = 0.0
+        for o in self.active[pl.sku]:
+            if o is pl:
+                break
+            if not o.retired:
+                ahead += o.remaining
+        reach = max(0.0, mu - ahead)
+        reach += self.rc.surplus_z * math.sqrt(reach)
+        return float(math.floor(pl.remaining - reach + EPS))
+
     def set_mode(self, mode: str, by: str, owner: bool = False) -> bool:
         """Change the ladder mode. Owner changes set an override that blocks policy changes."""
         if mode not in (*MODES, CUSTOM):
@@ -353,13 +502,22 @@ class Replate:
         now = w.now
         self.last_tick_s = now
         mode = self.mode
-        for sku in self.sku_key:
+        if self.backed:
+            self._scan_backed()
+        ladder = mode in MODES and mode != "off"
+        for sku in self.active:
             for pl in list(self.active[sku]):
-                if pl.retired or pl.lot.qty < 1 - EPS:
+                if pl.retired or pl.remaining < 1 - EPS:
                     continue
-                if mode in MODES and mode != "off":
+                if ladder:
                     f = pl.frac_left(now)
-                    pct = self.ladder_pct(mode, f, pl.lot.expires_s - now)
+                    pct = self.ladder_pct(mode, f, pl.sell_by - now if pl.backed else pl.lot.expires_s - now)
+                    if self.rc.surplus_only and pct > 0:
+                        room = self._surplus_room(pl)
+                        if room < 1.0 - EPS and not pl.listed:
+                            continue
+                        pl.cap_until = pl.sold_replate + max(0.0, room)
+                        w.ctx_dirty = True
                     if pct > pl.discount_pct + 1e-9 or (pct > 0 and not pl.listed):
                         self._apply(pl, pct, "ladder")
         if w.tele is not None:
@@ -424,9 +582,11 @@ class Replate:
 
     def list_sku(self, sku: str, pct: float | None, by: str) -> dict[str, Any]:
         """Owner / policy: list or deepen the head lot of ``sku`` (``pct`` None = current ladder rung)."""
-        if sku not in self.sku_key:
+        if sku not in self.active:
             raise ReplateBadPayload(f"{sku!r} is not replate-eligible")
         pl = self.head(sku)
+        if pl is None:
+            pl = next((b for b in self.active[sku] if b.backed and not b.retired and b.remaining >= 1 - EPS), None)
         if pl is None:
             raise ReplateInvalid(f"no make-ahead stock of {sku} to list")
         if pct is None:
@@ -451,7 +611,7 @@ class Replate:
         qual = np.ones(J)
         now = self.w.now
         for j, m in enumerate(menu):
-            if m.sku not in self.sku_key:
+            if m.sku not in self.active:
                 continue
             pl = self.listing(m.sku)
             if pl is not None and self.listed_units(m.sku) >= 1 - EPS:
@@ -472,7 +632,7 @@ class Replate:
         self.revenue += price
         self.discount_given += max(0.0, base - price)
         m = w.ix.menu[sku]
-        wt_kg = self._unit_kg(sku)
+        wt_kg = w.inv.kg_of(pl.key, pl.per_unit) if pl is not None and pl.backed else self._unit_kg(sku)
         self.avoided_kg += wt_kg
         self.avoided_co2e_kg += m.co2e_g / 1000.0
         self.sold_today[sku] = self.sold_today.get(sku, 0.0) + 1
@@ -621,7 +781,10 @@ class Replate:
         for j in list(self.jobs.values()):
             w.fin.post("waste", j["cost"])
             w.kpi.waste_inr += j["cost"]
-            w.kpi.waste_kg += self._unit_kg(j["sku"]) * j["n"]
+            kg = self._unit_kg(j["sku"]) * j["n"]
+            w.kpi.waste_kg += kg
+            k2 = self.sku_key[j["sku"]]
+            w.waste_by_key[k2] = w.waste_by_key.get(k2, 0.0) + kg
         self.jobs.clear()
 
     # --------------------------------------------------------------- telemetry
@@ -629,7 +792,7 @@ class Replate:
         w = self.w
         now = w.now
         hour = tod_s(now) / 3600.0
-        for sku in self.sku_key:
+        for sku in self.active:
             for pl in self.active[sku]:
                 if pl.retired:
                     continue
@@ -640,7 +803,7 @@ class Replate:
                 if not pl.listed or pl.remaining < 1:
                     continue
                 pl._snap = pl.sold_replate
-                ncomp = sum(1 for s2 in self.sku_key if s2 != sku and self.listing(s2) is not None)
+                ncomp = sum(1 for s2 in self.active if s2 != sku and self.listing(s2) is not None)
                 self._pending_obs[pl.lot_id] = [
                     now, sku, pl.lot_id, pl.frac_left(now), pl.discount_pct, pl.price / max(1.0, w.menu[sku].price),
                     hour, w.weather_state, float(w.customers.arrived_today), ncomp, pl.remaining, 0.0,
@@ -654,7 +817,7 @@ def observation_features(w: World) -> tuple[float, float, float, float]:
     expiring = 0.0
     now = w.now
     stock_units = 0.0
-    for sku in rp.sku_key:
+    for sku in rp.active:
         for pl in rp.active[sku]:
             if pl.retired or pl.remaining < 1:
                 continue

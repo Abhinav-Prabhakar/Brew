@@ -135,6 +135,7 @@ class World:
         self.ctx_dirty = True
         self.ctx_slot = -1
         self.low_flag: dict[str, bool] = {}
+        self.waste_by_key: dict[str, float] = {}  # cumulative kg wasted per inventory key (analysis)
         self.invest_log: list[dict[str, Any]] = []
         self.daily_kpis: list[dict[str, Any]] = []
         self.decisions: list[dict[str, Any]] = []
@@ -899,8 +900,10 @@ class World:
 
     def book_waste(self, key: str, qty: float, cost: float) -> None:
         self.fin.post("waste", cost)
-        self.kpi.waste_kg += self.inv.kg_of(key, qty)
+        kg = self.inv.kg_of(key, qty)
+        self.kpi.waste_kg += kg
         self.kpi.waste_inr += cost
+        self.waste_by_key[key] = self.waste_by_key.get(key, 0.0) + kg
 
     def on_lot_opened(self, key: str, lot: Any) -> None:
         if not self.inv.is_pack[key]:

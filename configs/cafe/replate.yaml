@@ -8,7 +8,7 @@ ladders:
   aggressive: {rungs: [[0.75, 25], [0.5, 45], [0.25, 65]],  last_s: 2700, last_pct: 80}
 floor_cost_factor: 0.5     # price floor = 0.5 x unit cost
 round_to: 5                # listing prices on the Rs5 grid
-phi: 3.0                   # utility penalty per unit of lost quality ("made earlier")
+phi: 1.2                   # utility penalty per unit of lost quality ("made earlier")
 noise_tau: 0.35            # scale of the extra CRN Gumbel draw on a replate alternative
 min_ladder_gap_pct: 1.0
 max_premake_job: 8
@@ -23,3 +23,24 @@ affinity:
   family: -0.1
   leisurely: -0.3
   tourist: -0.4
+# prep-backed listings (backend.md 3.11 item 3): expiring prepped intermediates / perishables -> the dish they feed
+prep_backed:
+  chai_base: chai
+  fries_cut: fries
+  croissant_dough: croissant
+  paneer_marinade: sandwich
+  coldbrew_concentrate: coldbrew
+  avocado: avotoast
+backed_frac: 0.5          # a prep-backed lot is listable once its remaining hold fraction is <= this
+backed_raw_s: 10800       # ... a raw perishable once it has less than 3 h left
+surplus_only: true        # ladder modes list only units beyond the full-price demand expected before use-by
+surplus_z: 0.5
+choice_alt: true          # listings are extra alternatives in the customer's choice set (backend.md 3.11)
+# Counter impulse add-on (extension, documented in docs/backend-quickstart.md): after choosing, a customer may
+# add one listed rescue unit on top of the basket.  Utility = addon_beta * discount depth d (= -ln price/ref)
+# + category affinity + persona rho - phi * (1 - quality); "nothing" has utility addon_kappa.  Calibrated so that
+# about 10 % of customers add a unit at 30 % off and 20 % at 50 % off.  This is the only source of
+# *incremental* rescue demand (the choice-set alternative mostly reallocates between items).
+addon_enabled: true
+addon_beta: 2.4
+addon_kappa: 2.75

@@ -153,6 +153,13 @@ class Customers:
             items.append((sku, self._rp_mark(rp, sku, mods, j >= J, claimed)))
         if not items and nd + nf > 0:
             return None
+        if items and not bulk and w.cfg.replate.addon_enabled and ch.rp_mask is not None:
+            ja = ch.addon_choice(persona, plan.gumbel_rp[off], float(plan.gumbel_addon[off]), allowed)
+            if ja >= 0:
+                sku = skus[ja]
+                if claimed.get(sku, 0) + 1 <= rp.listed_units(sku):
+                    claimed[sku] = claimed.get(sku, 0) + 1
+                    items.append((sku, (RP,)))
         return items
 
     @staticmethod

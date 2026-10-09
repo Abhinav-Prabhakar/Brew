@@ -32,13 +32,18 @@ premake:                    # make-ahead plates / bottled cold brew (replate-eli
   waste_penalty_inr: 8      # overage penalty per unit besides ingredient cost (disposal, CO2e shadow)
 replate:
   custom: true              # per-lot markdown of surplus units only (rescue bag), chosen with the sell-through model
-  levels_pct: [0, 20, 30, 40, 50, 60, 70]
+  levels_pct: [0, 20, 30, 40]
   waste_value_inr: 12
-  recovery_prior: 0.0       # share of leftover value assumed recovered when sizing make-ahead batches (0 = identical sizing with replate on or off)
-  max_hours_before_list: 0.75   # only list in the last 45 min ...
-  max_hold_frac: 0.25           # ... and never earlier than the last quarter of the lot's hold window
+  recovery_prior: 0.0       # > 0: fixed share of leftover value assumed recovered when sizing make-ahead batches
+  recovery_scale: 0.0       # else: share of the sell-through model's recovery probability used (0 = identical sizing on/off; 0.25+ made more plates, more waste, less profit)
+  max_hours_before_list: 2.0    # never list earlier than this many hours before the sell-by ...
+  list_frac: 0.5                # ... or before the lot's remaining hold fraction falls to this
   surplus_quantile: 0.35    # units beyond this demand quantile are surplus
-  min_surplus_units: 2.0
+  min_surplus_units: 1.0
+salvage:
+  enabled: true             # bake-and-list: bake a whole batch from dough that would expire unused
+  window_h: 4.0
+  max_stock_batches: 4.0    # skip when this many batches of the baked item are already on hand
 pricing:
   enabled: true
   every_min: 60

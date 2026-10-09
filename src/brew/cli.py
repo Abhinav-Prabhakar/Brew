@@ -242,6 +242,8 @@ def eval_cmd(
     days: int = typer.Option(1, min=1, help="Sim days per run."),
     scenario: str = typer.Option("weekday_normal"),
     replate_ab: bool = typer.Option(False, "--replate-ab", help="Also run C with Replate on vs off."),
+    waste_breakdown: bool = typer.Option(False, "--waste-breakdown", help="With --replate-ab: per-item waste kg on/off."),
+    params: str = typer.Option("", help="JSON overrides for policy C/E parameters."),
     workers: int = typer.Option(0, help="Process-pool workers (0 = sequential)."),
     out: Path = typer.Option(None, help="Write the JSON result here."),
 ) -> None:
@@ -253,7 +255,8 @@ def eval_cmd(
     pols = [p.strip().upper() for p in policies.split(",") if p.strip()]
     seed_list = list(range(1, seeds + 1))
     t0 = time.perf_counter()
-    res = run_arena(pols, seed_list, days, scenario, workers=workers)
+    over = json.loads(params) if params else None
+    res = run_arena(pols, seed_list, days, scenario, workers=workers, params=over)
     summ = res.summary()
     tbl = Table(title=f"arena {scenario} seeds={seeds} days={days} ({time.perf_counter() - t0:.1f}s)")
     for c in ("policy", "mean profit/day", "d vs A", "95% CI", "wilcoxon p", "waste kg", "sla breach", "rating"):
@@ -269,12 +272,21 @@ def eval_cmd(
     console.print(tbl)
     result: dict = {"arena": summ}
     if replate_ab:
-        ab = run_replate_ab("C", seed_list, days, scenario)
+        ab = run_replate_ab("C", seed_list, days, scenario, workers=workers, params=over)
         result["replate_ab"] = ab
         console.print(
             f"replate on vs off (C): waste kg {ab['off']['waste_kg']:.1f} -> {ab['on']['waste_kg']:.1f} "
             f"({ab['waste_reduction_pct']:.0f}% less), profit {ab['off']['profit']:.0f} -> {ab['on']['profit']:.0f}"
         )
+        if waste_breakdown:
+            wt = Table(title="waste kg/day per item (C, Replate off vs on)")
+            for c in ("item", "off", "on", "rescuable"):
+                wt.add_column(c)
+            for r in ab["waste_breakdown"]:
+                if max(r["kg_off"], r["kg_on"]) < 0.005:
+                    continue
+                wt.add_row(r["key"], f"{r['kg_off']:.2f}", f"{r['kg_on']:.2f}", "yes" if r["rescuable"] else "no")
+            console.print(wt)
     if out:
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(json.dumps(result, indent=2, default=str))
