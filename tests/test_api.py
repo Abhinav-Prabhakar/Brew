@@ -212,7 +212,7 @@ def test_control_play_pause_step_no_speeds(api_client):
     assert r["clock"]["sim_s"] == before + 600 and r["events"] > 0
 
 
-def test_wall_clock_world_starts_today_at_the_local_time(api_client):
+def test_wall_clock_world_starts_today_at_seven(api_client):
     from datetime import datetime
     from zoneinfo import ZoneInfo
 
@@ -222,10 +222,8 @@ def test_wall_clock_world_starts_today_at_the_local_time(api_client):
     j = r.json()
     now = datetime.now(ZoneInfo("Asia/Kolkata"))
     assert j["clock_mode"] == "wall" and j["start_date"] == now.date().isoformat()
-    tod = now.hour * 3600 + now.minute * 60 + now.second
-    sim_tod = j["clock"]["sim_s"] % 86_400
-    # hydrated to at least the 07:00 day start; otherwise within a minute of the real local time
-    assert abs(sim_tod - max(tod, 7 * 3600)) < 90 or tod < 7 * 3600
+    # whatever the real time, the live café starts at 07:00 of day 0 and then runs at real pace
+    assert 7 * 3600 <= j["clock"]["sim_s"] < 7 * 3600 + 60
 
 
 async def test_pacer_runs_live_without_sleeping_in_tests():

@@ -25,7 +25,7 @@ router = APIRouter(tags=["worlds"])
 @router.post("/worlds", status_code=201)
 async def create_world(body: WorldCreate, mgr: Manager) -> dict[str, Any]:
     """Create a paused world. ``clock="open"``: hydrated to 07:00 of day 0. ``clock="wall"``: today's date,
-    fast-forwarded to the current local time. Use /control ``play`` to run it live (real time)."""
+    started at 07:00 whatever the real time, then real pace. Use /control ``play`` to run it live (real time)."""
     import asyncio
 
     mw = mgr.create(body.model_dump())
@@ -68,7 +68,7 @@ async def control(body: ControlRequest, mw: MW) -> dict[str, Any]:
     """play | pause | step | speed. The café runs live (real time); there are no playback speeds.
 
     ``speed`` {rate: 1|5|20|60} fast-forwards this world (a wall-clock world detaches from the real clock for good).
-    ``play`` on a wall-clock world first catches up to the current local time. ``step`` advances ``step_s``
+    ``play`` on a wall-clock world first catches up to its real-pace clock. ``step`` advances ``step_s``
     sim-seconds synchronously (tests and debugging).
     """
     import asyncio

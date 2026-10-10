@@ -1,7 +1,7 @@
 """Live pacing: advance a world in step with the wall clock in a worker thread (docs/implementation-spec.md 10.3).
 
 The café runs live at ``mw.rate`` sim-seconds per wall-second (1.0 = real time; the owner can fast-forward to 5, 20
-or 60). ``clock="wall"`` worlds stay locked to the real local time until fast-forwarded (then they detach and become
+or 60). ``clock="wall"`` worlds start at 07:00 and run at real pace until fast-forwarded (then they detach and become
 ``open``); ``clock="open"`` worlds run on from where they are and skip the closed night instantly.
 """
 
@@ -19,7 +19,7 @@ async def pace(mw: ManagedWorld) -> None:
 
     ``mw.rate`` is per world (1 = real time; 5/20/60 fast-forward). Changing it clears ``mw.pace_anchor`` so the
     next tick re-anchors ``(wall0, sim0)`` at the current sim time and nothing jumps. A ``clock="wall"`` world follows
-    the real local time (rate 1) until it is fast-forwarded: then it detaches (``clock="open"``) for good.
+    the wall clock from 07:00 (rate 1) until it is fast-forwarded: then it detaches (``clock="open"``) for good.
     Processing runs in a worker thread with a CPU budget (``pacer_cpu_budget_s``); if it cannot keep up the world
     lags and ``lagging`` is reported. Wall-clock worlds catch up afterwards; "open" worlds re-anchor instead.
     """

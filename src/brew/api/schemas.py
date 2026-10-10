@@ -13,7 +13,7 @@ class WorldCreate(BaseModel):
     policy: str = "A"
     seed: int = 7
     clock: Literal["wall", "open"] = Field(
-        "open", description="wall: today's date, synced to the real local time (live café); open: start at opening."
+        "open", description="wall: today's date from 07:00, at real pace (live café); open: start at opening."
     )
     start_day: int = Field(0, ge=0, description="Offset in days from the scenario start date.")
     start_date: str | None = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")

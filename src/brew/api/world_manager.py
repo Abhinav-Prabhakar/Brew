@@ -49,10 +49,11 @@ class ManagedWorld:
         world.sink = self.fan
         self.db_sink: DbWriterSink | None = None
         self.running = False
-        self.clock = "open"  # "wall" = locked to the real local time (live café)
+        self.clock = "open"  # "wall" = live café: 07:00 at creation, then real pace
         self.rate = float(settings.live_rate)  # sim seconds per wall second (fast-forward: 1, 5, 20, 60)
         self.detached = False  # a wall-clock world that was fast-forwarded no longer follows the real clock
         self.pace_anchor: tuple[float, float] | None = None  # (wall, sim) the pacer extrapolates from; None = re-anchor
+        self.wall_anchor: tuple[float, float] | None = None  # (wall, sim) a "wall" world started at: 07:00, real pace
         self.status = "paused"
         self.lagging = False
         self.pacer: asyncio.Task[None] | None = None
@@ -77,13 +78,14 @@ class ManagedWorld:
             return w.advance_to(target, stop)
 
     def wall_sim_now(self) -> float:
-        """Sim time matching the real local wall clock (day 0 = the world's start date)."""
-        from zoneinfo import ZoneInfo
+        """Sim time of the live café: it opens at 07:00 of its start date (whatever the real time) and from then on
+        keeps step with the wall clock."""
+        import time
 
-        now = datetime.now(ZoneInfo(self.settings.live_tz))
-        y, m, d = (int(x) for x in self.world.start_date.split("-"))
-        days = (now.date() - _date(y, m, d)).days
-        return days * 86_400.0 + now.hour * 3600 + now.minute * 60 + now.second + now.microsecond / 1e6
+        if self.wall_anchor is None:
+            self.wall_anchor = (time.time(), self.world.day_start_t(0))
+        wall0, sim0 = self.wall_anchor
+        return sim0 + (time.time() - wall0)
 
     def step(self, step_s: float) -> dict[str, Any]:
         with self.lock:
