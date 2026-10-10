@@ -29,7 +29,7 @@ def test_axe_clean_on_every_screen(open_app):
     app = open_app("morning_rush")
     app.step_to("09:00", 600)
     page, axe, found = app.page, Axe(), {}
-    for room in ("lobby", "kitchen", "pantry"):
+    for room in ("lobby", "kitchen", "pantry", "waiter"):
         app.room(room, 400)
         found[room] = violations(page, axe)
     app.room("lobby", 300)
@@ -90,17 +90,18 @@ def test_keyboard_path(open_app):
                 return True
         return False
 
-    # the one zoom hot-spot is the waiter: Enter frames him and opens his chat with the input focused, Esc returns
-    assert focus_until("document.activeElement?.classList?.contains('zoomhit')"), "the waiter is not reachable with Tab"
+    # the waiter in the lobby is a button: Enter walks to his room (the 4th tab) with the input focused, Esc walks back
+    assert focus_until("document.activeElement?.id === 'l-waiter'"), "the waiter is not reachable with Tab"
     assert "Kapi" in page.evaluate("document.activeElement.getAttribute('aria-label')")
     page.keyboard.press("Enter")
     page.wait_for_timeout(150)
-    assert page.evaluate("BrewCamera.zoomed?.zone") == "waiter" and page.evaluate("BrewWaiter.isOpen")
+    assert page.evaluate("document.body.dataset.room") == "waiter" and page.evaluate("BrewWaiter.isOpen")
+    assert page.evaluate("document.querySelector('.tab[data-go=waiter]').classList.contains('on')")
     assert page.evaluate("document.activeElement?.classList?.contains('wt-in')")
     page.keyboard.type("m1?")  # typing to the waiter is not a hotkey
-    assert page.evaluate("document.body.dataset.room") == "lobby" and not page.evaluate("!!window.BREW_MENUBOOK?.isOpen")
+    assert page.evaluate("document.body.dataset.room") == "waiter" and not page.evaluate("!!window.BREW_MENUBOOK?.isOpen")
     page.keyboard.press("Escape")
-    assert page.evaluate("BrewCamera.zoomed === null") and not page.evaluate("BrewWaiter.isOpen")
+    assert page.evaluate("document.body.dataset.room") == "lobby" and not page.evaluate("BrewWaiter.isOpen")
     # room tabs are reachable and Enter switches rooms
     assert focus_until("document.activeElement?.dataset?.go === 'kitchen'"), (
         "the kitchen tab is not reachable with Tab"
@@ -109,7 +110,7 @@ def test_keyboard_path(open_app):
     page.wait_for_timeout(300)
     assert page.evaluate("document.body.dataset.room") == "kitchen"
     # the stations no longer zoom on a click / Enter: no hot-spots in the kitchen
-    assert page.evaluate("document.querySelectorAll('#kitchen-scene .zoomhit').length") == 0
+    assert page.evaluate("document.querySelectorAll('.zoomhit').length") == 0
     # the profit card expands with Enter and says so
     assert focus_until("document.activeElement?.classList?.contains('money')"), (
         "the profit card is not reachable"

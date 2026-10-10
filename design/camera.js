@@ -1,8 +1,8 @@
 /* brew — the 2D camera. Room changes already slide the #track (brew.html); this adds:
    - parallax: what's seen through a window lags the slide a little (.cam-far), the door swings as you pass;
    - focus zooms: the room zooms/pans to frame a zone; "← back", Esc, or a click on nothing interactive returns. The
-     whole .room is transformed, so the HTML cards stay glued to the art. Only zones marked `click` (Kapi the waiter)
-     zoom on a click / Enter — the rail, counter, stations and shelves used to, and it read as an accident; those
+     whole .room is transformed, so the HTML cards stay glued to the art. Nothing zooms on a click any more (the rail,
+     counter, stations and shelves used to, and it read as an accident; a zone marked `click` still would): the
      zones remain for the chaos glance and BrewCamera.zoom();
    - chaos attention: on chaos.triggered the kitchen camera glances at the broken station once (rate limited, never
      while the user is interacting, never pulling you out of another room).
@@ -16,8 +16,6 @@
   /* ---------- zones, in room coordinates [x, y, w, h] ---------- */
   Z.lobby.push({id: 'rail', label: 'the ticket rail', r: [280, 40, 1040, 250]});  // lobby.js RAIL_L 310 … RAIL_R 1290
   Z.lobby.push({id: 'counter', label: 'the counter and pastry fridge', r: [430, B - 190, 420, 250]});
-  // Kapi (waiter.js WX/WY): the hit is the doodle, the frame leaves the left of the view to his chat panel
-  Z.lobby.push({id: 'waiter', label: 'Kapi, the waiter', r: [1486, 776, 110, 216], frame: [1060, 560, 540, 440], click: true, verb: 'chat with'});
   const STN = {prep: 'prep board', oven: 'oven', fryer: 'fryer', press: 'panini press', espresso: 'espresso machine', grinder: 'grinder',
     blender: 'blender', cold: 'cold-brew tower', dishpit: 'dish pit'};
   const KM = {prep: [230, 500, 150], oven: [400, 430, 120], fryer: [545, 490, 110], press: [705, 500, 190], espresso: [930, 466, 220],
@@ -93,7 +91,7 @@
   for (const t of ['pointerdown', 'wheel']) addEventListener(t, () => { lastInput = performance.now(); }, {capture: true, passive: true});
 
   /* ---------- room changes: unzoom, parallax, door ---------- */
-  const ORDER = ['lobby', 'kitchen', 'pantry'];
+  const ORDER = ['lobby', 'kitchen', 'pantry', 'waiter'];
   const far = {lobby: scenes.lobby?.querySelector(':scope > g[clip-path]'), kitchen: document.getElementById('k-outside')};
   for (const el of Object.values(far)) el?.classList.add('cam-far');
   let prev = document.body.dataset.room;

@@ -1,6 +1,6 @@
-/* brew — Kapi, the lobby waiter. A doodle with a notepad in front of the counter (bottom right). Click him (or Enter
-   on his hot-spot): the camera goes to him (camera.js zone 'waiter') and his stage opens — Kapi drawn large on the
-   left ~60 %, the rest left empty. Prompt him (type or speak) and the illustration does the work: he looks up and
+/* brew — Kapi, the waiter. A doodle with a notepad in front of the lobby counter (bottom right) and a room of his
+   own: the 4th tab, "kapi" (#waiter). Clicking the doodle (or Enter on it, or the tab, or key 4) walks there. The
+   room is his stage — Kapi drawn large on the left ~60 %, the rest left empty. Prompt him (type or speak) and the illustration does the work: he looks up and
    thinks (a thought cloud with his dry inner monologue), acts (tears a ticket off the pad and sends it to the rail,
    stamps a note, flags the team), then says his answer in a speech bubble that types itself out. "chat" toggles the
    written history on the right.
@@ -46,12 +46,15 @@
   </g>`;
   const g = document.createElementNS(NS, 'g'); g.id = 'l-waiter'; g.setAttribute('class', 'wt');
   scene.insertBefore(g, scene.querySelector(':scope > rect[filter="url(#grain)"]'));
+  g.dataset.go = 'waiter';   // brew.html's room switcher: a click on anything with data-go walks to that room
+  Object.entries({role: 'button', tabindex: 0, 'aria-label': 'talk to Kapi, the waiter'}).forEach(([k, v]) => g.setAttribute(k, v));
+  g.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); g.dispatchEvent(new MouseEvent('click', {bubbles: true})); } });
   g.innerHTML = `<title>Kapi, your waiter — click to talk</title><g transform="translate(${WX} ${WY}) scale(${WS})" filter="url(#wob)">${figure()}</g>`;
 
   /* ------------------------------------------------------------------ the stage */
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   const box = document.createElement('section');
-  box.id = 'wt-stage'; box.hidden = true; box.setAttribute('role', 'dialog'); box.setAttribute('aria-label', 'Kapi, the waiter');
+  box.id = 'wt-stage';
   box.innerHTML = `
     <div class="wt-show">
       <svg class="wt-big wt" viewBox="0 0 940 880" aria-hidden="true">
@@ -76,7 +79,9 @@
     <header><button type="button" class="tab wt-x">← back to the café</button><span class="wt-src"></span>
       <button type="button" class="tab wt-toggle" aria-pressed="false" aria-expanded="false">chat</button></header>
     <p class="wt-live" role="status" aria-live="polite"></p>`;
-  viewport.appendChild(box);
+  const roomEl = $('waiter'); if (!roomEl) return;
+  roomEl.appendChild(box);
+  const here = () => document.body.dataset.room === 'waiter';
   const q = (s) => box.querySelector(s);
   const big = q('.wt-big'), cloud = q('.wt-cloud'), cloudP = q('.wt-cloud p'), sayBox = q('.wt-say'), sayP = q('.wt-say p'),
         acts = q('.wt-acts'), cap = q('.wt-cap'), you = q('.wt-you'), chips = q('.wt-chips'), input = q('.wt-in'), mic = q('.wt-mic'),
@@ -189,7 +194,7 @@
     if (!r.offline) history.push({role: 'assistant', content: r.say}); else history.pop();
     src.textContent = r.offline ? 'offline' : r.source === 'scripted' ? 'scripted answers' : r.source ? `${r.source} · ${r.model || ''}` : '';
     busy = false; box.classList.remove('busy');
-    if (!box.hidden && !listening) input.focus({preventScroll: true});
+    if (here() && !listening) input.focus({preventScroll: true});
   }
   q('.wt-form').addEventListener('submit', (e) => { e.preventDefault(); send(input.value); });
 
@@ -234,29 +239,32 @@
   }
   mic.addEventListener('click', () => (listening ? stopListening(false) : listen()));
 
-  /* ------------------------------------------------------------------ open / close with the camera */
+  /* ------------------------------------------------------------------ arriving in / leaving his room */
   function open() {
-    if (!box.hidden) return;
-    box.hidden = false; g.classList.add('talking-to');
+    g.classList.add('talking-to');
     if (!greeted) { greeted = true;
       const hi = "Hello hello! I'm Kapi. Pad's out, pencil's sharp — what can I get you?";
       entry('kapi', esc(hi)); sayBox.hidden = false; liveEl.textContent = hi;
-      wait(650).then(async () => { phase('talking', ''); await type(sayP, hi); if (!busy) phase('', ''); });
+      wait(900).then(async () => { phase('talking', ''); await type(sayP, hi); if (!busy) phase('', ''); });
       chipsShow(["what's good today?", 'a latte, please', 'how long is the wait?', 'I have a complaint']); }
-    setTimeout(() => { if (!box.hidden) input.focus({preventScroll: true}); }, still() ? 0 : 500);
+    setTimeout(() => { if (here()) input.focus({preventScroll: true}); }, still() ? 0 : 900);   // (after the walk over)
   }
   function close() {
-    if (box.hidden) return;
-    stopListening(true); box.hidden = true; g.classList.remove('talking-to');
+    stopListening(true); g.classList.remove('talking-to'); input.blur();
     if (!busy) { setMood('happy'); phase('', ''); }
   }
-  window.BREW_LIVE?.on?.('camera.zoom', (z) => (z && z.zone === 'waiter' ? open() : close()));
-  q('.wt-x').addEventListener('click', () => window.BrewCamera?.unzoom());
-  box.addEventListener('keydown', (e) => { if (e.key === 'Escape' && listening) { e.stopPropagation(); stopListening(true); } }, true);
+  let was = here();
+  new MutationObserver(() => { const now = here(); if (now === was) return; was = now; (now ? open : close)(); })
+    .observe(document.body, {attributes: true, attributeFilter: ['data-room']});
+  if (was) open();
+  const walk = (room) => document.querySelector(`.tab[data-go="${room}"]`)?.click();
+  q('.wt-x').addEventListener('click', () => walk('lobby'));
+  box.addEventListener('keydown', (e) => { if (e.key !== 'Escape') return;
+    if (listening) { e.stopPropagation(); stopListening(true); } else walk('lobby'); }, true);
 
   window.BrewWaiter = {
-    open: () => window.BrewCamera?.zoom('lobby', 'waiter'), close: () => window.BrewCamera?.unzoom(), send, listen, showChat: showSide,
-    get isOpen() { return !box.hidden; }, get listening() { return listening; }, get busy() { return busy; }, get history() { return history.slice(); },
+    open: () => walk('waiter'), close: () => walk('lobby'), send, listen, showChat: showSide,
+    get isOpen() { return here(); }, get listening() { return listening; }, get busy() { return busy; }, get history() { return history.slice(); },
     voiceIn: !!SR, speak: null,   // speak(text, reply): set by the voice-out layer when it lands
   };
 })();

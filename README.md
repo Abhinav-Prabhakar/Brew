@@ -97,7 +97,7 @@ statement.
   an invest button that spends real sim cash. The item then shows up in the room.
 - **Resilient client**: since_seq resume, jittered backoff, re-hydration when the server restarts, a labelled
   offline replay. Kill the backend mid-rush and the page waits, then recovers with no duplicate tickets.
-- **Kapi, the waiter**: a doodle with a notepad in front of the counter. Click him and his stage opens — Kapi drawn
+- **Kapi, the waiter**: a doodle with a notepad in front of the counter. Click him (or the 4th tab, "kapi") and you walk over to his stage, a room of its own — Kapi drawn
   large, and the illustration does the talking: he looks up and thinks (a thought cloud with his dry inner
   monologue), tears a ticket off his pad, stamps a note, flags the team, then answers in a speech bubble that types
   itself out. Order from him (a real, paid ticket lands on the rail), ask about the menu, complain — he writes it
@@ -201,7 +201,7 @@ up and how each key is doing (keys masked). `BREW_LLM_ENABLED=0` forces the scri
 
 ## Keys
 
-<kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> lobby · kitchen · pantry · <kbd>←</kbd> <kbd>→</kbd> walk between rooms ·
+<kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> lobby · kitchen · pantry · kapi (the waiter) · <kbd>←</kbd> <kbd>→</kbd> walk between rooms ·
 <kbd>m</kbd> menu book · <kbd>f</kbd> or a tap on the clock: fast-forward (1× → 5× → 20× → 60×; once it runs fast the
 café leaves the wall clock behind) · <kbd>esc</kbd> close / zoom out · <kbd>?</kbd> the keys card.
 

@@ -188,7 +188,7 @@ function confetti(from, n = 16, glyphs){
 const keysCard = document.createElement('div');
 keysCard.id = 'keys'; keysCard.className = 'card'; keysCard.hidden = true; keysCard.setAttribute('role', 'dialog'); keysCard.setAttribute('aria-label', 'keyboard shortcuts');
 keysCard.innerHTML = `<h3>keys ♡</h3><dl>
-  <dt><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd></dt><dd>lobby · kitchen · pantry</dd>
+  <dt><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd></dt><dd>lobby · kitchen · pantry · kapi</dd>
   <dt><kbd>←</kbd><kbd>→</kbd></dt><dd>walk between rooms (or turn the menu’s pages)</dd>
   <dt><kbd>m</kbd></dt><dd>open the menu book</dd>
   <dt><kbd>f</kbd></dt><dd>fast-forward (or tap the clock)</dd>
