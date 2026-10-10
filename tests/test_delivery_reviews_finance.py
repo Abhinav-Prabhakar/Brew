@@ -224,3 +224,73 @@ def test_refund_on_walkout_keeps_books_consistent():
     led = w.fin.ledger.day[0]
     assert led["refund"] >= 0
     assert w.fin.ledger.revenue(0) == pytest.approx(led["revenue"] - led["refund"])
+
+
+# ------------------------------------------------------ just-in-time delivery
+def _jit_cfg(on: bool):
+    from brew.config.loader import default_cafe
+
+    base = default_cafe()
+    params = base.cafe.params.model_copy(update={"jit_delivery": on})
+    return base.model_copy(update={"cafe": base.cafe.model_copy(update={"params": params})})
+
+
+def _delivery_day(on: bool, seed: int = 11):
+    from brew.events.bus import ListSink
+
+    sink = ListSink()
+    w = World(_jit_cfg(on), policy="A", seed=seed, sink=sink)
+    w.run(1)
+    return w, sink
+
+
+def test_every_delivery_order_comes_with_a_rider_eta_and_cooks_just_in_time():
+    w, sink = _delivery_day(True)
+    placed = {e.data["order_no"]: e.data["channel"] for e in sink.of_type("order.placed")}
+    acc = {e.data["order_no"]: e for e in sink.of_type("order.accepted")}
+    deliv = {n: e for n, e in acc.items() if placed[n] in ("zomato", "swiggy")}
+    assert len(deliv) > 30
+    # the ETA arrives with the order (same instant it is accepted), in the future; walk-in orders carry none
+    assert all(e.data["rider_eta_s"] > e.sim_s for e in deliv.values())
+    assert all(
+        e.data.get("rider_eta_s") is None and e.data.get("cook_at_s") is None
+        for n, e in acc.items()
+        if n not in deliv
+    )
+    held = {n: e.data["cook_at_s"] for n, e in deliv.items() if e.data["cook_at_s"]}
+    assert len(held) > 0.6 * len(deliv)
+    assert all(acc[n].sim_s < t < acc[n].data["rider_eta_s"] for n, t in held.items())
+    # nothing of a held order starts before its cook time — unless its rider turned up early and released it
+    arrived = {e.data["order_no"]: e.sim_s for e in sink.of_type("rider.arrived")}
+    first_start: dict[int, float] = {}
+    for e in sink.of_type("task.started"):
+        for n in e.data.get("order_nos") or [e.data.get("order_no")]:
+            if n in held:
+                first_start.setdefault(n, e.sim_s)
+    assert len(first_start) > 0.9 * len(held)
+    early = [n for n, t in first_start.items() if t < held[n] - 0.06]  # (the event rounds cook_at_s to 0.1 s)
+    assert all(arrived.get(n, 1e18) <= first_start[n] for n in early)
+    assert not w.kitchen.holds or all(t > w.now for t in w.kitchen.holds.values())
+
+
+def test_just_in_time_cuts_shelf_time_and_serves_fresher_food():
+    def stats(on: bool):
+        _, sink = _delivery_day(on)
+        shelved = {e.data["order_no"]: e.sim_s for e in sink.of_type("bag.shelved")}
+        picked = sink.of_type("rider.picked_up")
+        shelf = [e.sim_s - shelved[e.data["order_no"]] for e in picked if e.data["order_no"] in shelved]
+        return len(picked), sum(shelf) / len(shelf), sum(e.data["quality"] for e in picked) / len(picked)
+
+    (n0, shelf0, q0), (n1, shelf1, q1) = stats(False), stats(True)
+    assert abs(n1 - n0) <= 0.05 * n0  # the same day: as many bags leave
+    assert shelf1 < 0.8 * shelf0 and q1 > q0 + 0.03
+
+
+def test_bumping_a_held_delivery_ticket_starts_it_now(small_world):
+    w = small_world(seed=11)
+    while not w.kitchen.holds and w.now < 20 * 3600:
+        w.advance_to(w.now + 60)
+    no, until = next(iter(w.kitchen.holds.items()))
+    assert until > w.now and w.orders.orders[no].cook_at_s == until
+    assert w.orders.bump(no, True)
+    assert no not in w.kitchen.holds and w.orders.orders[no].cook_at_s <= w.now

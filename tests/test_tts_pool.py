@@ -61,11 +61,16 @@ async def test_order_rotation_formats_and_failover():
     assert seen[-1][0] == "api.openai.com" and seen[-1][3] == {
         "model": "gpt-4o-mini-tts", "voice": "fable", "input": "hello", "response_format": "mp3", "instructions": "a tired, sarcastic waiter"}  # fmt: skip
     st = pool.status()
-    assert [p["name"] for p in st["providers"]] == ["elevenlabs", "openai"] and st["browser"] == {
-        "voice": "",
-        "pitch": 0.6,
-        "rate": 1.05,
-    }
+    assert (
+        [p["name"] for p in st["providers"]] == ["elevenlabs", "openai"]
+        and st["browser"]
+        == {
+            "voice": "",
+            "pitch": 0.6,
+            "rate": 1.05,
+        }
+        and st["speed"] == 1.0
+    )
     assert "el-key" not in str(st) and all(k["cooling_s"] > 0 for k in st["providers"][0]["keys"])
 
 
@@ -94,7 +99,7 @@ async def test_get_kind_json_is_not_audio_and_nothing_configured():
 def test_speak_endpoint():
     app = create_app(Settings(db_enabled=False, llm_enabled=False))
     with TestClient(app) as c:
-        assert c.get("/api/v1/waiter/voice").json() == {"providers": [], "browser": None}
+        assert c.get("/api/v1/waiter/voice").json() == {"providers": [], "browser": None, "speed": 1.0}
         assert c.post("/api/v1/waiter/speak", json={"text": "hi"}).status_code == 503
         app.state.tts = make(
             lambda req: httpx.Response(200, content=MP3, headers={"content-type": "audio/mpeg"})
@@ -107,3 +112,23 @@ def test_speak_endpoint():
             and r.headers["content-type"] == "audio/mpeg"
         )
         assert c.post("/api/v1/waiter/speak", json={"text": ""}).status_code == 422
+
+
+async def test_style_prefix_settings_and_speed():
+    seen = []
+
+    def h(req: httpx.Request) -> httpx.Response:
+        seen.append(json.loads(req.content))
+        return httpx.Response(200, content=MP3, headers={"content-type": "audio/mpeg"})
+
+    env = {"BREW_TTS_ORDER": "elevenlabs", "ELEVENLABS_API_KEY": "el-key-aaaa1111", "BREW_TTS_ELEVENLABS_MODEL": "eleven_v3",
+           "BREW_TTS_ELEVENLABS_PREFIX": "[sarcastic] [deadpan]", "BREW_TTS_ELEVENLABS_SETTINGS": '{"stability": 0.0}', "BREW_TTS_SPEED": "1.5"}  # fmt: skip
+    pool, _ = make(h, env)
+    await pool.speak("One latte.", "happy")
+    await pool.speak("I'm so sorry about that.", "worried")  # no sarcasm at a real complaint
+    assert seen[0] == {
+        "text": "[sarcastic] [deadpan] One latte.",
+        "model_id": "eleven_v3",
+        "voice_settings": {"stability": 0.0},
+    }
+    assert seen[1]["text"] == "I'm so sorry about that." and pool.status()["speed"] == 1.5

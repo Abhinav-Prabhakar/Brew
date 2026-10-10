@@ -55,3 +55,6 @@ params:
   pause_rank_recovery: 0.01
   fatigue_speed_k: 0.25
   error_load_k: 2.0
+  jit_delivery: true      # cook zomato/swiggy orders as late as the rider's ETA allows
+  jit_early_frac: 0.2
+  jit_buffer_s: 30

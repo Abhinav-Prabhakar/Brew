@@ -14,6 +14,7 @@
     order_no: r.order_no, order_id: r.order_id, channel: r.channel, party_id: r.party_id, persona: r.persona, name: r.name,
     items: r.items.map((i) => ({ sku: i.sku, qty: i.qty, mods: i.mods, unit_price: i.unit_price, replate: !!i.replate, combo: i.combo || null })),
     note: r.note, note_flags: r.note_flags, placed_s: r.placed_s, promised_s: r.promised_s, priority: 0, bumped: !!r.bumped,
+    rider_eta_s: r.rider_eta_s ?? null, cook_at_s: r.cook_at_s ?? null,
     status: r.progress_state, progress: r.progress, ahead: null, ready_s: r.ready_s, served_by: null, void_reason: null,
     batch_id: r.batch != null ? 'b' + r.batch : null, gone_s: null,
   });
@@ -210,6 +211,7 @@
           order_no: d.order_no, order_id: d.order_id, channel: d.channel, party_id: d.party_id, persona: d.persona, name: d.name,
           items: d.items.map((i) => ({ sku: i.sku, qty: i.qty, mods: i.mods, unit_price: i.unit_price, replate: !!i.replate, combo: i.combo || null })),
           note: d.note, note_flags: d.note_flags, placed_s: ev.sim_s, promised_s: d.promised_s, priority: d.priority, bumped: false,
+          rider_eta_s: null, cook_at_s: null,
           status: 'queued', progress: 0, ahead: null, ready_s: null, served_by: null, void_reason: null, batch_id: null, gone_s: null,
         };
         return {
@@ -223,7 +225,8 @@
         if (!c || c.order_nos.includes(ev.data.order_no)) return null;
         return { customers: U.set(s.customers, c.party_id, { ...c, order_nos: c.order_nos.concat([ev.data.order_no]), order_no: ev.data.order_no }) };
       }]],
-      'order.accepted': ['orders', (s, ev) => ({ orders: U.upd(s.orders, ev.data.order_no, { promised_s: ev.data.promised_s }) })],
+      'order.accepted': ['orders', (s, ev) => ({ orders: U.upd(s.orders, ev.data.order_no, { promised_s: ev.data.promised_s,
+        rider_eta_s: ev.data.rider_eta_s ?? null, cook_at_s: ev.data.cook_at_s ?? null }) })],   // delivery: the rider's ETA and the just-in-time cook time
       'order.rejected': ['orders', (s, ev) => finish(s, ev, { status: 'rejected', void_reason: ev.data.reason })],
       'order.progress': ['orders', (s, ev) => {
         const o = s.orders[ev.data.order_no];

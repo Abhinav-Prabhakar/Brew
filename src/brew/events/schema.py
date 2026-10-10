@@ -136,6 +136,8 @@ class OrderPlaced(D):
 class OrderAccepted(D):
     order_no: int
     promised_s: float
+    rider_eta_s: float | None = None  # aggregator orders: when the platform expects the rider at the door
+    cook_at_s: float | None = None  # ...and when the kitchen will start so the bag is ready just before that
 
 
 class OrderRejected(D):

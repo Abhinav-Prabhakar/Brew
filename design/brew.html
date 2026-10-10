@@ -598,6 +598,8 @@
   .wt-send{font-size:21px;padding:5px 16px;cursor:pointer} #wt-stage.busy .wt-send{opacity:.5}
   .wt-mic{width:50px;height:50px;flex:none;display:grid;place-items:center;border:3px solid var(--ink);border-radius:50%;background:#fff;color:var(--ink);box-shadow:3px 3px 0 var(--ink);cursor:pointer}
   .wt-mic[disabled]{opacity:.4;cursor:not-allowed;box-shadow:none}
+  .wt-voice{width:50px;height:50px;flex:none;display:grid;place-items:center;border:3px solid var(--ink);border-radius:50%;background:#fff;color:var(--ink);box-shadow:3px 3px 0 var(--ink);cursor:pointer}
+  .wt-voice[aria-pressed="true"]{background:var(--sage)} .wt-voice[aria-pressed="true"] .off,.wt-voice[aria-pressed="false"] .waves{display:none}
   .wt-mic[aria-pressed="true"]{background:var(--terra);color:#fff;animation:wtMic 1s ease-in-out infinite}
   @keyframes wtMic{50%{box-shadow:3px 3px 0 var(--ink),0 0 0 9px rgba(192,99,79,.25)}}
   /* the written history, behind the "chat" toggle */

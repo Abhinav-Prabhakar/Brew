@@ -551,7 +551,9 @@ function ticketSVG(s, o, t){
   if (o.items?.some((x) => x.replate)) g += `<g transform="translate(104 48) rotate(12)"><rect x="-16" y="-9" width="32" height="18" rx="5" fill="#e4efd9" ${st(1.6)}/>${tx(0, 4, '♻', 12, 'text-anchor="middle"')}</g>`;
   if (o.bumped || o.priority > 0) g += `<path d="M118 44v22M118 44l10 4l-10 4" fill="${C.terra}" ${st(1.8)}/>`;
   ticketLines(s, o).forEach((nt, j) => g += `<text x="10" y="${118 + j * 15}" font-family="Patrick Hand" font-size="13.5" fill="${I}">• ${esc(nt)}</text>`);
-  g += `<text x="10" y="152" font-family="Patrick Hand" font-size="11.5" fill="${I}" opacity=".6">wait</text>
+  // delivery, just-in-time: "cook at 12:36" while the kitchen holds the ticket for its rider (filled in by renderRail)
+  g += `<g class="tk-hold" display="none" transform="translate(66 98) rotate(-7)"><rect x="-52" y="-13" width="104" height="26" rx="6" fill="#fffefb" fill-opacity=".9" stroke="${C.navy}" stroke-width="2.4" stroke-dasharray="6 4"/><text y="5" text-anchor="middle" font-family="Gochi Hand" font-size="15" fill="${C.navy}"></text></g>`;
+  g += `<text class="tk-lab" x="10" y="152" font-family="Patrick Hand" font-size="11.5" fill="${I}" opacity=".6">wait</text>
     <text class="tk-wait" x="122" y="152" text-anchor="end" font-family="Patrick Hand" font-size="12.5" fill="${I}"></text>
     <rect x="10" y="156" width="112" height="9" rx="4.5" fill="#fff" ${st(1.8)}/><rect class="tk-bar" x="11" y="157" width="0" height="7" rx="3.5" fill="${C.sage}"/>`;
   if (o.status === 'ready') g += `<g class="tk-stamp" transform="translate(66 92) rotate(-14)" opacity=".88"><rect x="-50" y="-17" width="100" height="34" rx="6" fill="#fffefb" fill-opacity=".6" stroke="${C.pinkD}" stroke-width="3"/><text y="8" text-anchor="middle" font-family="Gochi Hand" font-size="22" fill="${C.pinkD}">READY ✓</text></g>`;
@@ -593,6 +595,9 @@ function renderRail(s, t){
     const o = it.o, wait = (o.status === 'ready' ? (o.ready_s || t) : t) - (o.placed_s || t);
     const late = o.promised_s ? (t - o.placed_s) / Math.max(60, o.promised_s - o.placed_s) : 0;
     const w = r.el.querySelector('.tk-wait'); if (w) w.textContent = o.status === 'ready' ? 'done' : R.mmss(wait);
+    const lab = r.el.querySelector('.tk-lab'), want = o.rider_eta_s ? `rider ${R.hm(o.rider_eta_s % R.DAY)}` : 'wait'; if (lab && lab.textContent !== want) lab.textContent = want;
+    const hold = r.el.querySelector('.tk-hold'), held = o.cook_at_s > t && !['ready', 'served'].includes(o.status) && !(o.progress > 0);
+    if (hold) { hold.setAttribute('display', held ? 'inline' : 'none'); if (held) hold.lastElementChild.textContent = `cook at ${R.hm(o.cook_at_s % R.DAY)}`; }
     const bar = r.el.querySelector('.tk-bar'); if (bar) { bar.setAttribute('width', (110 * Math.max(.02, Math.min(1, o.status === 'ready' ? 1 : o.progress || 0))).toFixed(1));
       bar.setAttribute('fill', o.status === 'ready' ? C.sage : late > 1 ? C.terra : late > .7 ? C.mustard : C.sage); } }
   // batch paperclips + ribbon

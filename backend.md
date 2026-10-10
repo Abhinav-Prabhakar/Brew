@@ -84,6 +84,11 @@ Ingredients with base units (g/ml/pc), storage zones, sealed/opened shelf lives,
 ### 3.7 Delivery
 Aggregator order → acceptance decision (accept / reject / inflate prep time) within timeout → promised prep time → cook → bag on **pickup shelf** (capacity 6 slots) → rider arrives (ETA distribution affected by rain/peak/shortage) → pickup. Food quality decays while waiting; rider waiting is penalised by the platform score.
 
+**Just-in-time cooking.** `order.accepted` for an aggregator order carries `rider_eta_s` (the platform's ETA: dispatch
+time + predicted travel) and, when the kitchen will wait, `cook_at_s = rider_eta_s − (jit_early_frac × travel +
+jit_buffer_s) − (prep + bagging + queue)`. Until then the order's tasks are held out of dispatch (`Kitchen.holds`),
+whatever the policy. The rider arriving early or a `bump_order` releases it. `params.jit_delivery: false` turns it off.
+
 ### 3.8 Money, reviews, reputation
 Ledger with accounts from `plan.md §7.3 fin`. Satisfaction per order → review probability → star rating (1–5) + **review text** (sampled from the LLM-generated corpus, conditioned on persona/channel/stars/causes) → per-channel Bayesian reputation → demand multiplier.
 

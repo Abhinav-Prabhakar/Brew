@@ -116,6 +116,7 @@ class Order:
     ti: int = 0  # telemetry index
     errors: int = 0
     accept_handle: int | None = None
+    cook_at_s: float = 0.0  # delivery, just-in-time: kitchen work is held until this sim time (0 = not held)
     no_table: bool = False
     is_refill: bool = False
     delivered_s: float = 0.0

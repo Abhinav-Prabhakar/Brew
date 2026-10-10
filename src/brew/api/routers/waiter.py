@@ -58,6 +58,7 @@ def status(request: Request) -> dict[str, Any]:
 
 class SpeakRequest(BaseModel):
     text: str = Field(min_length=1, max_length=2000)
+    mood: str = Field(default="", max_length=20)
 
 
 @router.get("/waiter/voice")
@@ -71,7 +72,7 @@ async def speak(body: SpeakRequest, request: Request) -> Response:
     """Kapi's line as audio (the first TTS provider that answers). 503 when none can: the page then uses the
     browser's own voice, if the config allows it."""
     try:
-        audio, ctype, name = await request.app.state.tts.speak(body.text)
+        audio, ctype, name = await request.app.state.tts.speak(body.text, body.mood)
     except TTSUnavailable as e:
         err = {
             "error": {

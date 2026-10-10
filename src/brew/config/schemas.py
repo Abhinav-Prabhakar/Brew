@@ -34,6 +34,11 @@ class Params(_M):
     pause_rank_recovery: float = 0.01
     fatigue_speed_k: float = 0.25
     error_load_k: float = 2.0
+    # just-in-time delivery cooking (sim/delivery.py): hold an aggregator order's kitchen work so the bag is ready
+    # shortly before its rider's ETA instead of going cold on the shelf
+    jit_delivery: bool = True
+    jit_early_frac: float = 0.2  # be ready this share of the rider's travel time before the ETA (riders run early)
+    jit_buffer_s: float = 30.0  # plus this fixed margin
 
 
 class Reputation(_M):

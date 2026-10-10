@@ -92,9 +92,14 @@
         // a task that started before the snapshot has no entry: still re-derive what the person is doing now
         const tasks = U.del(s.tasks, d.task_id);
         const st = s.stations[d.station];
+        // someone juggling two tasks, the other one started before the snapshot (so it is not in s.tasks): they are
+        // still at that other station — leave them there until the sim's next staff.status says otherwise
+        const cur = s.staff[d.staff_id];
+        const elsewhere = cur && cur.state === 'working' && cur.station && cur.station !== d.station
+          && !Object.values(tasks).some((t) => t.staff_id === d.staff_id);
         return {
           tasks,
-          staff: refreshStaff(s, tasks, d.staff_id),
+          staff: elsewhere ? s.staff : refreshStaff(s, tasks, d.staff_id),
           stations: st ? U.upd(s.stations, d.station, { in_use: inUse(tasks, d.station, st.slots) }) : s.stations,
         };
       }],

@@ -390,6 +390,8 @@ class Orders:
         if o.bag_task is not None:
             o.bag_task.bumped = on
         o.priority = 1 if on else 0
+        if on and o.cook_at_s > self.w.now:  # a bumped delivery ticket stops waiting for its rider
+            self.w.delivery.release(o)
         self.w.kitchen.request_dispatch()
         self.update_rail()
         return True

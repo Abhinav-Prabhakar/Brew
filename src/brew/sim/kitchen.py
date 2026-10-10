@@ -61,6 +61,7 @@ class Kitchen:
             self.equip.append(e)
             self.stations[et.station].eq.append(e.idx)
         self.ready: list[Task] = []
+        self.holds: dict[int, float] = {}  # order_no -> sim time its tasks may start (just-in-time delivery)
         self.tasks: dict[int, Task] = {}
         self.task_seq = 0
         self.batch_seq = 0
@@ -318,6 +319,16 @@ class Kitchen:
         return t
 
     # ---------------------------------------------------------------- dispatch
+    # ---------------------------------------------------------------- holds
+    def hold_order(self, order_no: int, until: float) -> None:
+        """Keep an order's tasks out of dispatch until ``until`` (just-in-time delivery cooking)."""
+        self.holds[order_no] = until
+        self.schedule_wake(until)
+
+    def release_order(self, order_no: int) -> None:
+        if self.holds.pop(order_no, None) is not None:
+            self.request_dispatch()
+
     def request_dispatch(self) -> None:
         w = self.w
         if self.dp_at == w.now:
@@ -332,9 +343,18 @@ class Kitchen:
         self.ready = [t for t in self.ready if t.state == T_READY]
         if not self.ready:
             return
-        view = w.view()
-        choices = w.policy.dispatch(list(self.ready), view)
+        offer = list(self.ready)
         wake: float | None = None
+        if self.holds:  # held delivery orders are not offered to the policy yet
+            self.holds = {no: t for no, t in self.holds.items() if t > now}
+            if self.holds:
+                offer = [t for t in offer if t.order_no not in self.holds]
+                wake = min(self.holds.values())
+                if not offer:
+                    self.schedule_wake(wake)
+                    return
+        view = w.view()
+        choices = w.policy.dispatch(offer, view)
         started = False
         seen: set[int] = set()
         blocked: dict[str, tuple[float, bool]] = {}
@@ -728,6 +748,7 @@ class Kitchen:
         if order.bag_task is not None and order.bag_task.state in (T_WAIT, T_READY):
             order.bag_task.state = T_CANCEL
             self.tasks.pop(order.bag_task.id, None)
+        self.holds.pop(order.order_no, None)
         self.ready = [t for t in self.ready if t.state == T_READY]
 
     def cancel_task(self, t: Task) -> None:

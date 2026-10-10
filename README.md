@@ -97,6 +97,11 @@ statement.
   an invest button that spends real sim cash. The item then shows up in the room.
 - **Resilient client**: since_seq resume, jittered backoff, re-hydration when the server restarts, a labelled
   offline replay. Kill the backend mid-rush and the page waits, then recovers with no duplicate tickets.
+- **Just-in-time delivery cooking**: every Zomato / Swiggy order arrives with its rider's ETA, and the kitchen holds
+  the ticket ("cook at 12:36") so the bag is ready just before the rider walks in instead of cooling on the shelf.
+  It is a scheduling layer under every policy (held tasks are simply not offered for dispatch yet), so nothing is
+  retrained. Baseline policy, one day: about a third less shelf time and fresher food at hand-over, rider waiting
+  about the same. A rider who turns up early, or a bumped ticket, releases the hold at once.
 - **Kapi, the waiter**: a doodle with a notepad in front of the counter. Click him (or the 4th tab, "kapi") and you walk over to his stage, a room of its own — Kapi drawn
   large, and the illustration does the talking: he looks up and thinks (a thought cloud with his dry inner
   monologue), tears a ticket off his pad, stamps a note, flags the team, then answers in a speech bubble that types
@@ -199,10 +204,13 @@ Known providers: `anthropic`, `openai`, `gemini`, `groq`, `openrouter`; any othe
 `BREW_LLM_<NAME>_URL`, `BREW_LLM_<NAME>_MODEL` and `<NAME>_API_KEYS`. `GET /api/v1/waiter/status` shows what is wired
 up and how each key is doing (keys masked). `BREW_LLM_ENABLED=0` forces the scripted waiter.
 
-**His voice.** When you *speak* to Kapi (the mic), he answers aloud; typed turns stay silent. `brew.llm.tts` works
+**His voice.** In voice chat Kapi answers aloud; otherwise he stays silent. `brew.llm.tts` works
 like the chat pool: `BREW_TTS_ORDER=elevenlabs,openai,groq,browser` picks the providers in order, each with its own
 rotating keys, voice (`BREW_TTS_<NAME>_VOICE`), model and — for OpenAI-style voices — `BREW_TTS_<NAME>_INSTRUCTIONS`
-("a tired, sarcastic waiter"). `browser` is the browser's own voice: free, keyless, and the fallback when no provider
+("a tired, sarcastic waiter"). `BREW_TTS_<NAME>_PREFIX` puts style tags in front of each line (ElevenLabs v3: `[sarcastic]
+[deadpan]`; dropped when he is worried), `BREW_TTS_<NAME>_SETTINGS` passes provider settings, `BREW_TTS_SPEED` sets the
+playback speed. The speaker button turns voice chat on (using the mic does too), and after he has spoken the mic
+opens again for your next line. `browser` is the browser's own voice: free, keyless, and the fallback when no provider
 answers. Any OpenAI-compatible speech endpoint or plain GET service can be added by name (see `.env.example`);
 `GET /api/v1/waiter/voice` shows what is active.
 

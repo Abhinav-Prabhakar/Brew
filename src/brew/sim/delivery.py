@@ -87,11 +87,20 @@ class Delivery:
     def accept(self, o: Order, extra: float = 0.0) -> None:
         w = self.w
         extra += THROTTLE_EXTRA[self.throttle[o.channel]]
-        if not w.orders.commit(o, extra, announce=False):
+        if not w.orders.commit(o, extra, announce=False, accept_event=False):
             self.reject(o, "sold_out", announce=True)
             return
         w.fin.collect(o, 0.0)  # prepaid via platform
         self.schedule_rider(o)
+        self.plan_cook(o)
+        assert o.rider is not None
+        w.emit(
+            "order.accepted",
+            order_no=o.order_no,
+            promised_s=round(o.promised_s, 1),
+            rider_eta_s=round(o.rider["eta_s"], 1),
+            cook_at_s=round(o.cook_at_s, 1) if o.cook_at_s else None,
+        )
 
     def reject(self, o: Order, reason: str, announce: bool = True) -> None:
         w = self.w
@@ -113,6 +122,7 @@ class Delivery:
         o.rider = {
             "dispatch_s": dispatch_t,
             "arrive_s": arrive_t,
+            "eta_s": dispatch_t + pred,  # what the platform tells us: the ETA that comes with the order
             "waiting_since": None,
             "wait_s": 0.0,
             "pred_s": pred,
@@ -120,6 +130,30 @@ class Delivery:
         h1 = w.engine.schedule(dispatch_t, "RIDER_DISPATCH", o.order_no, P_DONE)
         h2 = w.engine.schedule(arrive_t, "RIDER_ARRIVE", o.order_no, P_DONE)
         self.handles[o.order_no] = [h1, h2]
+
+    # ------------------------------------------------- just-in-time cooking
+    def plan_cook(self, o: Order) -> None:
+        """Hold the order's kitchen work so it is bagged shortly before the rider's ETA, not long before.
+
+        ``cook_at = ETA - margin - (prep + bagging + queue)``, where the margin covers riders running early
+        (a share of their travel time) plus a fixed buffer. Works under every policy: held tasks are simply not
+        offered for dispatch until then (``Kitchen.on_dispatch``), so nothing is retrained."""
+        w = self.w
+        pr = w.cfg.cafe.params
+        if not pr.jit_delivery or o.rider is None:
+            return
+        work = w.orders.estimate_prep_s([(u.sku, u.mods) for u in o.units], True) + w.orders.queue_delay_s()
+        margin = pr.jit_early_frac * o.rider["pred_s"] + pr.jit_buffer_s
+        cook_at = o.rider["eta_s"] - margin - work
+        if cook_at > w.now + 30.0:  # (a shorter hold is not worth a wake-up)
+            o.cook_at_s = cook_at
+            w.kitchen.hold_order(o.order_no, cook_at)
+
+    def release(self, o: Order) -> None:
+        """Start cooking now (the rider is early, or the player bumped the ticket)."""
+        if o.cook_at_s > self.w.now:
+            o.cook_at_s = self.w.now
+            self.w.kitchen.release_order(o.order_no)
 
     def on_rider_dispatch(self, order_no: int) -> None:
         o = self.w.orders.orders.get(order_no)
@@ -144,6 +178,7 @@ class Delivery:
         )
         if waiting:
             o.rider["waiting_since"] = w.now
+            self.release(o)
         else:
             self.pickup(o)
 

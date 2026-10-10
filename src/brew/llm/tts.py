@@ -12,6 +12,11 @@ Environment (a ``.env`` in the repository root is read too):
                                ``ELEVENLABS_API_KEYS``, …), comma separated; ``BREW_TTS_<NAME>_KEYS`` for TTS-only keys
 ``BREW_TTS_<NAME>_VOICE``      voice name / id · ``BREW_TTS_<NAME>_MODEL`` · ``BREW_TTS_<NAME>_URL``
 ``BREW_TTS_<NAME>_INSTRUCTIONS``  how to say it (OpenAI-style ``instructions``, e.g. "a tired, sarcastic waiter")
+``BREW_TTS_<NAME>_PREFIX``     put in front of every line, e.g. ElevenLabs v3 audio tags ``[sarcastic] [deadpan]``
+                               (left off when the waiter's mood is "worried": no sarcasm at a real complaint)
+``BREW_TTS_<NAME>_SETTINGS``   JSON merged into the request (ElevenLabs: its ``voice_settings``, e.g.
+                               ``{"stability": 0.0, "style": 0.8}``; OpenAI-style: extra body fields)
+``BREW_TTS_SPEED``             playback speed of the audio in the page, 0.5–2 (default 1; pitch is kept)
 ``BREW_TTS_<NAME>_KIND``       wire format of a provider this file does not know:
                                ``openai`` (POST {model, voice, input} -> audio; OpenAI, Groq and compatibles),
                                ``elevenlabs`` (POST …/text-to-speech/{voice}), or
@@ -22,6 +27,7 @@ Environment (a ``.env`` in the repository root is read too):
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import re
 import time
@@ -55,6 +61,8 @@ class Voice:
     model: str
     voice: str
     instructions: str = ""
+    prefix: str = ""
+    settings: tuple[tuple[str, Any], ...] = ()
 
 
 @dataclass
@@ -76,12 +84,14 @@ class TTSPool:
         self,
         slots: list[VoiceSlot] | None = None,
         browser: dict[str, Any] | None = None,
+        speed: float = 1.0,
         client: httpx.AsyncClient | None = None,
         timeout_s: float = 15.0,
         clock: Any = time.monotonic,
     ) -> None:
         self.slots = slots or []
         self.browser = browser  # None = no browser fallback; else {voice, pitch, rate}
+        self.speed = speed
         self._client = client
         self._timeout = timeout_s
         self._cursor = 0
@@ -107,6 +117,8 @@ class TTSPool:
                 e.get(f"BREW_TTS_{up}_MODEL", model),
                 e.get(f"BREW_TTS_{up}_VOICE", voice),
                 e.get(f"BREW_TTS_{up}_INSTRUCTIONS", ""),
+                e.get(f"BREW_TTS_{up}_PREFIX", "").strip(),
+                tuple(_json_obj(e.get(f"BREW_TTS_{up}_SETTINGS", "")).items()),
             )
             keys = [k for k in re.split(r"[,\s]+", e.get(f"BREW_TTS_{up}_KEYS", "")) if k] or _keys(e, name)
             if v.kind == "get" and not keys and "{key}" not in v.url:
@@ -114,20 +126,20 @@ class TTSPool:
             if v.url:
                 slots += [VoiceSlot(v, k) for k in keys]
         browser = None
+
+        def num(key: str, default: float, lo: float, hi: float) -> float:
+            try:
+                return max(lo, min(hi, float(e.get(key, default))))
+            except ValueError:
+                return default
+
         if "browser" in order:
-
-            def num(key: str, default: float, lo: float, hi: float) -> float:
-                try:
-                    return max(lo, min(hi, float(e.get(key, default))))
-                except ValueError:
-                    return default
-
             browser = {
                 "voice": e.get("BREW_TTS_BROWSER_VOICE", ""),
                 "pitch": num("BREW_TTS_BROWSER_PITCH", 0.8, 0.0, 2.0),
                 "rate": num("BREW_TTS_BROWSER_RATE", 1.05, 0.5, 2.0),
             }
-        return cls(slots, browser, **kw)
+        return cls(slots, browser, num("BREW_TTS_SPEED", 1.0, 0.5, 2.0), **kw)
 
     @property
     def configured(self) -> bool:
@@ -145,15 +157,16 @@ class TTSPool:
                     "cooling_s": round(max(0.0, s.cool_until - now), 1),
                 }
             )  # fmt: skip
-        return {"providers": list(provs.values()), "browser": self.browser}
+        return {"providers": list(provs.values()), "browser": self.browser, "speed": self.speed}
 
     async def aclose(self) -> None:
         if self._client is not None:
             await self._client.aclose()
             self._client = None
 
-    async def speak(self, text: str) -> tuple[bytes, str, str]:
-        """``text`` -> (audio bytes, content type, provider name). Raises :class:`TTSUnavailable`."""
+    async def speak(self, text: str, mood: str = "") -> tuple[bytes, str, str]:
+        """``text`` -> (audio bytes, content type, provider name). Raises :class:`TTSUnavailable`.
+        ``mood`` is the waiter's: a provider's style prefix is dropped when he is "worried"."""
         text = " ".join(text.split())[:MAX_CHARS]
         if not self.slots or not text:
             raise TTSUnavailable("no TTS provider configured" if text else "nothing to say")
@@ -174,7 +187,9 @@ class TTSPool:
         tried: list[str] = []
         for s in order:
             try:
-                audio, ctype = await self._call(s, text)
+                p = s.provider
+                line = f"{p.prefix} {text}" if p.prefix and mood != "worried" else text
+                audio, ctype = await self._call(s, line)
             except _Fail as f:
                 s.failed += 1
                 s.streak += 1
@@ -197,7 +212,11 @@ class TTSPool:
                 r = await self._client.post(
                     p.url.replace("{voice}", quote(p.voice)),
                     headers={"xi-api-key": s.key, "accept": "audio/mpeg"},
-                    json={"text": text, "model_id": p.model},
+                    json={
+                        "text": text,
+                        "model_id": p.model,
+                        **({"voice_settings": dict(p.settings)} if p.settings else {}),
+                    },
                 )
             elif p.kind == "get":
                 url = p.url.replace("{text}", quote(text)).replace("{voice}", quote(p.voice))
@@ -206,6 +225,7 @@ class TTSPool:
                 body = {"model": p.model, "voice": p.voice, "input": text, "response_format": "mp3"}
                 if p.instructions:
                     body["instructions"] = p.instructions
+                body.update(dict(p.settings))
                 r = await self._client.post(p.url, headers={"authorization": f"Bearer {s.key}"}, json=body)
         except httpx.TimeoutException as e:
             raise _Fail("timeout", COOL_ERROR_S) from e
@@ -221,6 +241,14 @@ class TTSPool:
                 f"http {r.status_code}" if r.status_code >= 400 else "no audio in the response", COOL_ERROR_S
             )
         return r.content, ctype or "audio/mpeg"
+
+
+def _json_obj(raw: str) -> dict[str, Any]:
+    try:
+        v = json.loads(raw) if raw.strip() else {}
+    except ValueError:
+        return {}
+    return v if isinstance(v, dict) else {}
 
 
 class _Fail(Exception):

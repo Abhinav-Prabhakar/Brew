@@ -88,6 +88,8 @@ def order_json(w: World, o: Order, batches: dict[int, int] | None = None) -> dic
         "items": [{"sku": ln["sku"], "qty": ln["qty"], "mods": ln["mods"], "unit_price": ln["unit_price"], "replate": ln["replate"], "combo": ln.get("combo")} for ln in o.lines],
         "note": o.note, "note_flags": o.note_flags, "placed_s": round(o.placed_s, 1),
         "promised_s": round(o.promised_s, 1), "ready_s": round(o.ready_s, 1) if o.ready_s else None,
+        "rider_eta_s": round(o.rider["eta_s"], 1) if o.rider and "eta_s" in o.rider else None,
+        "cook_at_s": round(o.cook_at_s, 1) if o.cook_at_s else None,
         "served_s": round(o.served_s, 1) if o.served_s else None, "bumped": o.bumped,
         "batch": (batches or {}).get(o.order_no), "paid": o.paid, "total": o.total or None,
         "quality": round(o.quality, 3) if o.state == "served" else None, "remakes": o.remakes,
