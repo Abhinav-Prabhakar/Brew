@@ -22,6 +22,16 @@
         "brew-api"
       ],
       "port": 8000
+    },
+    {
+      "name": "brew-static",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8791"
+      ],
+      "port": 8791
     }
   ]
 }

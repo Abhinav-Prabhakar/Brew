@@ -323,8 +323,8 @@ function standingDrawing(c, mood, walking){
 }
 const lPeople = R.layer($('l-stand'), {
   key: (it) => it.c.party_id,
-  sig: (it) => `${it.c.state}|${it.mood}|${it.c.party_size}|${it.walking}`,
-  html: (it) => `<g class="who${it.walking ? ' walking' : ''}" data-party="${it.c.party_id}" data-state="${it.c.state}"><g class="bob">${standingDrawing(it.c, it.mood, it.walking)}</g></g>`,
+  sig: (it) => `${it.c.state}|${it.mood}|${it.c.party_size}|${it.walking}|${it.carry}`,
+  html: (it) => `<g class="who${it.walking ? ' walking' : ''}" data-party="${it.c.party_id}" data-state="${it.c.state}"><g class="bob">${it.rider ? riderDrawing(it.rider, it.carry) : standingDrawing(it.c, it.mood, it.walking)}</g></g>`,
   place: (r, it, isNew) => {
     if (isNew) { const from = it.from || DOOR; R.moveTo(r.el, from[0], from[1], {instant: true, scale: it.fromSc || SC_Q}); void r.el.getBoundingClientRect(); }
     const ms = R.moveTo(r.el, it.x, it.y, {dur: it.dur || 1.2, scale: it.sc, ease: 'linear'});
@@ -389,13 +389,8 @@ function renderPeople(s, t){
       setTimeout(() => { const m2 = memo.get(c.party_id); if (m2) { m2.gone = goneIt; render(R.S(), false); } }, it.dur * 1000 + (c.state === 'balked' ? 1600 : 200));
     } else if (c.state === 'arrived' && !memo.has(c.party_id)) { put(c, DOOR[0], DOOR[1], SC_Q); }
   }
-  // delivery riders waiting at the door for their bags
-  const riders = Object.values(s.shelf?.bags || {}).filter((b) => b.rider === 'arrived').slice(0, 3);
-  riders.forEach((b, i) => { const [x, y] = RIDER_SLOT(i);
-    standing.push({c: {party_id: 'rider-' + b.order_no, persona: 'delivery_home', state: 'rider', party_size: 1, appearance_seeds: [R.hash(b.order_no)]}, rider: b, x, y, sc: .8, mood: 'neutral', from: DOOR, fromSc: .8, dur: 1}); });
-  lPeople.sync(standing.map((it) => it.rider ? {...it, c: {...it.c}} : it));
-  // riders get a helmet + insulated bag (not a generated customer)
-  for (const it of standing) if (it.rider) { const r = lPeople.map.get(it.c.party_id); if (r && !r.el.dataset.rider) { r.el.dataset.rider = 1; r.el.firstElementChild.innerHTML = riderDrawing(it.rider); } }
+  for (const it of riderItems(s)) standing.push(it);
+  lPeople.sync(standing);
   lSeated.sync(seated); lFront.sync(front);
   for (const k of memo.keys()) if (!s.customers?.[k]) memo.delete(k);
   const tabs = Object.values(s.tables || {}).filter((x) => TABLE_X[x.id] != null);
@@ -403,10 +398,51 @@ function renderPeople(s, t){
   lTables.sync(tabs.map((x) => ({id: x.id, state: x.state, dx: merged.has('T1') && merged.has('T2') ? (x.id === 'T1' ? 3 : x.id === 'T2' ? -3 : 0) : 0})));
   renderTags(s, t, standing, seated);
 }
-function riderDrawing(b){
+/* Delivery riders: in through the door → wait by it → over to the shelf, take the bag → out again.
+   The sim reports a rider's arrival and pickup in the same instant whenever the bag is already shelved, so the walk is
+   paced on the wall clock here, and the bag stays on the shelf until the rider gets to it (see bagTaken). */
+const riderRuns = new Map();   // order_no → {no, channel, i, slot, picked, phase: in|wait|fetch|out|done, until}
+const RIDER_Y = 584, RIDER_SC = .8, RIDER_MAX = 3;
+const walkMsTo = (a, b) => R.reduced ? 0 : Math.min(3200, 300 + Math.hypot(a[0] - b[0], a[1] - b[1]) * 4.2);
+const riderBusy = (run) => run.phase !== 'done';
+const riderAt = (run) => run.phase === 'fetch' ? [BAG_X(run.slot) - 16, RIDER_Y + 14] : run.phase === 'out' ? [DOOR[0] + 30, DOOR[1]] : RIDER_SLOT(run.i);
+/** true once the bag has really left the shelf: picked up, and no rider is still on the way to it */
+function bagTaken(b){ const run = riderRuns.get(String(b.order_no)); return b.rider === 'picked_up' && !(run && ['in', 'wait', 'fetch'].includes(run.phase)); }
+function riderItems(s){
+  const now = performance.now(), t = R.now(), riders = s.shelf?.riders || {}, bags = s.shelf?.bags || {};
+  for (const [k, r] of Object.entries(riders)) {   // (keyed by order: a rider first heard of on arrival carries no order_no)
+    if (r.status === 'assigned' || riderRuns.has(k)) continue;
+    const used = new Set([...riderRuns.values()].filter(riderBusy).map((x) => x.i));
+    const i = [...Array(RIDER_MAX).keys()].find((n) => !used.has(n));
+    // old news (a snapshot, a long step), no room by the door, or no motion: the bag just goes, as the event says
+    const skip = i == null || (r.status === 'picked_up' && (R.reduced || t - (r.gone_s ?? t) > 45));
+    riderRuns.set(k, skip ? {no: k, phase: 'done'} : {no: k, channel: r.channel || bags[k]?.channel, i, slot: null, phase: 'in', until: now + walkMsTo(DOOR, RIDER_SLOT(i))});
+  }
+  const out = [];
+  for (const [k, run] of riderRuns) {
+    const r = riders[k], b = bags[k];
+    if (!riderBusy(run)) { if (!r) riderRuns.delete(k); continue; }
+    if (b && b.slot != null) { run.slot = b.slot; run.bag = b; run.channel = run.channel || b.channel; }
+    if (!r || r.status === 'picked_up') run.picked = true;   // (pruned from the store mid-walk: it was picked up)
+    const from = riderAt(run);
+    if (run.phase === 'in' && now >= run.until) run.phase = 'wait';
+    if (run.phase === 'wait' && run.picked && R.reduced) { run.phase = 'done'; continue; }
+    if (run.phase === 'wait' && run.picked) { run.phase = run.slot == null ? 'out' : 'fetch'; run.until = now + walkMsTo(from, riderAt(run)) + (run.phase === 'fetch' ? 450 : 0); }
+    else if (run.phase === 'fetch' && now >= run.until) { run.phase = 'out'; run.until = now + walkMsTo(from, riderAt(run)); }
+    else if (run.phase === 'out' && now >= run.until) { run.phase = 'done'; continue; }
+    const [x, y] = riderAt(run), dur = walkMsTo(run.phase === 'in' ? DOOR : from, [x, y]) / 1000;
+    if (run.phase !== 'wait' && run.timed !== run.until) { run.timed = run.until; setTimeout(() => render(R.S(), false), Math.max(30, run.until - now + 30)); }
+    out.push({c: {party_id: 'rider-' + k, persona: 'delivery_home', state: 'rider', party_size: 1}, rider: run, carry: run.phase === 'out',
+              x, y, sc: RIDER_SC, mood: 'neutral', from: DOOR, fromSc: RIDER_SC, dur});
+  }
+  return out;
+}
+function riderDrawing(b, carry){
   const col = chan(b.channel).col;
   return `<rect x="8" y="32" width="54" height="66" rx="5" fill="${col}" ${st(3)}/><path d="M8 46h54" ${st(2)}/>
-    <path d="M-10 120L-13 190M10 120L13 190" ${st(3.2)}/><ellipse cx="-17" cy="192" rx="8" ry="4" fill="${I}"/><ellipse cx="17" cy="192" rx="8" ry="4" fill="${I}"/>
+    <g class="leg leg-l"><path d="M-10 120L-13 190" ${st(3.2)}/><ellipse cx="-17" cy="192" rx="8" ry="4" fill="${I}"/></g>
+    <g class="leg leg-r"><path d="M10 120L13 190" ${st(3.2)}/><ellipse cx="17" cy="192" rx="8" ry="4" fill="${I}"/></g>
+    ${carry ? `<g transform="translate(18 116)"><path d="M0 0h32v44h-32z" fill="${C.kraft}" ${st(2.6)}/><path d="M0 9h32" ${st(1.4)} opacity=".5"/><rect x="4" y="30" width="24" height="9" rx="2" fill="${col}" ${st(1.4)}/></g>` : ''}
     ${torso(0, 0, col)}<path d="M0 30V122" ${st(1.8)}/>${head(0, 0)}${eyes(0, 0, -4, 4)}${brows(0, 0, 'flat')}${mouth(0, 0, 'neutral')}
     <path d="M-31 4C-35 -42 35 -42 31 4C20 -6 -20 -6 -31 4Z" fill="${col}" ${st(3)}/><path d="M-18 -24q10-8 22-6" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
     ${arm(-28, 46, -48, 98, -14, 84)}<rect x="-24" y="66" width="13" height="22" rx="3" fill="${C.navy}" ${st(2)} transform="rotate(-12 -18 77)"/>${arm(28, 46, 40, 92, 34, 120)}`;
@@ -469,8 +505,9 @@ function renderTags(s, t, standing, seated){
   }
   for (const it of standing.filter((q) => q.rider)) {
     const head = it.y - 27 * it.sc;
-    tags.push({k: 'p:' + it.c.party_id, html: plate(it.x, head - 50, `${chan(it.rider.channel).label} rider`, null)});
-    if (bubbles < 4) { bubbles++; pending.push({k: 'b:' + it.c.party_id, x: it.x - 10, y: head - 96, text: `#${it.rider.order_no} ready?`, col: I}); }
+    const run = it.rider, moving = run.phase !== 'wait';
+    tags.push({k: 'p:' + it.c.party_id, hide: moving, html: plate(it.x, head - 50, `${chan(run.channel).label} rider`, null)});
+    if (!run.picked && bubbles < 4) { bubbles++; pending.push({k: 'b:' + it.c.party_id, hide: moving, x: it.x - 10, y: head - 96, text: `#${run.no} ready?`, col: I}); }
   }
   for (const b of layoutBubbles(pending)) tags.push({k: b.k, hide: b.hide, html: b.html});
   const extra = Object.values(s.customers || {}).filter((c) => ['queued', 'arrived'].includes(c.state)).length - 5;
@@ -628,8 +665,8 @@ function renderPass(s){
 }
 const BAG_X = (slot) => 930 + (slot % 6) * 64;
 const lBags = R.layer($('l-bags'), {
-  key: (it) => it.b.order_no, sig: (it) => `${it.b.rider}|${it.b.slot}`,
-  html: (it) => it.b.rider === 'picked_up'
+  key: (it) => it.b.order_no, sig: (it) => `${bagTaken(it.b)}|${it.b.slot}`,
+  html: (it) => bagTaken(it.b)
     ? `<g opacity=".38"><path d="M${BAG_X(it.b.slot)} ${B-96}h58v92h-58z" fill="none" stroke="${I}" stroke-width="2.5" stroke-dasharray="6 5"/></g>`
     : bag(BAG_X(it.b.slot), chan(it.b.channel).col),
   place: (r, it, isNew) => { if (isNew) { r.el.style.transform = 'translateY(-40px)'; r.el.style.opacity = '0'; void r.el.getBoundingClientRect(); }
@@ -638,10 +675,12 @@ const lBags = R.layer($('l-bags'), {
 });
 function renderBags(s){
   const bags = Object.values(s.shelf?.bags || {}).filter((b) => b.slot != null);
+  // a bag the store has already let go of stays put while its rider is still walking over
+  for (const run of riderRuns.values()) if (run.bag && ['in', 'wait', 'fetch'].includes(run.phase) && !s.shelf?.bags?.[run.no]) bags.push(run.bag);
   lBags.sync(bags.map((b) => ({b})));
   let lab = '';
   for (const b of bags) { const x = BAG_X(b.slot);
-    lab += b.rider === 'picked_up' ? tx(x + 29, B - 34, 'picked up ✓', 12, 'text-anchor="middle" opacity=".55"')
+    lab += bagTaken(b) ? tx(x + 29, B - 34, 'picked up ✓', 12, 'text-anchor="middle" opacity=".55"')
       : `<text x="${x + 31}" y="${B - 11}" text-anchor="middle" font-family="Patrick Hand" font-size="10.5" fill="#fff">${chan(b.channel).label}·${b.order_no}</text><text x="${x + 31}" y="${B - 45}" text-anchor="middle" font-family="Gochi Hand" font-size="15" fill="${C.pinkD}">brew</text>`; }
   const el = $('l-flash'); if (el.innerHTML !== lab) el.innerHTML = lab;
 }
