@@ -252,7 +252,7 @@ Mirrors what the lobby lets you do today plus owner overrides. Every action prod
 → `{say, mood, order | null, notes: [...], source: "<provider>" | "scripted", model}`. The model (or the scripted
 stand-in) answers with `{say, mood, actions}`; the server carries the actions out — `order` → a `guest_order` action,
 `note` → the waiter's pad (`GET /worlds/{id}/waiter/notes`), high-severity notes are flagged `escalated`.
-`GET /waiter/status` lists the configured LLM providers and key health (masked). Keys: README, "The waiter's LLM keys".
+`GET /waiter/status` lists the configured LLM providers and key health (masked). `POST /waiter/speak {text}` → audio from the TTS pool (503 when no provider answers; the page then uses the browser voice), `GET /waiter/voice` its config. Keys: README, "The waiter's LLM keys".
 
 ### 6.3 WebSocket `/api/v1/ws/worlds/{id}?since_seq=`
 Server → client: **batched frames** every 50–100 ms wall time: `{"frame": n, "events": [Event, ...]}`. Each event: `{"seq", "sim_s", "t", "type", "data"}`. Client → server: `{"op": "ping"}`, `{"op": "subscribe", "types": [...]}` (optional filter). On reconnect the client fetches `/state` and resumes with `since_seq` (server keeps a ring buffer of the last 10 000 events per world).

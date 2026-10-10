@@ -8,8 +8,10 @@
    Talking goes through POST /worlds/{id}/waiter/chat (an LLM pool with a scripted stand-in on the server); the
    conversation lives here and is sent along each turn. The server answers in one piece ({thought, say, mood, order,
    notes}); the pacing — thought, actions, speech typed out — is staged here. Voice in: the browser's own speech
-   recognition, with the transcript appearing live while you speak. Voice out is not wired yet — every reply is
-   emitted as BREW_LIVE 'waiter.said' {text, mood, …} (and passed to BrewWaiter.speak if someone sets it). */
+   recognition, with the transcript appearing live while you speak. Voice out: only for turns you spoke — his answer
+   is read aloud by POST /waiter/speak (the server's TTS pool: ElevenLabs / OpenAI-style / … with rotating keys), and
+   by the browser's own voice when no provider answers (GET /waiter/voice says whether that fallback is allowed).
+   Every reply is also emitted as BREW_LIVE 'waiter.said' {text, mood, …}. */
 (() => {
   const NS = 'http://www.w3.org/2000/svg';
   const $ = (id) => document.getElementById(id);
@@ -149,10 +151,43 @@
     const el = document.createElement('div'); el.className = `wt-act ${cls}`; el.innerHTML = card; acts.appendChild(el);
     await wait(hold); el.classList.add('done');
   }
-  async function send(text) {
+  /* ---- voice out (spoken turns only) ---- */
+  let voiceCfg = null, audio = null, voicedBy = '';
+  const voiceConfig = async () => (voiceCfg ??= await BrewApi.get('/api/v1/waiter/voice').catch(() => ({providers: [], browser: {voice: '', pitch: .8, rate: 1.05}})));
+  function hush() {
+    if (audio) { audio.pause(); URL.revokeObjectURL(audio.src); audio = null; }
+    try { window.speechSynthesis?.cancel(); } catch (e) { /* no synthesis */ }
+  }
+  /** read `text` aloud; resolves when he has finished (or could not): the server's TTS first, then the browser's voice */
+  async function sayAloud(text) {
+    hush(); voicedBy = '';
+    const cfg = await voiceConfig();
+    if (cfg.providers?.length) {
+      try {
+        const res = await fetch(BrewApi.config.base.replace(/\/$/, '') + '/api/v1/waiter/speak', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({text})});
+        if (!res.ok) throw new Error('tts ' + res.status);
+        const a = audio = new Audio(URL.createObjectURL(await res.blob()));
+        voicedBy = res.headers.get('x-brew-tts') || 'tts';
+        await new Promise((done) => { a.onended = a.onerror = a.onpause = done; a.play().catch(done); });
+        if (audio === a) { URL.revokeObjectURL(a.src); audio = null; }
+        return;
+      } catch (e) { voicedBy = ''; /* fall through to the browser voice */ }
+    }
+    const synth = window.speechSynthesis, b = cfg.browser;
+    if (!b || !synth) return;
+    await new Promise((done) => {
+      const u = new SpeechSynthesisUtterance(text), vs = synth.getVoices();
+      const v = (b.voice && vs.find((x) => x.name.toLowerCase().includes(b.voice.toLowerCase()))) || vs.find((x) => /en-IN/i.test(x.lang)) || vs.find((x) => /^en/i.test(x.lang));
+      if (v) u.voice = v;
+      u.lang = v?.lang || 'en-IN'; u.pitch = b.pitch; u.rate = b.rate; u.onend = u.onerror = done;
+      voicedBy = 'browser voice'; synth.speak(u); setTimeout(done, 30000);
+    });
+  }
+
+  async function send(text, viaVoice = false) {
     text = String(text || '').trim();
     if (!text || busy) return;
-    busy = true; const mine = ++turn; box.classList.add('busy'); chips.innerHTML = ''; input.value = '';
+    hush(); busy = true; const mine = ++turn; box.classList.add('busy'); chips.innerHTML = ''; input.value = '';
     you.hidden = false; you.className = 'wt-you'; you.textContent = text;
     entry('me', esc(text)); history.push({role: 'user', content: text});
     sayBox.hidden = true; acts.innerHTML = '';
@@ -188,11 +223,14 @@
     const el = entry('kapi', (r.thought ? `<span class="wt-th">(${esc(r.thought)})</span>` : '') + esc(r.say) + (r.order ? slip(r.order) : '') + notes.map(stamp).join(''));
     void el;
     window.BREW_LIVE?.emit?.('waiter.said', {text: r.say, thought: r.thought || '', mood: r.mood, order: r.order || null, notes});
-    try { window.BrewWaiter.speak?.(r.say, r); } catch (e) { /* voice out is optional */ }
+    const aloud = viaVoice && !r.offline ? sayAloud(r.say) : null;   // you spoke, so he speaks
     await type(sayP, r.say);
+    if (aloud) await aloud;                                          // (his mouth keeps moving until the audio ends)
     if (now === turn) phase('', '');
     if (!r.offline) history.push({role: 'assistant', content: r.say}); else history.pop();
-    src.textContent = r.offline ? 'offline' : r.source === 'scripted' ? 'scripted answers' : r.source ? `${r.source} · ${r.model || ''}` : '';
+    const fellBack = r.preferred_model && r.model && r.model !== r.preferred_model ? ` (${r.preferred_model} is down)` : '';
+    src.textContent = (r.offline ? 'offline' : r.source === 'scripted' ? 'scripted answers' : r.source ? `${r.source} · ${r.model || ''}${fellBack}` : '')
+      + (aloud && voicedBy ? ` · 🔊 ${voicedBy}` : '');
     busy = false; box.classList.remove('busy');
     if (here() && !listening) input.focus({preventScroll: true});
   }
@@ -208,6 +246,7 @@
   }
   function listen() {
     if (!SR || listening || busy) return;
+    hush();
     rec = new SR(); rec.lang = document.documentElement.lang || navigator.language || 'en-IN';
     rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
     finalText = ''; listening = true;
@@ -230,7 +269,7 @@
       listening = false; rec = null;
       mic.setAttribute('aria-pressed', 'false'); box.classList.remove('listening'); phase('', '');
       const said = finalText === CANCEL ? '' : (finalText || input.value.trim());
-      if (said) return send(said);
+      if (said) return send(said, true);
       input.value = '';
       if (failed) { you.className = 'wt-you live err'; you.innerHTML = `<span class="wt-hear">${failed}</span>`; setTimeout(() => { if (!busy && !listening) you.hidden = true; }, 2800); }
       else you.hidden = true;
@@ -250,7 +289,7 @@
     setTimeout(() => { if (here()) input.focus({preventScroll: true}); }, still() ? 0 : 900);   // (after the walk over)
   }
   function close() {
-    stopListening(true); g.classList.remove('talking-to'); input.blur();
+    stopListening(true); hush(); g.classList.remove('talking-to'); input.blur();
     if (!busy) { setMood('happy'); phase('', ''); }
   }
   let was = here();
@@ -265,6 +304,6 @@
   window.BrewWaiter = {
     open: () => walk('waiter'), close: () => walk('lobby'), send, listen, showChat: showSide,
     get isOpen() { return here(); }, get listening() { return listening; }, get busy() { return busy; }, get history() { return history.slice(); },
-    voiceIn: !!SR, speak: null,   // speak(text, reply): set by the voice-out layer when it lands
+    voiceIn: !!SR, sayAloud, hush,
   };
 })();

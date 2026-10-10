@@ -199,6 +199,13 @@ Known providers: `anthropic`, `openai`, `gemini`, `groq`, `openrouter`; any othe
 `BREW_LLM_<NAME>_URL`, `BREW_LLM_<NAME>_MODEL` and `<NAME>_API_KEYS`. `GET /api/v1/waiter/status` shows what is wired
 up and how each key is doing (keys masked). `BREW_LLM_ENABLED=0` forces the scripted waiter.
 
+**His voice.** When you *speak* to Kapi (the mic), he answers aloud; typed turns stay silent. `brew.llm.tts` works
+like the chat pool: `BREW_TTS_ORDER=elevenlabs,openai,groq,browser` picks the providers in order, each with its own
+rotating keys, voice (`BREW_TTS_<NAME>_VOICE`), model and — for OpenAI-style voices — `BREW_TTS_<NAME>_INSTRUCTIONS`
+("a tired, sarcastic waiter"). `browser` is the browser's own voice: free, keyless, and the fallback when no provider
+answers. Any OpenAI-compatible speech endpoint or plain GET service can be added by name (see `.env.example`);
+`GET /api/v1/waiter/voice` shows what is active.
+
 ## Keys
 
 <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> lobby · kitchen · pantry · kapi (the waiter) · <kbd>←</kbd> <kbd>→</kbd> walk between rooms ·

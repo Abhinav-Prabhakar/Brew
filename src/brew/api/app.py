@@ -13,7 +13,7 @@ from fastapi.responses import Response
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from brew.config.loader import repo_root
-from brew.llm import LLMPool
+from brew.llm import LLMPool, TTSPool
 from brew.policies.charter import CharterViolation
 from brew.settings import Settings, get_settings
 from brew.sim.actions import ActionError
@@ -47,8 +47,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.waiter_pads = {}
         if getattr(app.state, "llm", None) is None:  # (tests may set their own pool before startup)
             app.state.llm = LLMPool.from_env(dotenv=repo_root() / ".env") if s.llm_enabled else LLMPool()
+        if getattr(app.state, "tts", None) is None:
+            app.state.tts = TTSPool.from_env(dotenv=repo_root() / ".env") if s.llm_enabled else TTSPool()
         yield
         await app.state.llm.aclose()
+        await app.state.tts.aclose()
         app.state.jobs.shutdown()
         await app.state.manager.shutdown()
 

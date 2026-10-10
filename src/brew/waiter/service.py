@@ -204,4 +204,5 @@ async def respond(mw: Any, pool: LLMPool, pad: Notepad, messages: list[dict[str,
         mood, thought = "worried", "…and the pencil lied to me. Wonderful."
     return {
         "say": say, "thought": thought, "mood": mood, "order": order, "notes": notes, "source": source, "model": model,
+        "preferred_model": pool.slots[0].provider.model if pool.configured else None,
     }  # fmt: skip

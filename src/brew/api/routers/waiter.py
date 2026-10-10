@@ -5,8 +5,10 @@ from __future__ import annotations
 from typing import Any, Literal
 
 from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
 
+from brew.llm import TTSUnavailable
 from brew.sim.actions import BadPayload
 from brew.waiter.service import Notepad, respond
 
@@ -52,3 +54,31 @@ def notes(wid: str, mw: MW, request: Request) -> dict[str, Any]:
 def status(request: Request) -> dict[str, Any]:
     """Which LLM providers / keys the waiter can use and how they are doing (keys masked)."""
     return request.app.state.llm.status()  # type: ignore[no-any-return]
+
+
+class SpeakRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=2000)
+
+
+@router.get("/waiter/voice")
+def voice(request: Request) -> dict[str, Any]:
+    """Text-to-speech options for the voice chat: server providers (keys masked) and the browser fallback."""
+    return request.app.state.tts.status()  # type: ignore[no-any-return]
+
+
+@router.post("/waiter/speak")
+async def speak(body: SpeakRequest, request: Request) -> Response:
+    """Kapi's line as audio (the first TTS provider that answers). 503 when none can: the page then uses the
+    browser's own voice, if the config allows it."""
+    try:
+        audio, ctype, name = await request.app.state.tts.speak(body.text)
+    except TTSUnavailable as e:
+        err = {
+            "error": {
+                "code": "tts_unavailable",
+                "message": str(e) or "no TTS provider answered",
+                "details": None,
+            }
+        }
+        return JSONResponse(err, status_code=503)
+    return Response(audio, media_type=ctype, headers={"x-brew-tts": name, "cache-control": "no-store"})
