@@ -15,6 +15,8 @@ PRICE_RE = re.compile(r"\b(how much|price|cost|costs|rate)\b")
 ASK_RE = re.compile(r"\?|\b(what|which|is|are|does|do you|tell me about|what'?s in|contain)\b")
 SERIOUS_RE = re.compile(r"\b(hair|insect|bug|cockroach|glass|plastic|sick|ill|vomit|poison|allerg\w*|reaction|hospital|injur\w*|burn\w*|hurt|bleed\w*|rude|harass\w*|unsafe|stolen|theft|refund|overcharg\w*|charged twice|raw|mould|mold|spoiled|rotten|expired)\b")  # fmt: skip
 COMPLAIN_RE = re.compile(r"\b(complain\w*|cold|stale|wrong|late|slow|waiting (for )?(so long|forever|ages)|too long|terrible|awful|bad|worst|dirty|sticky|burnt|bitter|watery|disappoint\w*|unhappy|not happy|missing|forgot|never (came|arrived))\b")  # fmt: skip
+REVIEW_RE = re.compile(r"\b(review|feedback|rate (you|the|this)|rating|stars?)\b")
+RESERVE_RE = re.compile(r"\b(reserv\w*|book (a |the )?table|table for|hold a table)\b")
 ESCALATE_RE = re.compile(r"\b(manager|owner|supervisor|in charge|speak to (someone|somebody)|escalate)\b")
 LINES = {
     "hello": ["Hello hello! I'm Kapi. Pad's out, pencil's sharp — what can I get you?", "Welcome to brew! What are we having today?"],
@@ -95,7 +97,16 @@ def reply(text: str, ctx: dict[str, Any]) -> dict[str, Any]:
     act: list[dict[str, Any]] = []
 
     def out(say: str, mood: str = "happy") -> dict[str, Any]:
-        kind = "serious" if mood == "worried" and act else "order" if act else "ask" if "?" in t else "chat"
+        does = act[0]["type"] if act else ""
+        kind = (
+            "serious"
+            if mood == "worried" and act
+            else "order"
+            if does == "order"
+            else "ask"
+            if "?" in t or does
+            else "chat"
+        )
         opts = THOUGHTS[kind]
         return {"say": say, "thought": opts[zlib.crc32(t.encode()) % len(opts)], "mood": mood, "actions": act}
 
@@ -114,6 +125,40 @@ def reply(text: str, ctx: dict[str, Any]) -> dict[str, Any]:
     if COMPLAIN_RE.search(rest) and not (items and ORDER_RE.search(t)):
         act.append({"type": "note", "kind": "complaint", "severity": "low", "summary": text[:200]})
         return out("I'm sorry about that — it's on my pad and I'll make sure the team sees it. Can I fix it for you right now?", "worried")  # fmt: skip
+
+    if REVIEW_RE.search(t):
+        m = re.search(r"\b([1-5])(?:\s*(?:/|out of)\s*5|\s*stars?)", t) or re.search(
+            r"\b(one|two|three|four|five)\s*stars?", t
+        )
+        if not m:
+            return out("I'd love to hear it! How many stars out of five, and what should I write down?")
+        stars = int(m.group(1)) if m.group(1).isdigit() else NUM[m.group(1)]
+        act.append({"type": "review", "rating": stars, "text": text[:280]})
+        return out("Noted on the pad, word for word — thank you!" if stars >= 4 else "Thank you for being straight with us. I've written it down.", "happy" if stars >= 4 else "neutral")  # fmt: skip
+    if RESERVE_RE.search(t):
+        pm = re.search(rf"\b(?:for|of)\s+(\d+|{'|'.join(NUM)})\b", t) or re.search(
+            r"\b(\d+)\s*(?:people|persons|pax|guests|of us)", t
+        )
+        tm = re.search(r"\b(?:at|around|by)\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)", t) or re.search(
+            r"\b(\d{1,2}(?::\d{2})?\s*(?:am|pm))\b", t
+        )
+        nm = re.search(r"\b(?:name is|under|for)\s+([A-Z][a-z]+)", text)
+        if not (pm and tm):
+            return out("Happy to pencil you in. For how many people, and what time?")
+        party = int(pm.group(1)) if pm.group(1).isdigit() else NUM[pm.group(1)]
+        act.append(
+            {
+                "type": "reserve",
+                "name": nm.group(1) if nm else None,
+                "party": party,
+                "time": tm.group(1).strip(),
+                "note": None,
+            }
+        )
+        return out(
+            f"Table for {party} at {tm.group(1).strip()} — pencilled in."
+            + ("" if nm else " What name shall I put it under?")
+        )
 
     if items and PRICE_RE.search(t):
         bits = [f"{by[i['sku']]['name']} is {_rs(by[i['sku']]['price'])}" for i in items]
@@ -139,14 +184,19 @@ def reply(text: str, ctx: dict[str, Any]) -> dict[str, Any]:
         extra = f" (no {' or '.join(gone)} left, sorry!)" if gone else ""
         return out(f"{said} — got it, scribbling it down{extra}. Ticket's going on the rail now.")
 
-    if PRICE_RE.search(t) or re.search(r"\b(menu|what do you (have|serve)|recommend|suggest|special|popular|what'?s good|good (here|today)|best|hungry|thirsty|what should i)\b", t):  # fmt: skip
+    if PRICE_RE.search(t) or re.search(r"\b(menu|show me|can i see|let me see|what do you (have|serve)|recommend|suggest|special|popular|what'?s good|good (here|today)|best|hungry|thirsty|what should i)\b", t):  # fmt: skip
         on_now = [x for x in menu if x["available"]]
         pick = sorted(on_now, key=lambda x: (not x["featured"], -x["sold_today"]))[:4]
         if not pick:
             return out(
                 "Honestly? We're cleaned out for the moment. Give the kitchen a few minutes.", "worried"
             )
-        return out("Today I'd go for " + ", ".join(f"{x['name']} ({_rs(x['price'])})" for x in pick) + ". The full menu's on the book by the window.")  # fmt: skip
+        cats = {x["cat"] for x in menu}
+        want = next((c for c in cats if c.lower() in rest or c.lower().rstrip("s") in rest), None)
+        if want or re.search(r"\b(menu|everything|all)\b", t):
+            pick = [x for x in on_now if not want or x["cat"] == want][:8]
+        act.append({"type": "show", "title": want or "today's picks", "skus": [x["sku"] for x in pick]})
+        return out("Have a look — tap anything you fancy. " + (f"I'd start with the {pick[0]['name']}." if pick else ""))  # fmt: skip
     if re.search(r"\b(open|close|closing|hours|timings?)\b", t):
         c = ctx["clock"]
         return out(f"We're open {c['opens']} to {c['closes']}. Right now it's {c['hhmm']} and we're {'open' if c['is_open'] else 'closed'}.")  # fmt: skip

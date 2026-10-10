@@ -107,7 +107,8 @@ statement.
   monologue), tears a ticket off his pad, stamps a note, flags the team, then answers in a speech bubble that types
   itself out. Order from him (a real, paid ticket lands on the rail), ask about the menu, complain — he writes it
   down and escalates what matters. Type, or use the mic and watch your words appear as you speak; "chat" toggles the
-  written history. Behind him: an LLM pool with several providers and several keys each, rotated round-robin with failover,
+  written history. He looks things up in the menu book with a tool call, puts dishes on a board as cards you can
+  tap to order, takes reviews and pencils in tables (both pretend for now: nothing is stored or held). Behind him: an LLM pool with several providers and several keys each, rotated round-robin with failover,
   and a scripted stand-in so he works with no keys at all ([setup](#the-waiters-llm-keys)).
 - **Feels like a game**: Web Audio sound design with ducking, a faint café radio (four synthesised stations — click
   the radio to change the tune), parallax, and

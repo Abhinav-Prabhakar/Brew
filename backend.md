@@ -256,7 +256,11 @@ Mirrors what the lobby lets you do today plus owner overrides. Every action prod
 **The waiter** (`brew.waiter`, not part of the sim's event stream): `POST /worlds/{id}/waiter/chat {messages: [{role, content}]}`
 → `{say, mood, order | null, notes: [...], source: "<provider>" | "scripted", model}`. The model (or the scripted
 stand-in) answers with `{say, mood, actions}`; the server carries the actions out — `order` → a `guest_order` action,
-`note` → the waiter's pad (`GET /worlds/{id}/waiter/notes`), high-severity notes are flagged `escalated`.
+`note` → the waiter's pad (`GET /worlds/{id}/waiter/notes`), high-severity notes are flagged `escalated`. The model gets
+a menu index only and a tool: answering `{"tool": "menu", "args": {query, category, diet, max_price, available_only}}`
+makes the server look the items up and hand them back before the final reply (≤ 2 lookups; reported as `tools`).
+`show` → `show: {title, items}` (cards the page draws, tap = `guest_order`); `review` and `reserve` come back as
+`review` / `reservation` with `pretend: true` — nothing is stored and no table is held.
 `GET /waiter/status` lists the configured LLM providers and key health (masked). `POST /waiter/speak {text}` → audio from the TTS pool (503 when no provider answers; the page then uses the browser voice), `GET /waiter/voice` its config. Keys: README, "The waiter's LLM keys".
 
 ### 6.3 WebSocket `/api/v1/ws/worlds/{id}?since_seq=`

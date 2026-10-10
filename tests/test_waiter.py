@@ -221,3 +221,73 @@ def test_chat_with_an_llm_runs_its_actions_and_falls_back_when_it_is_down(client
     state["down"] = True
     r = say(c, f"one {name2} please")
     assert r["source"] == "scripted" and r["order"]["items"][0]["sku"] == sku2
+
+
+def test_brain_shows_dishes_takes_reviews_and_pencils_in_tables():
+    (a,) = acts("show me the menu")
+    assert a["type"] == "show" and set(a["skus"]) == {
+        "latte",
+        "icedlatte",
+        "coldbrew",
+    }  # what can be ordered right now
+    (a,) = acts("can I see the bakes?", {**CTX, "menu": [{**m, "available": True} for m in MENU]})
+    assert (a["type"], a["skus"]) == ("show", ["croissant"])
+    assert acts("I'd like to leave a review") == []  # asks for the stars first
+    (a,) = acts("review: 4 stars, lovely cold brew")
+    assert (a["type"], a["rating"]) == ("review", 4)
+    assert acts("can I book a table?") == []  # asks for how many and when
+    (a,) = brain.reply("Book a table for four at 7:30 pm under Meera", CTX)["actions"]
+    assert (a["type"], a["party"], a["time"], a["name"]) == ("reserve", 4, "7:30 pm", "Meera")
+
+
+@pytest.mark.integration
+def test_the_model_looks_the_menu_up_with_a_tool_call_then_shows_cards(client):
+    c = client
+    (sku, name), (sku2, _) = on_menu(c)
+    w = c.app_.state.manager.worlds[c.wid].world
+    script = [
+        {"tool": "menu", "args": {"query": name.split()[-1], "available_only": True}},
+        {"thought": "The book knows.", "say": "Have a look!", "mood": "happy", "actions": [
+            {"type": "show", "title": "try these", "skus": [sku, "unicorn", sku2]},
+            {"type": "review", "rating": 9, "text": "  great   place "},
+            {"type": "reserve", "name": "Meera", "party": "4", "time": "7:30 pm"}]},
+    ]  # fmt: skip
+    seen = []
+
+    def h(req: httpx.Request) -> httpx.Response:
+        seen.append(json.loads(req.content))
+        return httpx.Response(
+            200, json={"content": [{"type": "text", "text": json.dumps(script[len(seen) - 1])}]}
+        )
+
+    c.app_.state.llm = LLMPool.from_env(
+        {"ANTHROPIC_API_KEY": "ant-key-aaaa1111"}, client=httpx.AsyncClient(transport=httpx.MockTransport(h))
+    )
+    rating_before = w.reviews.rep.rating("offline") if hasattr(w.reviews, "rep") else None
+    tables_before = (
+        [t.state for t in w.tables.tables.values()]
+        if hasattr(w, "tables") and hasattr(w.tables, "tables")
+        else None
+    )
+    r = say(c, f"how much is the {name}? and book me a table")
+    assert len(seen) == 2 and r["tools"] == [
+        {"name": "menu", "args": script[0]["args"], "found": r["tools"][0]["found"]}
+    ]
+    assert r["tools"][0]["found"] >= 1
+    # the first prompt carries the index, not the prices; the lookup result is handed back for the second call
+    assert (
+        f"{sku} = {name}" in seen[0]["system"]
+        and "₹" not in seen[0]["system"].split("On the menu")[1].split("TOOL")[0]
+    )
+    back = seen[1]["messages"][-1]["content"]
+    assert back.startswith("MENU BOOK RESULT") and f'"sku": "{sku}"' in back and '"price"' in back
+    assert seen[1]["messages"][-2] == {"role": "assistant", "content": json.dumps(script[0])}
+    assert [i["sku"] for i in r["show"]["items"]] == [sku, sku2] and r["show"]["title"] == "try these"
+    assert {"name", "price", "available", "diet", "allergens", "desc"} <= set(r["show"]["items"][0])
+    assert r["review"] == {"rating": 5, "text": "great place", "pretend": True}
+    assert r["reservation"] == {"name": "Meera", "party": 4, "time": "7:30 pm", "note": None, "pretend": True}
+    # pretend means pretend: no rating moved, no table held
+    if rating_before is not None:
+        assert w.reviews.rep.rating("offline") == rating_before
+    if tables_before is not None:
+        assert [t.state for t in w.tables.tables.values()] == tables_before

@@ -79,8 +79,10 @@
         <button type="submit" class="btn wt-send">send</button>
       </form>
     </div>
+    <section class="wt-board" hidden aria-label="dishes on the board"><h3></h3><div class="wt-cards"></div></section>
     <aside class="wt-side" hidden aria-label="conversation so far"><h3>the story so far</h3><div class="wt-log" role="log"></div></aside>
     <header><button type="button" class="tab wt-x">← back to the café</button><span class="wt-src"></span>
+      <button type="button" class="tab wt-menu">menu</button>
       <button type="button" class="tab wt-toggle" aria-pressed="false" aria-expanded="false">chat</button></header>
     <p class="wt-live" role="status" aria-live="polite"></p>`;
   const roomEl = $('waiter'); if (!roomEl) return;
@@ -135,6 +137,64 @@
     if (on) log.scrollTop = log.scrollHeight;
   }
   toggle.addEventListener('click', () => showSide(side.hidden));
+
+  /* ------------------------------------------------------------------ the board: dishes as cards you can tap to order */
+  const board = q('.wt-board'), cards = q('.wt-cards');
+  const cardHtml = (it, i) => `<button type="button" class="wt-card${it.available ? '' : ' out'}" data-sku="${esc(it.sku)}" style="--i:${i}" ${it.available ? '' : 'disabled'}
+      aria-label="${esc(it.name)}, ${rs(it.price)}${it.available ? ' — order one' : ', sold out'}">
+    <svg viewBox="0 0 60 60" aria-hidden="true">${use(skuIcon(it.sku), 0, 0, 60)}</svg>
+    <b>${esc(it.name.toLowerCase())}${it.featured ? ' <i class="star">★</i>' : ''}</b>
+    <span class="pr">${rs(it.price)}</span>
+    <span class="ds">${esc(it.desc || '')}</span>
+    <span class="tg"><i class="diet ${it.diet === 'non-veg' ? 'nv' : ''}"></i>${esc(it.diet || '')}${it.allergens?.length ? ' · ' + esc(it.allergens.join(', ')) : ''}</span>
+    <span class="go">${it.available ? 'tap to order' : 'sold out'}</span></button>`;
+  function showBoard(title, items) {
+    board.querySelector('h3').textContent = title || 'on the menu';
+    cards.innerHTML = items.map(cardHtml).join('');
+    board.hidden = false; board.classList.remove('in'); void board.offsetWidth; board.classList.add('in');
+    if (!side.hidden) showSide(false);   // the board and the written history share the right side
+  }
+  cards.addEventListener('click', (e) => { const b = e.target.closest('.wt-card'); if (b && !b.disabled) orderCard(b); });
+  /** a tap on a card: one of that, straight onto the rail — no round trip through the model */
+  async function orderCard(btn) {
+    if (busy) return;
+    const sku = btn.dataset.sku, name = btn.querySelector('b').firstChild.textContent.trim();
+    busy = true; const mine = ++turn; box.classList.add('busy'); hush(); chips.innerHTML = '';
+    btn.classList.add('picked'); sayBox.hidden = true; acts.innerHTML = ''; cloud.classList.remove('on');
+    you.hidden = false; you.className = 'wt-you'; you.textContent = `one ${name}, please`;
+    entry('me', esc(`(tapped the card) one ${name}, please`));
+    setMood('focused', [-5, 4]); phase('writing', 'writing the ticket…');
+    let line, ok = false;
+    try {
+      const res = (await BrewApi.act('guest_order', {items: [{sku, qty: 1}]})).result;
+      const o = {...res, items: res.items.map((x) => ({...x, name}))};
+      await wait(600); await act(slip(o) + '<em class="wt-to">→ to the rail</em>', 'ticket', 1500);
+      line = `One ${name} — ticket #${String(o.order_no).padStart(3, '0')} is on the rail.`; ok = true;
+      entry('kapi', esc(line) + slip(o));
+      const n = (+btn.dataset.n || 0) + 1; btn.dataset.n = n; btn.querySelector('.go').textContent = `✓ ordered${n > 1 ? ' ×' + n : ''}`;
+    } catch (e) {
+      line = `Ah — I couldn't put that through: ${e.message || 'the kitchen said no'}.`; entry('kapi', esc(line));
+      if (/sold out|off the menu/.test(e.message || '')) { btn.disabled = true; btn.classList.add('out'); btn.querySelector('.go').textContent = 'sold out'; }
+    }
+    btn.classList.remove('picked');
+    if (mine !== turn) { busy = false; box.classList.remove('busy'); return; }
+    history.push({role: 'user', content: `(I tapped the ${name} card on your board to order one.)`}, {role: 'assistant', content: line});
+    setMood(ok ? 'happy' : 'worried'); phase('talking', ''); sayBox.hidden = false; liveEl.textContent = line;
+    const aloud = voiceOn ? sayAloud(line, ok ? 'happy' : 'worried') : null;
+    await type(sayP, line); if (aloud) await aloud;
+    if (mine === turn) phase('', '');
+    busy = false; box.classList.remove('busy');
+  }
+  q('.wt-menu').addEventListener('click', async () => {
+    try {
+      const res = await BrewApi.get('/menu');
+      showBoard('the whole menu', (res.items || []).map((m) => ({sku: m.sku, name: m.name, price: m.price, available: !m.hidden, featured: !!m.featured,
+        diet: m.vegan ? 'vegan' : m.veg ? 'veg' : 'non-veg', allergens: m.allergens || [], desc: m.desc})));
+    } catch (e) { window.BrewToast?.("the menu book is out of reach (no live café)", true); }
+  });
+  const stars = (n) => '★'.repeat(n) + '☆'.repeat(5 - n);
+  const reviewCard = (v) => `<div class="wt-rev"><b>${v.rating ? stars(v.rating) : 'your review'}</b>${v.text ? `<span>“${esc(v.text)}”</span>` : ''}<small>thank you ♡ · a pretend review, not saved</small></div>`;
+  const reserveCard = (v) => `<div class="wt-res"><i>reserved</i><b>${v.party ? `table for ${v.party}` : 'a table'}</b><span>${esc(v.time || 'time to be confirmed')}${v.name ? ` · ${esc(v.name)}` : ''}</span>${v.note ? `<span>${esc(v.note)}</span>` : ''}<small>pencilled in · pretend, no table is held yet</small></div>`;
 
   /* ------------------------------------------------------------------ a turn: think → act → speak */
   const MUSING = ['Ah. A customer. With words.', 'Consulting the sacred notepad…', 'Thinking. This is my thinking face. Admire it.',
@@ -213,6 +273,14 @@
     const notes = r.notes || [], hot = notes.filter((n) => n.escalated);
     if (r.thought) { await think(r.thought); await wait(700 + r.thought.length * 14); }
     // 2 · actions, drawn out
+    for (const tl of r.tools || []) {            // he looked something up in the menu book
+      setMood('focused', [-5, 4]); phase('writing', 'checking the menu book…');
+      const what = [tl.args?.query, tl.args?.category, tl.args?.diet].filter((x) => x && x !== 'null').join(' · ') || 'everything';
+      await act(`<div class="wt-look"><b>menu book</b> “${esc(what)}” <small>${tl.found} found</small></div>`, 'look', 900);
+    }
+    if (r.show) { phase('', 'on the board →'); showBoard(r.show.title, r.show.items); await wait(500); }
+    if (r.review) { setMood('delighted'); phase('writing', 'writing your review down…'); await wait(600); await act(reviewCard(r.review), 'note', 1500); }
+    if (r.reservation) { setMood('focused', [-5, 4]); phase('writing', 'pencilling you in…'); await wait(600); await act(reserveCard(r.reservation), 'note', 1500); }
     if (r.order) {
       setMood('focused', [-5, 4]); phase('writing', 'writing the ticket…');
       await wait(900);
@@ -227,7 +295,8 @@
     cloud.classList.remove('on');
     setMood(r.mood || 'happy'); phase('talking', '');
     sayBox.hidden = false; liveEl.textContent = r.say;
-    const el = entry('kapi', (r.thought ? `<span class="wt-th">(${esc(r.thought)})</span>` : '') + esc(r.say) + (r.order ? slip(r.order) : '') + notes.map(stamp).join(''));
+    const el = entry('kapi', (r.thought ? `<span class="wt-th">(${esc(r.thought)})</span>` : '') + esc(r.say) + (r.order ? slip(r.order) : '') + notes.map(stamp).join('')
+      + (r.review ? reviewCard(r.review) : '') + (r.reservation ? reserveCard(r.reservation) : '') + (r.show ? `<span class="wt-th">[showed: ${esc(r.show.items.map((x) => x.name).join(', '))}]</span>` : ''));
     void el;
     window.BREW_LIVE?.emit?.('waiter.said', {text: r.say, thought: r.thought || '', mood: r.mood, order: r.order || null, notes});
     const aloud = voiceOn && !r.offline ? sayAloud(r.say, r.mood) : null;    // voice chat: he answers out loud
@@ -295,7 +364,7 @@
       const hi = "Hello hello! I'm Kapi. Pad's out, pencil's sharp — what can I get you?";
       entry('kapi', esc(hi)); sayBox.hidden = false; liveEl.textContent = hi;
       wait(900).then(async () => { phase('talking', ''); await type(sayP, hi); if (!busy) phase('', ''); });
-      chipsShow(["what's good today?", 'a latte, please', 'how long is the wait?', 'I have a complaint']); }
+      chipsShow(["what's good today?", 'show me the bakes', 'book a table for two at 8', 'I want to leave a review']); }
     setTimeout(() => { if (here()) input.focus({preventScroll: true}); }, still() ? 0 : 900);   // (after the walk over)
   }
   function close() {
