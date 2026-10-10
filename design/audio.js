@@ -2,7 +2,7 @@
    paper, thermal printer, scooter, rain, bells, cash…), so nothing is downloaded and nothing needs a licence.
 
    Mix: master → compressor. Buses: sfx (the room on screen), wall (sounds from the other rooms, muffled through a
-   low-pass like a wall), amb (room tone per room + rain), music (a generative lo-fi bed that follows kitchen load).
+   low-pass like a wall), amb (room tone per room + rain), music (the café radio: faint synthesised tunes, one per station).
    The "order up" bell ducks music and room tone. Pan follows the x position in the room. Every voice has a minimum
    gap and the whole mix has a voice budget, so a rush stays music, not noise. Night (café closed) is quieter.
 
@@ -48,7 +48,7 @@
     const night = !(R.S()?.clock?.is_open ?? true);
     master.gain.setTargetAtTime(cfg.muted ? 0 : cfg.vol * (night ? .6 : 1), T0(), .08);
     sfxBus.gain.setTargetAtTime(cfg.calm ? .5 : 1, T0(), .1);
-    musicBus.gain.setTargetAtTime(cfg.calm ? 0 : .55, T0(), .6);
+    musicBus.gain.setTargetAtTime(cfg.calm ? 0 : .8, T0(), .6);
   }
   /** a voice may play: not muted, its own minimum gap passed, and the mix has room (≤ 9 voices / 400 ms) */
   function ok(name, gap = .05) {
@@ -169,8 +169,7 @@
       const vib = ctx.createOscillator(); vib.frequency.value = 6; const vg = ctx.createGain(); vg.gain.value = 18; vib.connect(vg).connect(o.frequency);
       o.connect(g).connect(DEST || sfxBus); o.start(T); vib.start(T); o.stop(T + 2.1); vib.stop(T + 2.1);
       noise({f: 2500, q: .8, a: .6, d: 1.3, g: .03}); },
-    radio() { for (let i = 0; i < 7; i++) noise({t: i * .05, f: 800 + Math.random() * 3000, q: 3, d: .05, g: .06, p: .75});
-      tone({t: .12, f: 1200, f2: 300, d: .25, g: .02, type: 'sine', p: .75}); },
+    radio() { tone({f: 1500, d: .03, g: .035, type: 'triangle', p: .75}); tone({t: .07, f: 660, d: .22, g: .03, p: .75}); tone({t: .17, f: 990, d: .34, g: .028, p: .75}); },
     clink() { tone({f: 3200, d: .18, g: .05, p: .2}); tone({t: .06, f: 4100, d: .3, g: .04, p: .2}); tone({t: .13, f: 2700, d: .25, g: .025, p: .2}); },
     jingle() { [523.25, 659.25, 783.99, 1046.5, 783.99, 1046.5, 1318.5].forEach((f, i) => tone({t: i * .09, f, type: 'square', d: .1, a: .004, g: .03})); },
     bell(x) { tone({f: 2637, d: 1.1, g: .08, p: px(x)}); tone({f: 2637 * 2.4, d: .4, g: .015, p: px(x)}); tone({f: 1318, d: .6, g: .02, p: px(x)}); duck(); },
@@ -236,45 +235,88 @@
   function updateAmbience() {
     if (!ctx) return;
     const s = R.S() || {}, room = document.body.dataset.room, open = s.clock?.is_open ?? true, load = Math.min(1, (s.kpis?.load_pct ?? 30) / 100);
-    const level = {lobby: open ? .05 + load * .06 : .02, kitchen: open ? .05 + load * .05 : .015, pantry: .05};
+    const level = {lobby: open ? .012 + load * .018 : .006, kitchen: open ? .014 + load * .016 : .006, pantry: .014};   // a hint of a room, not a hiss
     for (const [r, g] of Object.entries(tones)) g.gain.setTargetAtTime(r === room ? level[r] : 0, T0(), 1.2);  // crossfade on room change
     const rain = s.weather?.rain_mm_h ?? (/rain|drizzle/.test(s.weather?.state || '') ? 2 : 0);
     rainGain.gain.setTargetAtTime(Math.min(1, rain / 6) * .08, T0(), 2);
     music.load = load; music.open = open; music.rate = s.world?.rate ?? 1; apply();
   }
 
-  /* ---------------------------------------------------------------- music: a generative lo-fi bed */
-  // Four soft electric-piano chords (ii–V–I–vi in F) over a warm sub, a brushed hat when the kitchen is busy, vinyl
-  // crackle. Tempo and brightness follow kitchen load; at night only the chords remain, slower.
+  /* ---------------------------------------------------------------- music: the café radio */
+  // Faint background music, all synthesised: soft electric-piano chords, a round bass, and a melody that is a real
+  // tune — a 16-bar phrase composed once per station (seeded, so each station always plays its own song) from the
+  // station's scale, landing on chord tones on the strong beats — through a gentle tape echo. No noise anywhere: no
+  // crackle, no hats. The lobby radio (eggs.js) steps through the stations; the tempo leans on kitchen load a little
+  // and at night the melody thins out.
   const music = {load: .3, open: true, next: 0, step: 0, station: 0, rate: 1};
-  const hz = (cs) => cs.map((c) => c.map((m) => 440 * 2 ** ((m - 69) / 12)));
-  const CH = hz([[55, 60, 64, 67], [52, 55, 60, 64], [53, 57, 60, 64], [50, 53, 57, 62]]);
-  // the lobby radio's stations (eggs.js tunes it): the house lo-fi, a slow minor monsoon, a bright swingy chai-time
+  const mhz = (m) => 440 * 2 ** ((m - 69) / 12);
+  // ch: four chords (MIDI), two bars each · scale: melody notes (pitch classes) · swing: late off-beats · dens: how busy
   const STATIONS = [
-    {name: '92.7 brew fm', ch: CH, bpm: (m) => (m.open ? 66 + m.load * 18 : 56), hat: (m) => m.open && m.load > .35, lp: 900},
-    {name: '98.3 monsoon fm', ch: hz([[57, 60, 64, 67], [53, 57, 60, 64], [50, 53, 57, 60], [52, 55, 59, 62]]), bpm: () => 52, hat: () => false, lp: 650},
-    {name: '104.8 chai-time fm', ch: hz([[60, 64, 67, 69], [57, 61, 64, 67], [62, 65, 69, 72], [55, 59, 62, 65]]), bpm: (m) => 84 + m.load * 10, hat: () => true, lp: 1500},
+    {name: '92.7 brew fm · lo-fi', seed: 7, bpm: 72, swing: .12, dens: .5, lead: 'triangle', lp: 1500, echo: .26,
+      ch: [[55, 58, 62, 65], [48, 52, 55, 58], [53, 57, 60, 64], [50, 53, 57, 60]], scale: [0, 2, 5, 7, 9], top: 77},
+    {name: '98.3 monsoon fm · slow & rainy', seed: 23, bpm: 56, swing: 0, dens: .34, lead: 'sine', lp: 1100, echo: .4,
+      ch: [[57, 60, 64, 67], [53, 57, 60, 64], [50, 53, 57, 60], [52, 56, 59, 62]], scale: [9, 11, 0, 2, 4, 7], top: 76},
+    {name: '104.8 chai-time fm · swing', seed: 41, bpm: 96, swing: .3, dens: .62, lead: 'triangle', lp: 2200, echo: .16,
+      ch: [[60, 64, 67, 69], [57, 60, 64, 67], [62, 65, 69, 72], [55, 59, 62, 65]], scale: [0, 2, 4, 7, 9], top: 81},
+    {name: '101.1 filter kaapi fm · mohanam', seed: 88, bpm: 80, swing: 0, dens: .56, lead: 'sine', lp: 1900, echo: .3, drone: [50, 57],
+      ch: [[50, 57, 62, 66], [50, 57, 62, 66], [50, 57, 64, 69], [50, 57, 62, 66]], scale: [2, 4, 6, 9, 11], top: 81},
   ];
-  let lpMusic = null;
+  /** the station's tune: 128 eighth-notes (16 bars), each a MIDI note or null. A seeded walk over the scale. */
+  function compose(S) {
+    let a = S.seed >>> 0;
+    const rnd = () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    const notes = []; for (let m = S.top - 14; m <= S.top; m++) if (S.scale.includes(m % 12)) notes.push(m);
+    const near = (m, pcs) => notes.reduce((best, n) => (pcs.includes(n % 12) && Math.abs(n - m) < Math.abs(best - m) ? n : best), notes.find((n) => pcs.includes(n % 12)) ?? notes[0]);
+    const bars = [];
+    let i = notes.length >> 1;
+    for (let bar = 0; bar < 8; bar++) {                      // 8 bars written, then played twice (the 2nd time ends on the root)
+      const pcs = S.ch[(bar >> 1) % 4].map((m) => m % 12), line = [];
+      for (let st = 0; st < 8; st++) {
+        const strong = st % 4 === 0, p = strong ? .9 : st % 2 === 0 ? S.dens : S.dens * .55;
+        if (rnd() > p || (bar % 4 === 3 && st > 4)) { line.push(null); continue; }   // (every 4th bar breathes at the end)
+        i = Math.max(0, Math.min(notes.length - 1, i + [-2, -1, -1, 0, 1, 1, 2][Math.floor(rnd() * 7)]));
+        let m = notes[i]; if (strong) { m = near(m, pcs); i = notes.indexOf(m); }
+        line.push(m);
+      }
+      bars.push(line);
+    }
+    const tune = [...bars, ...bars.map((l) => l.slice())].flat();
+    tune[120] = near(notes[notes.length >> 1], [S.ch[0][0] % 12]); for (let k = 121; k < 128; k++) tune[k] = null;   // a cadence, held
+    return tune;
+  }
+  let lpMusic = null, echoSend = null;
   function startMusic() {
-    lpMusic = ctx.createBiquadFilter(); lpMusic.type = 'lowpass'; lpMusic.frequency.value = 1400; lpMusic.connect(musicBus);
-    const cr = ctx.createBufferSource(); cr.buffer = noiseBuf; cr.loop = true; const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 5000;
-    const cg = ctx.createGain(); cg.gain.value = .006; cr.connect(hp).connect(cg).connect(musicBus); cr.start();
-    music.next = T0() + .2;
+    lpMusic = ctx.createBiquadFilter(); lpMusic.type = 'lowpass'; lpMusic.frequency.value = 1500; lpMusic.Q.value = .3; lpMusic.connect(musicBus);
+    const dl = ctx.createDelay(1), fb = ctx.createGain(), wet = ctx.createBiquadFilter();              // tape echo, darker each repeat
+    dl.delayTime.value = .375; fb.gain.value = .32; wet.type = 'lowpass'; wet.frequency.value = 1200;
+    echoSend = ctx.createGain(); echoSend.gain.value = .26; echoSend.connect(dl); dl.connect(wet); wet.connect(fb).connect(dl); wet.connect(musicBus);
+    music.next = T0() + .3;
     setInterval(schedule, 200);
+  }
+  /** one soft key: a body plus a quiet octave shimmer, straight to the mix and a little into the echo */
+  function key(f, t, d, g, type) {
+    tone({f, t, a: .012, d, g, type, dest: lpMusic}); tone({f: f * 2, t, a: .008, d: d * .5, g: g * .22, dest: lpMusic});
+    tone({f, t, a: .012, d: d * .8, g: g * .6, type, dest: echoSend});
   }
   function schedule() {
     if (!ctx || cfg.calm || cfg.muted) { if (ctx) music.next = Math.max(music.next, T0() + .1); return; }
     const S = STATIONS[music.station] || STATIONS[0];
-    const bpm = S.bpm(music) * (music.rate > 1 ? 1.12 : 1), beat = 60 / bpm;  // fast-forward: the tape runs a hair quick
-    lpMusic.frequency.setTargetAtTime(S.lp + music.load * 1600, T0(), 2);
+    S.tune = S.tune || compose(S);
+    const bpm = (music.open ? S.bpm + music.load * 8 : S.bpm - 8) * (music.rate > 1 ? 1.1 : 1), eighth = 30 / bpm;   // fast-forward: the tape runs a hair quick
+    lpMusic.frequency.setTargetAtTime(S.lp + music.load * 500, T0(), 2);
+    echoSend.gain.setTargetAtTime(S.echo, T0(), 1);
     while (music.next < T0() + .6) {
-      const t = music.next - T0(), st = music.step, chord = S.ch[Math.floor(st / 8) % 4];
-      if (st % 8 === 0) chord.forEach((f, i) => tone({f, t: t + i * .012, a: .02, d: beat * 7, g: .022, type: 'triangle', dest: lpMusic}));
-      if (st % 4 === 0) tone({f: chord[0] / 2, t, a: .02, d: beat * 3, g: .05, dest: lpMusic});
-      if (st % 2 === 1 && S.hat(music)) noise({t, type: 'highpass', f: 7000, d: .05, g: .012 * Math.max(.4, music.load), dest: musicBus});
-      if (st % 8 === 6 && Math.random() < .5) tone({f: chord[3] * 2, t, a: .01, d: beat * 1.5, g: .012, type: 'triangle', dest: lpMusic});
-      music.next += beat / 2; music.step++;
+      const st = music.step % 128, inBar = st % 8, chord = S.ch[(st >> 4) % 4];
+      const t = Math.max(0, music.next - T0()) + (inBar % 2 ? S.swing * eighth : 0);
+      if (st % 16 === 0) chord.forEach((m, i) => tone({f: mhz(m), t: t + i * .02, a: .05, d: eighth * 15, g: .016, type: 'triangle', dest: lpMusic}));   // pad, rolled
+      if (inBar === 0 || inBar === 5) tone({f: mhz(chord[0] - 12), t, a: .015, d: eighth * (inBar ? 2.4 : 3.6), g: .05, dest: lpMusic});            // bass
+      if (S.drone && st % 32 === 0) S.drone.forEach((m) => tone({f: mhz(m), t, a: 1.2, d: eighth * 31, g: .012, type: 'sawtooth', dest: lpMusic}));  // tanpura-ish
+      const m = S.tune[st];
+      if (m != null && (music.open || inBar % 4 === 0)) {    // night: only the strong beats
+        let len = 1; while (len < 6 && S.tune[(st + len) % 128] == null && (st + len) % 8 !== 0) len++;
+        key(mhz(m), t, eighth * (len + .6), .034, S.lead);
+      }
+      music.next += eighth; music.step++;
     }
   }
 
@@ -354,7 +396,8 @@
     /** seconds until the bill in the printer is cut (hud.js times the "+₹" with it) */
     billLeft() { return ctx && ctx.state === 'running' && !cfg.muted ? Math.max(0, billEnd - T0()) : null; },
     /** the lobby radio (eggs.js): next station, returns its name */
-    tune() { music.station = (music.station + 1) % STATIONS.length; music.step = 0; return STATIONS[music.station].name; },
+    tune() { music.station = (music.station + 1) % STATIONS.length; music.step = 0; if (ctx) music.next = T0() + .45; return STATIONS[music.station].name; },
+    get station() { return STATIONS[music.station].name; },
     set soundbox(on) { soundboxVoice = !!on; }, get soundbox() { return soundboxVoice; },
   };
 
