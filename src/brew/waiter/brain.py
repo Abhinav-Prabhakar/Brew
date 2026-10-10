@@ -29,6 +29,14 @@ LINES = {
 }  # fmt: skip
 
 
+THOUGHTS = {  # his inner monologue (shown as a thought bubble): dry, never at the guest's expense, sober when it matters
+    "order": ["Finally, something I can write down.", "An order! The pencil lives for this.", "Bold choice. The kitchen will pretend to be surprised."],
+    "ask": ["A question. My second favourite thing after closing time.", "Let me consult the sacred notepad.", "I know this one. Probably."],
+    "chat": ["Small talk. I trained for this.", "Smile, nod, hold the pad like it matters.", "Ah yes. Conversation. With a person."],
+    "serious": ["That is not okay. Team, now.", "No jokes. Write it down exactly.", "This goes straight to the back."],
+}  # fmt: skip
+
+
 def _pick(key: str, seed: str) -> str:
     opts = LINES[key]
     return opts[zlib.crc32(seed.encode()) % len(opts)]
@@ -87,7 +95,9 @@ def reply(text: str, ctx: dict[str, Any]) -> dict[str, Any]:
     act: list[dict[str, Any]] = []
 
     def out(say: str, mood: str = "happy") -> dict[str, Any]:
-        return {"say": say, "mood": mood, "actions": act}
+        kind = "serious" if mood == "worried" and act else "order" if act else "ask" if "?" in t else "chat"
+        opts = THOUGHTS[kind]
+        return {"say": say, "thought": opts[zlib.crc32(t.encode()) % len(opts)], "mood": mood, "actions": act}
 
     if SERIOUS_RE.search(rest):
         asking_allergy = re.search(r"allerg", t) and not re.search(r"reaction|sick|ill|hospital", t)

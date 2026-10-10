@@ -1,31 +1,33 @@
 /* brew — Kapi, the lobby waiter. A doodle with a notepad in front of the counter (bottom right). Click him (or Enter
-   on his zoom target): the camera frames him (camera.js zone 'waiter') and a comic-strip chat opens — your bubbles on
-   the left, his on the right with the tail towards him. He takes your order (a real ticket on the rail), answers
-   questions, writes complaints on his pad and escalates what matters to the team.
+   on his hot-spot): the camera goes to him (camera.js zone 'waiter') and his stage opens — Kapi drawn large on the
+   left ~60 %, the rest left empty. Prompt him (type or speak) and the illustration does the work: he looks up and
+   thinks (a thought cloud with his dry inner monologue), acts (tears a ticket off the pad and sends it to the rail,
+   stamps a note, flags the team), then says his answer in a speech bubble that types itself out. "chat" toggles the
+   written history on the right.
 
    Talking goes through POST /worlds/{id}/waiter/chat (an LLM pool with a scripted stand-in on the server); the
-   conversation lives here and is sent along each turn. Voice in: the browser's own speech recognition, with the
-   transcript appearing live in a dashed bubble while you speak. Voice out is not wired yet — every reply is emitted
-   as BREW_LIVE 'waiter.said' {text, mood} (and passed to BrewWaiter.speak if someone sets it) for that to hook into. */
+   conversation lives here and is sent along each turn. The server answers in one piece ({thought, say, mood, order,
+   notes}); the pacing — thought, actions, speech typed out — is staged here. Voice in: the browser's own speech
+   recognition, with the transcript appearing live while you speak. Voice out is not wired yet — every reply is
+   emitted as BREW_LIVE 'waiter.said' {text, mood, …} (and passed to BrewWaiter.speak if someone sets it). */
 (() => {
   const NS = 'http://www.w3.org/2000/svg';
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
   const scene = $('lobby-scene'), viewport = $('viewport');
   if (!scene || !viewport) return;
-  const WX = 1540, WY = 808, WS = .92;   // head centre + scale: feet land on the floor line in front of the counter
+  const still = () => R.reduced;
+  const wait = (ms) => new Promise((r) => setTimeout(r, still() ? 0 : ms));
+  const WX = 1540, WY = 808, WS = .92;   // the small one: head centre + scale, feet on the floor in front of the counter
   const HAIR = '#2b2326';
 
-  /* ------------------------------------------------------------------ the doodle */
+  /* ------------------------------------------------------------------ the doodle (drawn twice: in the room, and large on the stage) */
   const FACE = {happy: ['', 'smile'], neutral: ['', 'neutral'], worried: ['worried', 'frown'], delighted: ['', 'grin'], focused: ['flat', 'neutral']};
-  const face = (mood) => { const [b, m] = FACE[mood] || FACE.happy;
-    return eyes(0, 0, -2, 1) + brows(0, 0, b) + mouth(0, 0, m) + blush(0, 0)
+  /** look: [dx, dy] of the pupils; talk: mouth override */
+  const face = (mood, look = [-2, 1], talk) => { const [b, m] = FACE[mood] || FACE.happy;
+    return eyes(0, 0, look[0], look[1]) + brows(0, 0, b) + mouth(0, 0, talk || m) + blush(0, 0)
       + `<path d="M-9 9q4.5-4 9 0q4.5-4 9 0" fill="none" ${st(2.4)}/>`; };   // a tidy moustache
-  const g = document.createElementNS(NS, 'g'); g.id = 'l-waiter'; g.setAttribute('class', 'wt');
-  const grain = scene.querySelector(':scope > rect[filter="url(#grain)"]');
-  scene.insertBefore(g, grain);
-  g.innerHTML = `<title>Kapi, your waiter — click to chat</title>
-  <g transform="translate(${WX} ${WY}) scale(${WS})" filter="url(#wob)"><g class="wt-bob">
+  const figure = () => `<g class="wt-bob">
     <ellipse cx="0" cy="194" rx="40" ry="6" fill="${I}" opacity=".12"/>
     <path d="M-11 120L-13 188M11 120L13 188" fill="none" stroke="${I}" stroke-width="7" stroke-linecap="round"/>
     <ellipse cx="-18" cy="190" rx="10" ry="4.5" fill="${I}"/><ellipse cx="18" cy="190" rx="10" ry="4.5" fill="${I}"/>
@@ -33,99 +35,170 @@
     <path d="M-7 27C-24 31 -31 41 -33 60L-36 124L-9 124L-3 60Z" fill="${C.navy}" ${st(2.6)}/><path d="M7 27C24 31 31 41 33 60L36 124L9 124L3 60Z" fill="${C.navy}" ${st(2.6)}/>
     <path d="M-36 98H36L40 150H-40Z" fill="${C.sage}" ${st(2.8)}/><path d="M-12 112h24v20h-24z" fill="none" ${st(2)} opacity=".7"/>
     <path d="M0 33L-11 27V39ZM0 33L11 27V39Z" fill="${C.pinkD}" ${st(2)}/><circle cx="0" cy="33" r="2.6" fill="${I}"/>
-    ${head(0, 0)}<path d="M-27 -3C-31 -41 31 -41 27 -3C17 -20 -6 -22 -27 -3Z" fill="${HAIR}" ${st(2.6)}/>
-    <g class="wt-face">${face('happy')}</g>
+    <g class="wt-head">${head(0, 0)}<path d="M-27 -3C-31 -41 31 -41 27 -3C17 -20 -6 -22 -27 -3Z" fill="${HAIR}" ${st(2.6)}/>
+      <g class="wt-face">${face('happy')}</g></g>
     ${arm(-28, 46, -52, 84, -38, 92)}
     <g transform="translate(-30 64) rotate(-9)"><rect x="-17" y="-6" width="34" height="46" rx="3" fill="#fffefb" ${st(2.6)}/>
       <path d="M-13 -6v-4M-6 -6v-4M1 -6v-4M8 -6v-4" ${st(2)}/>
       <g class="wt-lines" fill="none" stroke="${I}" stroke-width="1.8" stroke-linecap="round"><path d="M-11 6q5-3 9 0t9 0"/><path d="M-11 15q5-3 9 0t11 0"/><path d="M-11 24q4-3 8 0t6 0"/></g></g>
     <g class="wt-pen">${arm(28, 46, 46, 92, -8, 84)}<path d="M-8 84L-22 64" stroke="${C.mustard}" stroke-width="5" stroke-linecap="round"/><path d="M-22 64l-3-5" ${st(2.4)}/></g>
     <g class="wt-flag" hidden><circle cx="-52" cy="52" r="12" fill="${C.terra}" ${st(2.4)}/><text x="-52" y="57" text-anchor="middle" font-family="Gochi Hand" font-size="15" fill="#fff"></text></g>
-  </g></g>`;
-  const faceEl = g.querySelector('.wt-face'), flagEl = g.querySelector('.wt-flag');
-  const setMood = (m) => { faceEl.innerHTML = face(m); };
-  const writing = (on) => g.classList.toggle('writing', !!on);
-  let flagged = 0;
-  const flag = (n) => { flagged += n; flagEl.toggleAttribute('hidden', !flagged); flagEl.querySelector('text').textContent = flagged; };
+  </g>`;
+  const g = document.createElementNS(NS, 'g'); g.id = 'l-waiter'; g.setAttribute('class', 'wt');
+  scene.insertBefore(g, scene.querySelector(':scope > rect[filter="url(#grain)"]'));
+  g.innerHTML = `<title>Kapi, your waiter — click to talk</title><g transform="translate(${WX} ${WY}) scale(${WS})" filter="url(#wob)">${figure()}</g>`;
 
-  /* ------------------------------------------------------------------ the chat (a comic panel) */
+  /* ------------------------------------------------------------------ the stage */
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   const box = document.createElement('section');
-  box.id = 'wt-chat'; box.hidden = true; box.setAttribute('role', 'dialog'); box.setAttribute('aria-label', 'Chat with Kapi, the waiter');
-  box.innerHTML = `<header><span class="wt-name">kapi</span><small>your waiter · takes orders, questions, complaints</small>
-      <span class="wt-src" aria-live="polite"></span><button type="button" class="tab wt-x" aria-label="close the chat">✕</button></header>
-    <div class="wt-log" role="log" aria-live="polite" aria-label="conversation"></div>
-    <div class="wt-chips"></div>
-    <form class="wt-form" autocomplete="off">
-      <button type="button" class="wt-mic" aria-pressed="false" aria-label="${SR ? 'speak to Kapi' : 'voice input is not supported in this browser'}" title="${SR ? 'speak (your words show up as you talk)' : 'voice needs Chrome, Edge or Safari'}" ${SR ? '' : 'disabled'}>
-        <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><rect x="8.5" y="2.5" width="7" height="12" rx="3.5" fill="currentColor"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3.5M8.5 21.5h7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
-      <input class="wt-in" type="text" maxlength="400" placeholder="say something to kapi…" aria-label="your message to Kapi" enterkeyhint="send">
-      <button type="submit" class="btn wt-send">send</button>
-    </form>`;
+  box.id = 'wt-stage'; box.hidden = true; box.setAttribute('role', 'dialog'); box.setAttribute('aria-label', 'Kapi, the waiter');
+  box.innerHTML = `
+    <div class="wt-show">
+      <svg class="wt-big wt" viewBox="0 0 940 880" aria-hidden="true">
+        <g class="wt-doodles" font-family="Gochi Hand" fill="${C.pinkD}"><text x="118" y="150" font-size="54">?</text><text x="62" y="236" font-size="34">?</text><text x="470" y="112" font-size="40">…</text></g>
+        <g transform="translate(300 232) scale(3.1)">${figure()}</g>
+        <g transform="translate(112 640)"><g class="wt-burst"><path d="M0 -92L22 -34L82 -52L44 -4L96 30L34 36L46 96L0 54L-46 96L-34 36L-96 30L-44 -4L-82 -52L-22 -34Z" fill="${C.terra}" stroke="${I}" stroke-width="5" stroke-linejoin="round"/><text y="16" text-anchor="middle" font-family="Gochi Hand" font-size="44" fill="#fff">team!</text></g></g>
+      </svg>
+      <div class="wt-cloud" aria-hidden="true"><i></i><i></i><p></p></div>
+      <div class="wt-say" hidden><p aria-hidden="true"></p></div>
+      <div class="wt-acts" aria-hidden="true"></div>
+      <div class="wt-cap" aria-hidden="true"></div>
+      <div class="wt-you" hidden></div>
+      <div class="wt-chips"></div>
+      <form class="wt-form" autocomplete="off">
+        <button type="button" class="wt-mic" aria-pressed="false" aria-label="${SR ? 'speak to Kapi' : 'voice input is not supported in this browser'}" title="${SR ? 'speak (your words show up as you talk)' : 'voice needs Chrome, Edge or Safari'}" ${SR ? '' : 'disabled'}>
+          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><rect x="8.5" y="2.5" width="7" height="12" rx="3.5" fill="currentColor"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3.5M8.5 21.5h7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+        <input class="wt-in" type="text" maxlength="400" placeholder="say something to kapi…" aria-label="your message to Kapi" enterkeyhint="send">
+        <button type="submit" class="btn wt-send">send</button>
+      </form>
+    </div>
+    <aside class="wt-side" hidden aria-label="conversation so far"><h3>the story so far</h3><div class="wt-log" role="log"></div></aside>
+    <header><button type="button" class="tab wt-x">← back to the café</button><span class="wt-src"></span>
+      <button type="button" class="tab wt-toggle" aria-pressed="false" aria-expanded="false">chat</button></header>
+    <p class="wt-live" role="status" aria-live="polite"></p>`;
   viewport.appendChild(box);
-  const log = box.querySelector('.wt-log'), input = box.querySelector('.wt-in'), mic = box.querySelector('.wt-mic'),
-        chips = box.querySelector('.wt-chips'), src = box.querySelector('.wt-src');
+  const q = (s) => box.querySelector(s);
+  const big = q('.wt-big'), cloud = q('.wt-cloud'), cloudP = q('.wt-cloud p'), sayBox = q('.wt-say'), sayP = q('.wt-say p'),
+        acts = q('.wt-acts'), cap = q('.wt-cap'), you = q('.wt-you'), chips = q('.wt-chips'), input = q('.wt-in'), mic = q('.wt-mic'),
+        side = q('.wt-side'), log = q('.wt-log'), toggle = q('.wt-toggle'), src = q('.wt-src'), liveEl = q('.wt-live');
+  const faces = [g.querySelector('.wt-face'), big.querySelector('.wt-face')];
+  const flags = [g.querySelector('.wt-flag'), big.querySelector('.wt-flag')];
+  let mood = 'happy', look = [-2, 1], talkT = 0;
+  const paint = (talk) => { for (const f of faces) f.innerHTML = face(mood, look, talk); };
+  const setMood = (m, lk) => { mood = FACE[m] ? m : 'happy'; look = lk || [-2, 1]; paint(); };
+  /** what he is doing: '' | thinking | writing | talking | alarm — drives the CSS of both drawings */
+  function phase(p, caption) {
+    for (const el of [g, big]) { el.classList.remove('thinking', 'writing', 'talking', 'alarm'); if (p) el.classList.add(p); }
+    box.dataset.phase = p || ''; cap.textContent = caption || ''; cap.hidden = !caption;
+    clearInterval(talkT);
+    if (p === 'talking' && !still()) { let k = 0; talkT = setInterval(() => paint(++k % 2 ? 'o' : null), 150); } else paint();
+  }
+  let flagged = 0;
+  const flag = (n) => { flagged += n; for (const f of flags) { f.toggleAttribute('hidden', !flagged); f.querySelector('text').textContent = flagged; } };
+
+  /** type text into el, a few characters at a time (instant under reduced motion); resolves when done or cancelled */
+  let turn = 0;
+  async function type(el, text, cps = 46) {
+    const mine = turn; el.textContent = '';
+    if (still()) { el.textContent = text; return; }
+    for (let i = 0; i < text.length;) {
+      if (mine !== turn) return;
+      i = Math.min(text.length, i + 2 + (text[i] === ' ' ? 1 : 0)); el.textContent = text.slice(0, i);
+      await new Promise((r) => setTimeout(r, 2000 / cps * (/[.!?…—]$/.test(el.textContent) ? 3.5 : 1)));
+    }
+  }
+
+  /* ------------------------------------------------------------------ the written history (toggled) */
   const history = [];   // [{role, content}] as sent to the server
-  let busy = false, greeted = false;
-
-  const scroll = () => { log.scrollTop = log.scrollHeight; };
-  function bubble(who, html, cls = '') {
-    const el = document.createElement('div'); el.className = `wt-b ${who} ${cls}`.trim();
-    el.innerHTML = html; log.appendChild(el); scroll(); return el;
-  }
   const rs = (n) => '₹' + Math.round(n).toLocaleString('en-IN');
-  function slip(o) {
-    const rows = o.items.map((it) => `<span>${it.qty} × ${esc(String(it.name || it.sku).toLowerCase())}</span><span>${rs(it.unit_price * it.qty)}</span>`).join('');
-    return `<div class="wt-slip" aria-label="order ${o.order_no}"><b>order pad · #${String(o.order_no).padStart(3, '0')}</b>${rows}<span class="tot">total</span><span class="tot">${rs(o.total)}</span><i>ticket's on the rail ✓</i></div>`;
-  }
+  const slip = (o) => `<div class="wt-slip" aria-label="order ${o.order_no}"><b>order pad · #${String(o.order_no).padStart(3, '0')}</b>`
+    + o.items.map((it) => `<span>${it.qty} × ${esc(String(it.name || it.sku).toLowerCase())}</span><span>${rs(it.unit_price * it.qty)}</span>`).join('')
+    + `<span class="tot">total</span><span class="tot">${rs(o.total)}</span><i>ticket's on the rail ✓</i></div>`;
   const stamp = (n) => `<div class="wt-stamp ${n.escalated ? 'hot' : ''}">${n.escalated ? '⚑ escalated to the team' : '✎ noted'}<small>${esc(n.summary)}</small></div>`;
-
-  function chipsShow(list) {
-    chips.innerHTML = list.map((t) => `<button type="button" class="chip">${esc(t)}</button>`).join('');
+  function entry(who, html, cls = '') {
+    const el = document.createElement('div'); el.className = `wt-b ${who} ${cls}`.trim();
+    el.innerHTML = html; log.appendChild(el); log.scrollTop = log.scrollHeight; return el;
   }
+  function showSide(on) {
+    side.hidden = !on; box.classList.toggle('with-side', on);
+    toggle.setAttribute('aria-pressed', String(on)); toggle.setAttribute('aria-expanded', String(on));
+    toggle.textContent = on ? 'hide chat' : 'chat';
+    if (on) log.scrollTop = log.scrollHeight;
+  }
+  toggle.addEventListener('click', () => showSide(side.hidden));
+
+  /* ------------------------------------------------------------------ a turn: think → act → speak */
+  const MUSING = ['Ah. A customer. With words.', 'Consulting the sacred notepad…', 'Thinking. This is my thinking face. Admire it.',
+    "One moment — pretending the espresso machine isn't screaming.", 'Let me check with my manager. (The pencil.)', 'Processing… like the fryer, but with opinions.',
+    'Could be an order. Could be a riddle. Exciting.'];
+  let busy = false, greeted = false;
+  const chipsShow = (list) => { chips.innerHTML = list.map((t) => `<button type="button" class="chip">${esc(t)}</button>`).join(''); };
   chips.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) send(b.textContent); });
 
   async function ask(messages) {
     if (!window.BrewApi || !BrewApi.config.worldId) throw Object.assign(new Error('no backend'), {code: 'no_world'});
     return BrewApi.post('/waiter/chat', {messages});
   }
+  function think(text) { cloud.classList.add('on'); return type(cloudP, text, 60); }
+  async function act(card, cls, hold) {       // one action card pops by the pad, holds, then settles small
+    const el = document.createElement('div'); el.className = `wt-act ${cls}`; el.innerHTML = card; acts.appendChild(el);
+    await wait(hold); el.classList.add('done');
+  }
   async function send(text) {
     text = String(text || '').trim();
     if (!text || busy) return;
-    busy = true; box.classList.add('busy'); chips.innerHTML = ''; input.value = '';
-    bubble('me', esc(text));
-    history.push({role: 'user', content: text});
-    const dots = bubble('kapi', '<span class="wt-dots"><i></i><i></i><i></i></span>', 'thinking');
-    writing(true); setMood('focused');
+    busy = true; const mine = ++turn; box.classList.add('busy'); chips.innerHTML = ''; input.value = '';
+    you.hidden = false; you.className = 'wt-you'; you.textContent = text;
+    entry('me', esc(text)); history.push({role: 'user', content: text});
+    sayBox.hidden = true; acts.innerHTML = '';
+    // 1 · thinking: eyes up, pencil tapping, a thought cloud that mutters until the answer is back
+    setMood('focused', [3, -4]); phase('thinking', 'thinking…');
+    let k = Math.floor(Math.random() * MUSING.length), waiting = true;
+    (async () => { while (waiting && mine === turn) { await think(MUSING[k++ % MUSING.length]); await wait(1500); } })();
     let r;
     try { r = await ask(history.slice(-16)); }
     catch (e) {
       r = {say: e.code === 'no_world' ? "I can't reach the kitchen from here — this is a recording of the café, so I can only wave. Open the live café and I'm all yours!"
-                                      : 'Sorry — I lost my train of thought (the line to the back dropped). Say that again?', mood: 'worried', offline: true};
+                                      : 'Sorry — I lost my train of thought (the line to the back dropped). Say that again?',
+           thought: e.code === 'no_world' ? 'A recording. I am being haunted by my own shift.' : 'The line to the back is dead. Naturally.', mood: 'worried', offline: true};
     }
-    dots.remove(); writing(false);
-    const el = bubble('kapi', esc(r.say));
-    if (r.order) el.insertAdjacentHTML('beforeend', slip(r.order));
-    for (const n of r.notes || []) el.insertAdjacentHTML('beforeend', stamp(n));
-    scroll();
-    setMood(r.mood || 'happy');
-    if (!r.offline) history.push({role: 'assistant', content: r.say});
-    else history.pop();
-    src.textContent = r.offline ? 'offline' : r.source === 'scripted' ? 'scripted' : r.source ? `via ${r.source}` : '';
-    const hot = (r.notes || []).filter((n) => n.escalated);
-    if (hot.length) { flag(hot.length); window.BrewToast?.(`⚑ kapi → team: ${hot[0].summary.slice(0, 70)}`, true); }
-    window.BREW_LIVE?.emit?.('waiter.said', {text: r.say, mood: r.mood, order: r.order || null, notes: r.notes || []});
+    waiting = false; turn++; const now = ++turn;   // (stops the muttering mid-word)
+    const notes = r.notes || [], hot = notes.filter((n) => n.escalated);
+    if (r.thought) { await think(r.thought); await wait(700 + r.thought.length * 14); }
+    // 2 · actions, drawn out
+    if (r.order) {
+      setMood('focused', [-5, 4]); phase('writing', 'writing the ticket…');
+      await wait(900);
+      await act(slip(r.order) + '<em class="wt-to">→ to the rail</em>', 'ticket', 1900);
+    }
+    for (const n of notes) {
+      if (n.escalated) { setMood('worried', [-2, 1]); phase('alarm', 'telling the team…'); flag(1); await act(stamp(n), 'note hot', 1700); }
+      else { setMood('focused', [-5, 4]); phase('writing', 'noting it down…'); await wait(700); await act(stamp(n), 'note', 1200); }
+    }
+    if (hot.length) window.BrewToast?.(`⚑ kapi → team: ${hot[0].summary.slice(0, 70)}`, true);
+    // 3 · the answer, said out loud
+    cloud.classList.remove('on');
+    setMood(r.mood || 'happy'); phase('talking', '');
+    sayBox.hidden = false; liveEl.textContent = r.say;
+    const el = entry('kapi', (r.thought ? `<span class="wt-th">(${esc(r.thought)})</span>` : '') + esc(r.say) + (r.order ? slip(r.order) : '') + notes.map(stamp).join(''));
+    void el;
+    window.BREW_LIVE?.emit?.('waiter.said', {text: r.say, thought: r.thought || '', mood: r.mood, order: r.order || null, notes});
     try { window.BrewWaiter.speak?.(r.say, r); } catch (e) { /* voice out is optional */ }
+    await type(sayP, r.say);
+    if (now === turn) phase('', '');
+    if (!r.offline) history.push({role: 'assistant', content: r.say}); else history.pop();
+    src.textContent = r.offline ? 'offline' : r.source === 'scripted' ? 'scripted answers' : r.source ? `${r.source} · ${r.model || ''}` : '';
     busy = false; box.classList.remove('busy');
-    if (!box.hidden && !listening) input.focus();
+    if (!box.hidden && !listening) input.focus({preventScroll: true});
   }
-  box.querySelector('.wt-form').addEventListener('submit', (e) => { e.preventDefault(); send(input.value); });
+  q('.wt-form').addEventListener('submit', (e) => { e.preventDefault(); send(input.value); });
 
   /* ------------------------------------------------------------------ voice in: live transcript */
-  let rec = null, listening = false, live = null, finalText = '';
+  let rec = null, listening = false, finalText = '';
+  const CANCEL = '\u0000';
   function stopListening(cancel) {
     if (!rec) return;
-    if (cancel) finalText = '\u0000';
+    if (cancel) finalText = CANCEL;
     try { rec.stop(); } catch (e) { /* already stopped */ }
   }
   function listen() {
@@ -134,25 +207,28 @@
     rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
     finalText = ''; listening = true;
     mic.setAttribute('aria-pressed', 'true'); box.classList.add('listening'); chips.innerHTML = '';
-    live = bubble('me', '<span class="wt-hear">listening…</span>', 'live');
+    you.hidden = false; you.className = 'wt-you live'; you.innerHTML = '<span class="wt-hear">listening…</span>';
+    setMood('happy', [0, 3]); phase('', "I'm all ears…");
     rec.onresult = (e) => {
       let fin = '', interim = '';
       for (const res of e.results) (res.isFinal ? (fin += res[0].transcript) : (interim += res[0].transcript));
-      if (finalText !== '\u0000') finalText = fin.trim();
-      if (live) { live.innerHTML = `${esc(fin)}<span class="wt-hear">${esc(interim) || (fin ? '' : 'listening…')}</span>`; scroll(); }
+      if (finalText !== CANCEL) finalText = fin.trim();
+      you.innerHTML = `${esc(fin)}<span class="wt-hear">${esc(interim) || (fin ? '' : 'listening…')}</span>`;
       input.value = (fin + interim).trim();
     };
+    let failed = '';
     rec.onerror = (e) => {
-      const why = {'not-allowed': 'the microphone is blocked for this page', 'service-not-allowed': 'the microphone is blocked for this page',
-        'no-speech': "I didn't hear anything", 'audio-capture': 'no microphone found', network: 'speech recognition needs a connection'}[e.error];
-      if (why && live) { live.classList.add('err'); live.innerHTML = `<span class="wt-hear">${why}</span>`; const l = live; live = null; setTimeout(() => l.remove(), 2600); }
+      failed = {'not-allowed': 'the microphone is blocked for this page', 'service-not-allowed': 'the microphone is blocked for this page',
+        'no-speech': "I didn't hear anything", 'audio-capture': 'no microphone found', network: 'speech recognition needs a connection'}[e.error] || '';
     };
     rec.onend = () => {
       listening = false; rec = null;
-      mic.setAttribute('aria-pressed', 'false'); box.classList.remove('listening');
-      const said = finalText === '\u0000' ? '' : (finalText || input.value.trim());
-      if (live) { live.remove(); live = null; }
-      if (said) send(said); else input.value = '';
+      mic.setAttribute('aria-pressed', 'false'); box.classList.remove('listening'); phase('', '');
+      const said = finalText === CANCEL ? '' : (finalText || input.value.trim());
+      if (said) return send(said);
+      input.value = '';
+      if (failed) { you.className = 'wt-you live err'; you.innerHTML = `<span class="wt-hear">${failed}</span>`; setTimeout(() => { if (!busy && !listening) you.hidden = true; }, 2800); }
+      else you.hidden = true;
     };
     try { rec.start(); } catch (e) { rec.onend(); }
   }
@@ -161,23 +237,26 @@
   /* ------------------------------------------------------------------ open / close with the camera */
   function open() {
     if (!box.hidden) return;
-    box.hidden = false; g.classList.add('talking');
+    box.hidden = false; g.classList.add('talking-to');
     if (!greeted) { greeted = true;
-      bubble('kapi', "Hello hello! I'm Kapi. Pad's out, pencil's sharp — what can I get you?");
+      const hi = "Hello hello! I'm Kapi. Pad's out, pencil's sharp — what can I get you?";
+      entry('kapi', esc(hi)); sayBox.hidden = false; liveEl.textContent = hi;
+      wait(650).then(async () => { phase('talking', ''); await type(sayP, hi); if (!busy) phase('', ''); });
       chipsShow(["what's good today?", 'a latte, please', 'how long is the wait?', 'I have a complaint']); }
-    setTimeout(() => { if (!box.hidden) input.focus({preventScroll: true}); }, R.reduced ? 0 : 500);
+    setTimeout(() => { if (!box.hidden) input.focus({preventScroll: true}); }, still() ? 0 : 500);
   }
   function close() {
     if (box.hidden) return;
-    stopListening(true); box.hidden = true; g.classList.remove('talking'); setMood('happy');
+    stopListening(true); box.hidden = true; g.classList.remove('talking-to');
+    if (!busy) { setMood('happy'); phase('', ''); }
   }
   window.BREW_LIVE?.on?.('camera.zoom', (z) => (z && z.zone === 'waiter' ? open() : close()));
-  box.querySelector('.wt-x').addEventListener('click', () => window.BrewCamera?.unzoom());
+  q('.wt-x').addEventListener('click', () => window.BrewCamera?.unzoom());
   box.addEventListener('keydown', (e) => { if (e.key === 'Escape' && listening) { e.stopPropagation(); stopListening(true); } }, true);
 
   window.BrewWaiter = {
-    open: () => window.BrewCamera?.zoom('lobby', 'waiter'), close: () => window.BrewCamera?.unzoom(), send, listen,
-    get isOpen() { return !box.hidden; }, get listening() { return listening; }, get history() { return history.slice(); },
+    open: () => window.BrewCamera?.zoom('lobby', 'waiter'), close: () => window.BrewCamera?.unzoom(), send, listen, showChat: showSide,
+    get isOpen() { return !box.hidden; }, get listening() { return listening; }, get busy() { return busy; }, get history() { return history.slice(); },
     voiceIn: !!SR, speak: null,   // speak(text, reply): set by the voice-out layer when it lands
   };
 })();

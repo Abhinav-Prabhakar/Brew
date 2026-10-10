@@ -74,7 +74,15 @@ Menu (sku | name | price | diet | allergens | availability | description):
 {rows}
 
 Reply with ONE JSON object and nothing else:
-{{"say": "<what you say out loud>", "mood": "happy|neutral|worried|delighted|focused", "actions": [ ... ]}}
+{{"thought": "<your private inner monologue>", "say": "<what you say out loud>", "mood": "happy|neutral|worried|delighted|focused", "actions": [ ... ]}}
+
+"thought" is shown to the guest as a thought bubble over your head before you speak: ONE short line (under 110
+characters), dry and a bit sarcastic — a tired, funny waiter's aside about the situation, the café, the kitchen or
+yourself. Never cruel, never about the guest's looks or identity, and drop the sarcasm entirely (be concerned
+instead) when the guest reports something serious. What you "say" stays warm and helpful whatever you think.
+The thought must not repeat or preview what you say. Examples of the tone: "Oat milk. Of course it's oat milk." ·
+"A question about wifi. In a café. Groundbreaking." · "Two croissants. The oven and I had other plans, but fine." ·
+"Ah, 'surprise me'. My favourite item that isn't on the menu."
 
 Actions (use only when warranted; the list is usually empty):
 - {{"type": "order", "items": [{{"sku": "<sku from the menu>", "qty": 1}}], "note": "<short kitchen note or null>"}}
@@ -100,10 +108,12 @@ def parse_reply(text: str) -> dict[str, Any]:
         except ValueError:
             data = None
     if not isinstance(data, dict) or not isinstance(data.get("say"), str):
-        return {"say": re.sub(r"^```\w*|```$", "", raw).strip()[:MAX_TEXT], "mood": "neutral", "actions": []}
+        say = re.sub(r"^```\w*|```$", "", raw).strip()[:MAX_TEXT]
+        return {"say": say, "thought": "", "mood": "neutral", "actions": []}
     acts = data.get("actions")
     return {
         "say": data["say"].strip()[:MAX_TEXT],
+        "thought": " ".join(str(data.get("thought") or "").split())[:200],
         "mood": data.get("mood") if data.get("mood") in MOODS else "neutral",
         "actions": [a for a in acts if isinstance(a, dict)][:4] if isinstance(acts, list) else [],
     }
@@ -163,7 +173,9 @@ async def respond(mw: Any, pool: LLMPool, pad: Notepad, messages: list[dict[str,
     source, model, out = "scripted", None, None
     if pool.configured:
         try:
-            r = await pool.chat(system_prompt(ctx), msgs, max_tokens=450)
+            r = await pool.chat(
+                system_prompt(ctx), msgs, max_tokens=1500
+            )  # (reasoning models spend part of this thinking)
             out, source, model = parse_reply(r.text), r.provider, r.model
         except LLMUnavailable:
             out = None
@@ -186,10 +198,10 @@ async def respond(mw: Any, pool: LLMPool, pad: Notepad, messages: list[dict[str,
             order = {**res, "items": [{**ln, "name": names.get(ln["sku"], ln["sku"])} for ln in res["items"]]}
         elif a.get("type") == "note" and a.get("summary"):
             notes.append(pad.add(str(a.get("kind")), str(a.get("severity")), str(a["summary"]), mw.world.now))
-    say, mood = out["say"], out["mood"]
+    say, mood, thought = out["say"], out["mood"], out.get("thought", "")
     if problem:  # he promised a ticket he could not write: correct himself rather than mislead the guest
-        say, mood = (
-            f"Ah — scratch that, I couldn't put it through: {problem}. Shall we try something else?",
-            "worried",
-        )
-    return {"say": say, "mood": mood, "order": order, "notes": notes, "source": source, "model": model}
+        say = f"Ah — scratch that, I couldn't put it through: {problem}. Shall we try something else?"
+        mood, thought = "worried", "…and the pencil lied to me. Wonderful."
+    return {
+        "say": say, "thought": thought, "mood": mood, "order": order, "notes": notes, "source": source, "model": model,
+    }  # fmt: skip

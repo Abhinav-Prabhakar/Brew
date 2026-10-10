@@ -40,7 +40,6 @@
         "BREW_LIVE_RATE=20",
         "BREW_DB_ENABLED=0",
         "BREW_HOURS=00:00-24:00",
-        "BREW_LLM_ENABLED=0",
         "uv",
         "run",
         "brew-api",

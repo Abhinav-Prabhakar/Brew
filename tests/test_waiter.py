@@ -73,17 +73,19 @@ def test_brain_complaints_and_escalation():
 
 def test_parse_reply_is_lenient():
     assert parse_reply('```json\n{"say": "Hi!", "mood": "happy", "actions": [{"type": "note"}, 7]}\n```') == {
-        "say": "Hi!", "mood": "happy", "actions": [{"type": "note"}]}  # fmt: skip
-    assert parse_reply("Just words.") == {"say": "Just words.", "mood": "neutral", "actions": []}
-    assert parse_reply('{"say": "x", "mood": "furious", "actions": "none"}') == {
-        "say": "x",
+        "say": "Hi!", "thought": "", "mood": "happy", "actions": [{"type": "note"}]}  # fmt: skip
+    assert parse_reply("Just words.") == {
+        "say": "Just words.",
+        "thought": "",
         "mood": "neutral",
         "actions": [],
     }
+    assert parse_reply('{"say": "x", "thought": "ugh  fine", "mood": "furious", "actions": "none"}') == {
+        "say": "x", "thought": "ugh fine", "mood": "neutral", "actions": []}  # fmt: skip
+    assert brain.reply("there is a hair in my muffin", CTX)["thought"] in brain.THOUGHTS["serious"]
 
 
 # ------------------------------------------------------------------------------------------------ API
-pytestmark_api = pytest.mark.integration
 
 
 @pytest.fixture
@@ -178,7 +180,7 @@ def test_chat_scripted_orders_notes_and_status(client):
 def test_chat_with_an_llm_runs_its_actions_and_falls_back_when_it_is_down(client):
     c = client
     (sku, name), (sku2, name2) = on_menu(c)
-    state = {"down": False, "reply": {"say": "Two chais, coming up!", "mood": "happy", "actions": [
+    state = {"down": False, "reply": {"say": "Two chais, coming up!", "thought": "chai. again.", "mood": "happy", "actions": [
         {"type": "order", "items": [{"sku": name, "qty": 2}], "note": "less sugar"},
         {"type": "note", "kind": "request", "severity": "low", "summary": "wants the window seat"}]}}  # fmt: skip
     seen = []
@@ -193,7 +195,9 @@ def test_chat_with_an_llm_runs_its_actions_and_falls_back_when_it_is_down(client
         {"ANTHROPIC_API_KEY": "ant-key-aaaa1111"}, client=httpx.AsyncClient(transport=httpx.MockTransport(h))
     )
     r = say(c, "two masala chai, less sugar, and can I sit by the window?")
-    assert r["source"] == "anthropic" and r["say"] == "Two chais, coming up!"
+    assert (
+        r["source"] == "anthropic" and r["say"] == "Two chais, coming up!" and r["thought"] == "chai. again."
+    )
     assert (
         r["order"]["items"][0]["sku"] == sku
         and r["order"]["items"][0]["qty"] == 2

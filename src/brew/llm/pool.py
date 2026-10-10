@@ -12,7 +12,8 @@ Configuration is environment only (a ``.env`` in the repository root is read too
 ``<NAME>_API_KEYS``            comma / space separated keys (``<NAME>_API_KEY`` for a single one), e.g.
                                ``ANTHROPIC_API_KEYS``, ``OPENAI_API_KEYS``, ``GEMINI_API_KEYS``, ``GROQ_API_KEYS``,
                                ``OPENROUTER_API_KEYS``
-``BREW_LLM_<NAME>_MODEL``      model override; ``BREW_LLM_<NAME>_URL`` endpoint override;
+``BREW_LLM_<NAME>_MODEL``      model override — several, comma separated, are tried as a fallback chain;
+``BREW_LLM_<NAME>_URL``        endpoint override;
 ``BREW_LLM_<NAME>_KIND``       wire format of a provider this file does not know: ``openai`` (default) | ``anthropic``
 """
 
@@ -37,7 +38,7 @@ KNOWN: dict[str, tuple[str, str, str]] = {
     "openrouter": ("openai", "https://openrouter.ai/api/v1/chat/completions", "meta-llama/llama-3.3-70b-instruct"),
 }  # fmt: skip
 ANTHROPIC_VERSION = "2023-06-01"
-COOL_RATE_S, COOL_ERROR_S, COOL_AUTH_S, COOL_MAX_S = 20.0, 10.0, 600.0, 300.0
+COOL_RATE_S, COOL_ERROR_S, COOL_AUTH_S, COOL_MAX_S = 20.0, 30.0, 600.0, 300.0
 
 
 class LLMUnavailable(Exception):
@@ -109,7 +110,7 @@ class LLMPool:
         slots: list[Slot] | None = None,
         strategy: str = "round_robin",
         client: httpx.AsyncClient | None = None,
-        timeout_s: float = 25.0,
+        timeout_s: float = 12.0,  # per attempt: a slow slot should lose its turn, not hold the guest up
         clock: Any = time.monotonic,
     ) -> None:
         self.slots = slots or []
@@ -134,14 +135,12 @@ class LLMPool:
                 continue
             kind, url, model = KNOWN.get(name, ("openai", "", ""))
             up = name.upper()
-            p = Provider(
-                name,
-                e.get(f"BREW_LLM_{up}_KIND", kind),
-                e.get(f"BREW_LLM_{up}_URL", url),
-                e.get(f"BREW_LLM_{up}_MODEL", model),
-            )
-            if p.url and p.model:
-                per.append([Slot(p, k) for k in keys])
+            url = e.get(f"BREW_LLM_{up}_URL", url)
+            # several models on one provider are a fallback chain of their own (each model x each key is a slot)
+            for mdl in [x for x in re.split(r"[,\s]+", e.get(f"BREW_LLM_{up}_MODEL", model)) if x]:
+                if url:
+                    p = Provider(name, e.get(f"BREW_LLM_{up}_KIND", kind), url, mdl)
+                    per.append([Slot(p, k) for k in keys])
         strategy = e.get("BREW_LLM_STRATEGY", "round_robin").strip().lower()
         if strategy == "priority":
             slots = [s for group in per for s in group]
@@ -159,7 +158,8 @@ class LLMPool:
         provs: dict[str, dict[str, Any]] = {}
         for s in self.slots:
             d = provs.setdefault(
-                s.provider.name, {"name": s.provider.name, "model": s.provider.model, "keys": []}
+                f"{s.provider.name}/{s.provider.model}",
+                {"name": s.provider.name, "model": s.provider.model, "keys": []},
             )
             d["keys"].append(
                 {
@@ -197,7 +197,7 @@ class LLMPool:
             self._client = httpx.AsyncClient(timeout=self._timeout)
         tried: list[str] = []
         for s in await self._order():
-            label = f"{s.provider.name}{s.masked()}"
+            label = f"{s.provider.name}/{s.provider.model}{s.masked()}"
             try:
                 text = await self._call(s, system, messages, max_tokens, temperature)
             except _SlotError as e:

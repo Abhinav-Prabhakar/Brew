@@ -97,10 +97,12 @@ statement.
   an invest button that spends real sim cash. The item then shows up in the room.
 - **Resilient client**: since_seq resume, jittered backoff, re-hydration when the server restarts, a labelled
   offline replay. Kill the backend mid-rush and the page waits, then recovers with no duplicate tickets.
-- **Kapi, the waiter**: a doodle with a notepad in front of the counter. Click him and the camera frames him while a
-  comic-strip chat opens: order from him (a real, paid ticket lands on the rail), ask about the menu, complain — he
-  writes it down and escalates what matters to the team. Type, or use the mic and watch your words appear as you
-  speak. Behind him: an LLM pool with several providers and several keys each, rotated round-robin with failover,
+- **Kapi, the waiter**: a doodle with a notepad in front of the counter. Click him and his stage opens — Kapi drawn
+  large, and the illustration does the talking: he looks up and thinks (a thought cloud with his dry inner
+  monologue), tears a ticket off his pad, stamps a note, flags the team, then answers in a speech bubble that types
+  itself out. Order from him (a real, paid ticket lands on the rail), ask about the menu, complain — he writes it
+  down and escalates what matters. Type, or use the mic and watch your words appear as you speak; "chat" toggles the
+  written history. Behind him: an LLM pool with several providers and several keys each, rotated round-robin with failover,
   and a scripted stand-in so he works with no keys at all ([setup](#the-waiters-llm-keys)).
 - **Feels like a game**: Web Audio sound design with ducking, a faint café radio (four synthesised stations — click
   the radio to change the tune), parallax, and
@@ -189,7 +191,8 @@ OPENAI_API_KEYS=sk-…
 GROQ_API_KEYS=gsk_…,gsk_…
 BREW_LLM_ORDER=anthropic,groq,openai     # optional: which providers, in what order
 BREW_LLM_STRATEGY=round_robin            # or "priority": first provider first, the rest only as fallback
-BREW_LLM_GROQ_MODEL=llama-3.3-70b-versatile   # optional per-provider model / URL overrides
+BREW_LLM_GROQ_MODEL=llama-3.3-70b-versatile   # optional per-provider model / URL overrides; several models,
+                                              # comma separated, are a fallback chain of their own
 ```
 
 Known providers: `anthropic`, `openai`, `gemini`, `groq`, `openrouter`; any other OpenAI-compatible endpoint works with

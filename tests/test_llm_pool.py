@@ -97,7 +97,7 @@ async def test_everything_down_raises_and_bad_keys_rest_longer():
     assert "key rejected" in str(e.value) and "503" in str(e.value)
     assert "ant-key" not in str(e.value) and "ant-key" not in str(pool.status())  # keys never leak
     cool = [k["cooling_s"] for p in pool.status()["providers"] for k in p["keys"]]
-    assert cool[0] == cool[1] == 600.0 and cool[2] == 10.0
+    assert cool[0] == cool[1] == 600.0 and cool[2] == 30.0
     with pytest.raises(LLMUnavailable):  # cooling slots are still tried when nothing else is left
         await pool.chat("s", [{"role": "user", "content": "hi"}])
 
@@ -127,3 +127,28 @@ def test_dotenv(tmp_path):
     assert [(p["name"], p["model"], len(p["keys"])) for p in pool.status()["providers"]] == [
         ("openai", "gpt-x", 2)
     ]
+
+
+async def test_several_models_on_one_provider_are_a_fallback_chain():
+    env = {"BREW_LLM_ORDER": "void", "VOID_API_KEY": "void-key-eeee5555", "BREW_LLM_VOID_URL": "http://llm.test/v1/chat/completions",
+           "BREW_LLM_VOID_MODEL": "nano, mini", "BREW_LLM_STRATEGY": "priority"}  # fmt: skip
+    asked = []
+
+    def h(req: httpx.Request) -> httpx.Response:
+        import json
+
+        model = json.loads(req.content)["model"]
+        asked.append(model)
+        return (
+            httpx.Response(503)
+            if model == "nano"
+            else httpx.Response(200, json={"choices": [{"message": {"content": "ok"}}]})
+        )
+
+    pool, _ = make(h, env)
+    r = await pool.chat("s", [{"role": "user", "content": "hi"}])
+    assert (r.model, r.attempts, asked) == ("mini", 2, ["nano", "mini"])
+    assert (await pool.chat("s", [{"role": "user", "content": "hi"}])).attempts == 1 and asked[
+        -1
+    ] == "mini"  # nano is resting
+    assert [p["model"] for p in pool.status()["providers"]] == ["nano", "mini"]

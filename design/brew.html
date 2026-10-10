@@ -523,65 +523,101 @@
   #camback{position:absolute;left:24px;top:112px;z-index:35;animation:slideIn .5s var(--ease-out)}
   #camback[hidden]{display:none}
 
-  /* ---- Kapi the waiter (waiter.js): the doodle, and his comic-panel chat ---- */
+  /* ---- Kapi the waiter (waiter.js): the doodle in the room, and his stage ---- */
   #l-waiter{cursor:pointer}
-  #l-waiter .wt-bob{transform-box:fill-box;transform-origin:50% 100%;animation:wtIdle 3.6s ease-in-out infinite}
-  #l-waiter:hover .wt-bob, #l-waiter.talking .wt-bob{animation-duration:1.8s}
-  #l-waiter .wt-pen{transform-box:fill-box;transform-origin:80% 20%}
-  #l-waiter.writing .wt-pen{animation:wtScribble .28s ease-in-out infinite alternate}
-  #l-waiter .wt-lines path{stroke-dasharray:30;stroke-dashoffset:0}
-  #l-waiter.writing .wt-lines path{animation:wtInk 1.1s linear infinite}
-  #l-waiter.writing .wt-lines path:nth-child(2){animation-delay:.35s} #l-waiter.writing .wt-lines path:nth-child(3){animation-delay:.7s}
+  .wt .wt-bob{transform-box:fill-box;transform-origin:50% 100%;animation:wtIdle 3.6s ease-in-out infinite}
+  #l-waiter:hover .wt-bob, .wt.talking .wt-bob{animation-duration:1.5s}
+  .wt .wt-head{transform-box:fill-box;transform-origin:50% 90%;transition:transform .35s var(--ease-spring)}
+  .wt.thinking .wt-head{transform:rotate(7deg) translateY(-1px)} .wt.writing .wt-head{transform:rotate(-8deg) translateY(2px)} .wt.alarm .wt-head{transform:rotate(4deg)}
+  .wt .wt-pen{transform-box:fill-box;transform-origin:80% 20%}
+  .wt.thinking .wt-pen{animation:wtTap .5s ease-in-out infinite alternate}
+  .wt.writing .wt-pen{animation:wtScribble .22s ease-in-out infinite alternate}
+  .wt .wt-lines path{stroke-dasharray:30;stroke-dashoffset:0}
+  .wt.writing .wt-lines path{animation:wtInk .9s linear infinite}
+  .wt.writing .wt-lines path:nth-child(2){animation-delay:.3s} .wt.writing .wt-lines path:nth-child(3){animation-delay:.6s}
+  .wt.alarm .wt-bob{animation:wtShake .16s linear infinite}
+  .wt-big .wt-doodles text{opacity:0;transform-box:fill-box;transform-origin:50% 50%}
+  .wt-big.thinking .wt-doodles text{animation:wtFloat 1.8s ease-in-out infinite} .wt-big.thinking .wt-doodles text:nth-child(2){animation-delay:.5s} .wt-big.thinking .wt-doodles text:nth-child(3){animation-delay:.9s}
+  .wt-big .wt-burst{opacity:0;transform-box:fill-box;transform-origin:50% 50%}
+  .wt-big.alarm .wt-burst{animation:wtBurst .9s var(--ease-spring) both}
   @keyframes wtIdle{50%{transform:translateY(-2.5px) rotate(-.6deg)}}
+  @keyframes wtTap{from{transform:rotate(-2deg)}to{transform:rotate(9deg) translate(2px,-3px)}}
   @keyframes wtScribble{from{transform:rotate(-3deg) translate(-1px,0)}to{transform:rotate(4deg) translate(3px,2px)}}
   @keyframes wtInk{from{stroke-dashoffset:30}to{stroke-dashoffset:0}}
-  #wt-chat{position:absolute;left:300px;top:150px;width:1050px;height:800px;z-index:36;display:flex;flex-direction:column;
-    background:#fffdf9;border:4px solid var(--ink);border-radius:20px 26px 18px 30px/26px 18px 30px 20px;box-shadow:8px 9px 0 var(--ink);
-    animation:wtPanel .55s var(--ease-spring) .35s both;transform-origin:100% 80%}
-  #wt-chat[hidden]{display:none}
-  @keyframes wtPanel{from{opacity:0;transform:scale(.8) rotate(-1.5deg)}to{opacity:1;transform:none}}
-  #wt-chat header{display:flex;align-items:baseline;gap:12px;padding:10px 18px 8px;border-bottom:3px dashed var(--ink)}
-  #wt-chat .wt-name{font-family:var(--hand);font-size:40px;line-height:40px;color:var(--pink-d);text-shadow:2px 2px 0 var(--ink)}
-  #wt-chat header small{font-size:18px;opacity:.7} #wt-chat .wt-src{margin-left:auto;font-size:15px;opacity:.6}
-  #wt-chat .wt-x{align-self:center;font-size:18px;line-height:22px;cursor:pointer}
-  #wt-chat .wt-log{flex:1;overflow-y:auto;padding:18px 26px 8px;display:flex;flex-direction:column;gap:16px;scrollbar-width:thin;
-    background-image:radial-gradient(rgba(29,26,28,.09) 1.4px,transparent 1.6px);background-size:14px 14px}
-  .wt-b{position:relative;max-width:70%;font-family:var(--body);font-size:25px;line-height:31px;padding:10px 20px 12px;border:3.5px solid var(--ink);
-    box-shadow:4px 5px 0 var(--ink);animation:wtPop .32s var(--ease-spring) both;overflow-wrap:anywhere}
-  @keyframes wtPop{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:none}}
-  .wt-b.kapi{align-self:flex-end;background:#fff;border-radius:38px 30px 8px 34px/30px 36px 8px 32px;margin-right:22px;transform-origin:100% 100%}
-  .wt-b.me{align-self:flex-start;background:var(--pink-l);border-radius:30px 38px 34px 8px/36px 30px 32px 8px;margin-left:22px;transform-origin:0 100%}
-  /* the tails: an ink triangle with a paper one on top */
-  .wt-b::before,.wt-b::after{content:'';position:absolute;bottom:-3.5px;border-style:solid}
-  .wt-b.kapi::before{right:-25px;border-width:0 0 26px 26px;border-color:transparent transparent var(--ink) transparent}
-  .wt-b.kapi::after{right:-15px;bottom:0;border-width:0 0 17px 17px;border-color:transparent transparent #fff transparent}
-  .wt-b.me::before{left:-25px;border-width:0 26px 26px 0;border-color:transparent transparent var(--ink) transparent}
-  .wt-b.me::after{left:-15px;bottom:0;border-width:0 17px 17px 0;border-color:transparent transparent var(--pink-l) transparent}
-  .wt-b.live{border-style:dashed;box-shadow:none;background:#fff} .wt-b.live::after{border-bottom-color:#fff}
-  .wt-b.live.err{color:var(--terra-ink)}
-  .wt-hear{opacity:.55;font-style:italic} .wt-b.live .wt-hear:not(:empty)::after{content:' ▍';animation:wtBlink .9s steps(2) infinite}
+  @keyframes wtShake{25%{transform:translateX(-1.5px)}75%{transform:translateX(1.5px)}}
+  @keyframes wtFloat{0%{opacity:0;transform:translateY(14px) rotate(-8deg) scale(.7)}40%{opacity:1}100%{opacity:0;transform:translateY(-26px) rotate(10deg) scale(1.1)}}
+  @keyframes wtBurst{0%{opacity:0;transform:scale(.2) rotate(-30deg)}60%{opacity:1;transform:scale(1.12) rotate(6deg)}100%{opacity:1;transform:scale(1) rotate(-4deg)}}
+  #wt-stage{position:absolute;left:16px;top:104px;right:16px;bottom:16px;z-index:36;overflow:hidden;
+    background:#fffdf9 radial-gradient(rgba(29,26,28,.08) 1.4px,transparent 1.6px) 0 0/14px 14px;
+    border:4px solid var(--ink);border-radius:20px 26px 18px 30px/26px 18px 30px 20px;box-shadow:8px 9px 0 var(--ink);
+    animation:wtPanel .5s var(--ease-spring) .3s both;transform-origin:100% 100%}
+  #wt-stage[hidden]{display:none}
+  @keyframes wtPanel{from{opacity:0;transform:scale(.6) rotate(-2deg)}to{opacity:1;transform:none}}
+  #wt-stage header{position:absolute;left:14px;right:14px;top:10px;display:flex;align-items:center;gap:12px;pointer-events:none}
+  #wt-stage header .tab{pointer-events:auto;cursor:pointer;font-size:19px} #wt-stage .wt-src{margin-left:auto;font-size:15px;opacity:.6}
+  #wt-stage .wt-toggle[aria-pressed="true"]{background:var(--pink)}
+  #wt-stage .wt-live{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+  /* the show: Kapi on the left ~60 %, his bubbles and your prompt beside him; the rest of the stage stays empty */
+  .wt-show{position:absolute;left:0;top:0;width:60%;height:100%;display:flex;flex-direction:column;gap:14px;padding:58px 22px 16px 446px}
+  .wt-big{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}
+  .wt-cap{position:absolute;left:26px;top:64px;padding:2px 14px 4px;background:var(--mustard);border:3px solid var(--ink);box-shadow:3px 4px 0 var(--ink);
+    font-family:var(--hand);font-size:22px;line-height:28px;transform:rotate(-3deg);animation:wtPop .3s var(--ease-spring) both}
+  .wt-cap[hidden]{display:none}
+  .wt-cloud{position:relative;visibility:hidden;min-height:92px;padding:16px 26px 18px;background:#fff;border:3.5px solid var(--ink);border-radius:60px 70px 64px 58px/52px 60px 50px 58px;
+    font-family:var(--body);font-style:italic;font-size:23px;line-height:28px;color:#4a4347;box-shadow:4px 5px 0 rgba(29,26,28,.25)}
+  .wt-cloud.on{visibility:visible;animation:wtPop .35s var(--ease-spring) both;transform-origin:0 100%}
+  .wt-cloud i{position:absolute;background:#fff;border:3.5px solid var(--ink);border-radius:50%}
+  .wt-cloud i:nth-child(1){width:26px;height:22px;left:-10px;bottom:-22px} .wt-cloud i:nth-child(2){width:15px;height:13px;left:-34px;bottom:-40px}
+  .wt-cloud p::after{content:'▍';opacity:.4;animation:wtBlink .9s steps(2) infinite;font-style:normal;margin-left:2px}
+  .wt-say{position:relative;padding:14px 24px 16px;background:#fff;border:4px solid var(--ink);border-radius:34px 40px 36px 12px/36px 34px 38px 12px;box-shadow:5px 6px 0 var(--ink);
+    font-family:var(--body);font-size:29px;line-height:35px;animation:wtPop .32s var(--ease-spring) both;transform-origin:0 30%}
+  .wt-say[hidden]{display:none}
+  .wt-say::before,.wt-say::after{content:'';position:absolute;top:26px;border-style:solid}
+  .wt-say::before{left:-34px;border-width:0 34px 26px 0;border-color:transparent var(--ink) transparent transparent}
+  .wt-say::after{left:-22px;top:29px;border-width:0 25px 17px 0;border-color:transparent #fff transparent transparent}
+  .wt-acts{flex:1;min-height:0;display:flex;flex-wrap:wrap;align-content:flex-start;gap:10px 14px}
+  .wt-act{animation:wtAct .5s var(--ease-spring) both;transform-origin:0 0;transition:transform .45s var(--ease-move),opacity .45s}
+  .wt-act.ticket{width:300px} .wt-act.ticket .wt-slip{margin:0;font-size:18px;box-shadow:4px 5px 0 var(--ink)}
+  .wt-act .wt-to{display:block;margin-top:6px;font-family:var(--hand);font-style:normal;font-size:21px;color:var(--pink-d)}
+  .wt-act.ticket.done{transform:translate(150px,-40px) rotate(8deg) scale(.5);opacity:.0}
+  .wt-act.note .wt-stamp{font-size:24px;line-height:30px;margin:0;background:#fffdf9;animation:wtStamp .35s var(--ease-in) both} .wt-act.note .wt-stamp small{font-size:17px;line-height:21px}
+  .wt-act.note.done{transform:scale(.82)}
+  @keyframes wtAct{from{opacity:0;transform:translate(-220px,40px) scale(.2) rotate(-14deg)}to{opacity:1;transform:none}}
+  @keyframes wtStamp{from{opacity:0;transform:scale(2.4) rotate(-12deg)}to{opacity:1;transform:rotate(-2.5deg)}}
+  .wt-you{align-self:flex-end;position:relative;max-width:94%;padding:8px 18px 10px;background:var(--pink-l);border:3.5px solid var(--ink);border-radius:30px 34px 10px 32px/32px 30px 10px 30px;
+    box-shadow:4px 5px 0 var(--ink);font-family:var(--body);font-size:24px;line-height:29px;overflow-wrap:anywhere;animation:wtPop .3s var(--ease-spring) both;transform-origin:100% 100%}
+  .wt-you[hidden]{display:none} .wt-you::before{content:'you';position:absolute;right:14px;top:-15px;padding:0 8px;background:var(--ink);color:#fff;border-radius:8px;font-family:var(--hand);font-size:15px;line-height:19px}
+  .wt-you.live{border-style:dashed;box-shadow:none;background:#fff} .wt-you.err{color:var(--terra-ink)}
+  .wt-hear{opacity:.55;font-style:italic} .wt-you.live .wt-hear:not(:empty)::after{content:' ▍';animation:wtBlink .9s steps(2) infinite}
   @keyframes wtBlink{50%{opacity:0}}
-  .wt-dots{display:inline-flex;gap:7px;padding:8px 2px} .wt-dots i{width:10px;height:10px;border-radius:50%;background:var(--ink);animation:wtDot .9s ease-in-out infinite}
-  .wt-dots i:nth-child(2){animation-delay:.15s} .wt-dots i:nth-child(3){animation-delay:.3s}
-  @keyframes wtDot{40%{transform:translateY(-7px)}}
-  .wt-slip{display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:0 18px;margin:10px 0 2px;padding:8px 12px;background:#fffefb;border:2px solid var(--ink);
-    font-family:'Courier Prime',monospace;font-size:17px;line-height:23px;transform:rotate(-1.2deg)}
-  .wt-slip b{grid-column:1/-1;border-bottom:2px dashed var(--ink);margin-bottom:3px} .wt-slip .tot{font-weight:700;border-top:2px dashed var(--ink);margin-top:3px}
-  .wt-slip i{grid-column:1/-1;font-family:var(--hand);font-style:normal;color:var(--olive);font-size:19px}
-  .wt-stamp{display:inline-block;margin:10px 8px 0 0;padding:1px 10px 3px;border:3px double var(--olive);color:var(--olive);border-radius:8px;font-family:var(--hand);font-size:19px;line-height:24px;transform:rotate(-2.5deg)}
-  .wt-stamp.hot{border-color:var(--terra-ink);color:var(--terra-ink)} .wt-stamp small{display:block;font-family:var(--body);font-size:15px;line-height:18px;opacity:.85;max-width:420px}
-  #wt-chat .wt-chips{display:flex;flex-wrap:wrap;gap:8px;padding:0 26px} #wt-chat .wt-chips:not(:empty){padding-bottom:10px}
-  #wt-chat .wt-chips .chip{font-family:var(--body);font-size:19px;line-height:28px;cursor:pointer;box-shadow:2px 3px 0 var(--ink)}
-  #wt-chat .wt-chips .chip:hover{background:var(--pink)}
-  #wt-chat .wt-form{display:flex;gap:12px;align-items:center;padding:12px 18px 14px;border-top:3px solid var(--ink);background:var(--pink-l);border-radius:0 0 14px 26px}
-  #wt-chat .wt-in{flex:1;min-width:0;font-family:var(--body);font-size:24px;line-height:30px;padding:6px 16px;border:3px solid var(--ink);border-radius:16px 20px 14px 18px;background:#fff;color:var(--ink)}
-  #wt-chat .wt-in:focus-visible{outline:3px solid var(--pink-d);outline-offset:2px}
-  #wt-chat .wt-send{font-size:22px;padding:5px 18px;cursor:pointer} #wt-chat.busy .wt-send{opacity:.5}
-  #wt-chat .wt-mic{width:50px;height:50px;flex:none;display:grid;place-items:center;border:3px solid var(--ink);border-radius:50%;background:#fff;color:var(--ink);box-shadow:3px 3px 0 var(--ink);cursor:pointer}
-  #wt-chat .wt-mic[disabled]{opacity:.4;cursor:not-allowed;box-shadow:none}
-  #wt-chat .wt-mic[aria-pressed="true"]{background:var(--terra);color:#fff;animation:wtMic 1s ease-in-out infinite}
+  @keyframes wtPop{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:none}}
+  .wt-chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end} .wt-chips:empty{display:none}
+  .wt-chips .chip{font-family:var(--body);font-size:19px;line-height:28px;cursor:pointer;box-shadow:2px 3px 0 var(--ink)} .wt-chips .chip:hover{background:var(--pink)}
+  .wt-form{display:flex;gap:10px;align-items:center}
+  .wt-in{flex:1;min-width:0;font-family:var(--body);font-size:23px;line-height:30px;padding:6px 16px;border:3px solid var(--ink);border-radius:16px 20px 14px 18px;background:#fff;color:var(--ink);box-shadow:3px 4px 0 var(--ink)}
+  .wt-in:focus-visible{outline:3px solid var(--pink-d);outline-offset:2px}
+  .wt-send{font-size:21px;padding:5px 16px;cursor:pointer} #wt-stage.busy .wt-send{opacity:.5}
+  .wt-mic{width:50px;height:50px;flex:none;display:grid;place-items:center;border:3px solid var(--ink);border-radius:50%;background:#fff;color:var(--ink);box-shadow:3px 3px 0 var(--ink);cursor:pointer}
+  .wt-mic[disabled]{opacity:.4;cursor:not-allowed;box-shadow:none}
+  .wt-mic[aria-pressed="true"]{background:var(--terra);color:#fff;animation:wtMic 1s ease-in-out infinite}
   @keyframes wtMic{50%{box-shadow:3px 3px 0 var(--ink),0 0 0 9px rgba(192,99,79,.25)}}
-  @media (prefers-reduced-motion: reduce){#l-waiter .wt-bob,#l-waiter .wt-pen,#l-waiter .wt-lines path,#wt-chat,.wt-b,.wt-dots i,#wt-chat .wt-mic{animation:none !important}}
+  /* the written history, behind the "chat" toggle */
+  .wt-side{position:absolute;left:60%;right:0;top:0;bottom:0;display:flex;flex-direction:column;padding:56px 16px 14px 18px;border-left:3px dashed var(--ink);background:rgba(253,238,228,.55);animation:wtSide .35s var(--ease-out) both}
+  .wt-side[hidden]{display:none} @keyframes wtSide{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:none}}
+  .wt-side h3{font-family:var(--hand);font-weight:400;font-size:26px;line-height:30px;color:var(--pink-d);margin-bottom:6px}
+  .wt-log{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding:8px 26px 8px 22px;scrollbar-width:thin}
+  .wt-b{position:relative;max-width:88%;font-family:var(--body);font-size:20px;line-height:25px;padding:8px 16px 10px;border:3px solid var(--ink);box-shadow:3px 4px 0 var(--ink);overflow-wrap:anywhere}
+  .wt-b.kapi{align-self:flex-start;background:#fff;border-radius:24px 28px 26px 8px/26px 24px 28px 8px}
+  .wt-b.me{align-self:flex-end;background:var(--pink-l);border-radius:28px 24px 8px 26px/24px 26px 8px 28px}
+  .wt-b .wt-th{display:block;font-style:italic;font-size:17px;line-height:21px;opacity:.6;margin-bottom:3px}
+  .wt-slip{display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:0 18px;margin:8px 0 2px;padding:8px 12px;background:#fffefb;border:2px solid var(--ink);
+    font-family:'Courier Prime',monospace;font-size:15px;line-height:21px;transform:rotate(-1.2deg)}
+  .wt-slip b{grid-column:1/-1;border-bottom:2px dashed var(--ink);margin-bottom:3px} .wt-slip .tot{font-weight:700;border-top:2px dashed var(--ink);margin-top:3px}
+  .wt-slip i{grid-column:1/-1;font-family:var(--hand);font-style:normal;color:var(--olive);font-size:18px}
+  .wt-stamp{display:inline-block;margin:8px 8px 0 0;padding:1px 10px 3px;border:3px double var(--olive);color:var(--olive);border-radius:8px;font-family:var(--hand);font-size:18px;line-height:23px;transform:rotate(-2.5deg)}
+  .wt-b .wt-stamp{display:table} .wt-stamp.hot{border-color:var(--terra-ink);color:var(--terra-ink)} .wt-stamp small{display:block;font-family:var(--body);font-size:14px;line-height:17px;opacity:.85;max-width:420px}
+  @media (prefers-reduced-motion: reduce){.wt .wt-bob,.wt .wt-pen,.wt .wt-lines path,.wt-big .wt-doodles text,#wt-stage,.wt-cloud,.wt-say,.wt-act,.wt-you,.wt-cap,.wt-side,.wt-mic{animation:none !important}
+    .wt-big.alarm .wt-burst{opacity:1;animation:none}}
   /* perf: CSS loops of the rooms off screen hold still (they are not painted anyway, but their style ticks) */
   body[data-room="lobby"] :is(#kitchen,#pantry) *,body[data-room="kitchen"] :is(#lobby,#pantry) *,body[data-room="pantry"] :is(#lobby,#kitchen) *{animation-play-state:paused!important}
   /* dev overlay: ?fps */
