@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 ACTION_KINDS = (
     "serve_order", "bump_order", "restock_fridge", "set_price", "feature_item", "hide_item", "throttle", "place_po",
-    "premake", "replate_list", "replate_mode",
+    "premake", "replate_list", "replate_mode", "guest_order",
 )  # fmt: skip
 FINISHED_GOODS = ("muffin_fg", "cheesecake_slice", "cinnamon_roll_fg")
 TOPUP_PREMIUM = 1.15
@@ -224,6 +224,49 @@ def _replate_mode(w: World, p: dict[str, Any]) -> dict[str, Any]:
     return {"mode": w.replate.mode, "override": True}
 
 
+GUEST_MAX_ITEMS = 12
+
+
+def _guest_order(w: World, p: dict[str, Any]) -> dict[str, Any]:
+    """An order taken at the counter by the waiter for the person at the screen: a paid takeaway ticket on the rail."""
+    _need(p, "items")
+    raw = p["items"]
+    if not isinstance(raw, list) or not raw:
+        raise BadPayload("items must be a non-empty list of {sku, qty}")
+    td = w.now % 86400.0
+    if not w.cfg.cafe.open_s <= td < w.cfg.cafe.close_s:
+        raise InvalidAction("the café is closed")
+    items: list[tuple[str, tuple[str, ...]]] = []
+    for it in raw:
+        if not isinstance(it, dict) or "sku" not in it:
+            raise BadPayload("each item needs a sku")
+        sku = str(it["sku"])
+        try:
+            qty = int(it.get("qty", 1))
+        except (TypeError, ValueError) as e:
+            raise BadPayload(f"qty for {sku!r} must be a whole number") from e
+        if sku not in w.menu:
+            raise UnknownTarget(f"sku {sku!r} is not on the menu")
+        if qty < 1:
+            raise BadPayload(f"qty for {sku!r} must be at least 1")
+        if w.menu[sku].hidden is not None:
+            raise InvalidAction(f"{sku} is off the menu right now ({w.menu[sku].hidden})")
+        items += [(sku, ())] * qty
+    if len(items) > GUEST_MAX_ITEMS:
+        raise BadPayload(f"at most {GUEST_MAX_ITEMS} items per order")
+    note = str(p["note"])[:120] if p.get("note") else None
+    o = w.orders.make_order("takeaway", "regular", str(p.get("name") or "you")[:24], None, items, note, [])
+    if not w.orders.commit(o):
+        raise InvalidAction("sold out: nothing on that order can be made right now")
+    w.fin.collect(o, 0.5)
+    return {
+        "order_no": o.order_no,
+        "total": o.total,
+        "promised_s": round(o.promised_s, 1),
+        "items": [{"sku": ln["sku"], "qty": ln["qty"], "unit_price": ln["unit_price"]} for ln in o.lines],
+    }
+
+
 _HANDLERS = {
     "serve_order": _serve,
     "bump_order": _bump,
@@ -236,4 +279,5 @@ _HANDLERS = {
     "premake": _premake,
     "replate_list": _replate_list,
     "replate_mode": _replate_mode,
+    "guest_order": _guest_order,
 }

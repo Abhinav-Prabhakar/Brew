@@ -97,7 +97,13 @@ statement.
   an invest button that spends real sim cash. The item then shows up in the room.
 - **Resilient client**: since_seq resume, jittered backoff, re-hydration when the server restarts, a labelled
   offline replay. Kill the backend mid-rush and the page waits, then recovers with no duplicate tickets.
-- **Feels like a game**: Web Audio sound design with ducking and a generative lo-fi bed, focus zooms, parallax, and
+- **Kapi, the waiter**: a doodle with a notepad in front of the counter. Click him and the camera frames him while a
+  comic-strip chat opens: order from him (a real, paid ticket lands on the rail), ask about the menu, complain — he
+  writes it down and escalates what matters to the team. Type, or use the mic and watch your words appear as you
+  speak. Behind him: an LLM pool with several providers and several keys each, rotated round-robin with failover,
+  and a scripted stand-in so he works with no keys at all ([setup](#the-waiters-llm-keys)).
+- **Feels like a game**: Web Audio sound design with ducking, a faint café radio (four synthesised stations — click
+  the radio to change the tune), parallax, and
   p95 frame time ≤ 16.7 ms in the kitchen and pantry (static art baked to bitmaps once). It's axe-clean, fully
   keyboard operable, and captions are available.
 
@@ -168,6 +174,27 @@ uv run pytest -q                                   # backend + frontend (Playwri
 uv run ruff check . && uv run mypy src
 uv run python scripts/capture_readme_media.py      # regenerate everything in docs/images/
 ```
+
+## The waiter's LLM keys
+
+Kapi talks through `brew.llm.pool`: every (provider, key) pair is a slot, calls rotate over the slots, and a slot
+that fails (rate limit, rejected key, server error, timeout) rests with exponential backoff while the call moves on
+to the next. With no keys, or when every slot is down, the scripted waiter answers instead — the chat never breaks.
+
+Copy `.env.example` to `.env` (git-ignored) or export the variables, then restart `brew-api`:
+
+```bash
+ANTHROPIC_API_KEYS=sk-ant-…,sk-ant-…     # several keys per provider, comma separated
+OPENAI_API_KEYS=sk-…
+GROQ_API_KEYS=gsk_…,gsk_…
+BREW_LLM_ORDER=anthropic,groq,openai     # optional: which providers, in what order
+BREW_LLM_STRATEGY=round_robin            # or "priority": first provider first, the rest only as fallback
+BREW_LLM_GROQ_MODEL=llama-3.3-70b-versatile   # optional per-provider model / URL overrides
+```
+
+Known providers: `anthropic`, `openai`, `gemini`, `groq`, `openrouter`; any other OpenAI-compatible endpoint works with
+`BREW_LLM_<NAME>_URL`, `BREW_LLM_<NAME>_MODEL` and `<NAME>_API_KEYS`. `GET /api/v1/waiter/status` shows what is wired
+up and how each key is doing (keys masked). `BREW_LLM_ENABLED=0` forces the scripted waiter.
 
 ## Keys
 

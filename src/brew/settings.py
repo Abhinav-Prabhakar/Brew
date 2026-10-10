@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     git_sha: str = "unknown"
     serve_design: bool = True  # serve design/ (the hand-drawn frontend) at / from the same origin
     hours: str = ""  # opening-hours override for live worlds, e.g. "07:00-24:00" (brew.config.hours); "" = configs/cafe
+    llm_enabled: bool = True  # the waiter may call LLM providers (keys: see brew.llm.pool); False = scripted waiter only
 
     def resolved_database_url(self) -> str:
         if self.database_url:

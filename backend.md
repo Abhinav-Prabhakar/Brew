@@ -238,6 +238,7 @@ Mirrors what the lobby lets you do today plus owner overrides. Every action prod
 |---|---|---|
 | `serve_order` | `{order_no}` | Hand over a **ready** order now (otherwise a runner does it after `auto_serve_delay_s`). Delivery orders → bag to shelf. |
 | `bump_order` | `{order_no, on: bool}` | Toggle priority bump for a queued order. |
+| `guest_order` | `{items: [{sku, qty}], note?, name?}` | An order taken by the waiter for the person at the screen: a paid takeaway ticket on the rail (409 when closed / sold out, ≤ 12 items). Returns `{order_no, total, promised_s, items}`. |
 | `restock_fridge` | `{}` | Buy bakery top-up for finished goods (costed). |
 | `set_price` | `{sku, price}` | Owner price override (charter-checked). |
 | `feature_item` / `hide_item` | `{sku, on}` | Owner menu interventions. |
@@ -246,6 +247,12 @@ Mirrors what the lobby lets you do today plus owner overrides. Every action prod
 | `premake` | `{sku, units}` | Make units ahead of demand (eligible SKUs only); unsold units flow into Replate. |
 | `replate_list` | `{sku, discount_pct?}` | List / deepen the markdown of an eligible lot now (monotone, floor-checked; 422 on violation). |
 | `replate_mode` | `{mode: off|gentle|standard|aggressive}` | Owner override of the active policy's replate ladder. |
+
+**The waiter** (`brew.waiter`, not part of the sim's event stream): `POST /worlds/{id}/waiter/chat {messages: [{role, content}]}`
+→ `{say, mood, order | null, notes: [...], source: "<provider>" | "scripted", model}`. The model (or the scripted
+stand-in) answers with `{say, mood, actions}`; the server carries the actions out — `order` → a `guest_order` action,
+`note` → the waiter's pad (`GET /worlds/{id}/waiter/notes`), high-severity notes are flagged `escalated`.
+`GET /waiter/status` lists the configured LLM providers and key health (masked). Keys: README, "The waiter's LLM keys".
 
 ### 6.3 WebSocket `/api/v1/ws/worlds/{id}?since_seq=`
 Server → client: **batched frames** every 50–100 ms wall time: `{"frame": n, "events": [Event, ...]}`. Each event: `{"seq", "sim_s", "t", "type", "data"}`. Client → server: `{"op": "ping"}`, `{"op": "subscribe", "types": [...]}` (optional filter). On reconnect the client fetches `/state` and resumes with `since_seq` (server keeps a ring buffer of the last 10 000 events per world).

@@ -90,6 +90,17 @@ def test_keyboard_path(open_app):
                 return True
         return False
 
+    # the one zoom hot-spot is the waiter: Enter frames him and opens his chat with the input focused, Esc returns
+    assert focus_until("document.activeElement?.classList?.contains('zoomhit')"), "the waiter is not reachable with Tab"
+    assert "Kapi" in page.evaluate("document.activeElement.getAttribute('aria-label')")
+    page.keyboard.press("Enter")
+    page.wait_for_timeout(150)
+    assert page.evaluate("BrewCamera.zoomed?.zone") == "waiter" and page.evaluate("BrewWaiter.isOpen")
+    assert page.evaluate("document.activeElement?.classList?.contains('wt-in')")
+    page.keyboard.type("m1?")  # typing to the waiter is not a hotkey
+    assert page.evaluate("document.body.dataset.room") == "lobby" and not page.evaluate("!!window.BREW_MENUBOOK?.isOpen")
+    page.keyboard.press("Escape")
+    assert page.evaluate("BrewCamera.zoomed === null") and not page.evaluate("BrewWaiter.isOpen")
     # room tabs are reachable and Enter switches rooms
     assert focus_until("document.activeElement?.dataset?.go === 'kitchen'"), (
         "the kitchen tab is not reachable with Tab"
@@ -97,14 +108,8 @@ def test_keyboard_path(open_app):
     page.keyboard.press("Enter")
     page.wait_for_timeout(300)
     assert page.evaluate("document.body.dataset.room") == "kitchen"
-    # a zoom hot-spot: Enter zooms, Esc returns
-    assert focus_until("document.activeElement?.classList?.contains('zoomhit')"), (
-        "no zoom hot-spot reachable in the kitchen"
-    )
-    page.keyboard.press("Enter")
-    assert page.evaluate("!!BrewCamera.zoomed")
-    page.keyboard.press("Escape")
-    assert page.evaluate("BrewCamera.zoomed === null")
+    # the stations no longer zoom on a click / Enter: no hot-spots in the kitchen
+    assert page.evaluate("document.querySelectorAll('#kitchen-scene .zoomhit').length") == 0
     # the profit card expands with Enter and says so
     assert focus_until("document.activeElement?.classList?.contains('money')"), (
         "the profit card is not reachable"

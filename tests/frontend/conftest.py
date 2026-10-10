@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import functools
 import http.server
+import os
 import threading
 from collections.abc import Iterator
 from pathlib import Path
@@ -51,7 +52,8 @@ def browser() -> Iterator[object]:
     from playwright.sync_api import sync_playwright
 
     with sync_playwright() as p:
-        b = p.chromium.launch()
+        # BREW_BROWSER_CHANNEL=chrome runs the suite in an installed Chrome (no `playwright install` needed)
+        b = p.chromium.launch(channel=os.environ.get("BREW_BROWSER_CHANNEL") or None)
         yield b
         b.close()
 

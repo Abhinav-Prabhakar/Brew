@@ -1,8 +1,9 @@
 /* brew — the 2D camera. Room changes already slide the #track (brew.html); this adds:
    - parallax: what's seen through a window lags the slide a little (.cam-far), the door swings as you pass;
-   - focus zooms: click (or Enter on) a station, the ticket rail, the counter or a shelf → the room zooms/pans to
-     frame it. "← back", Esc, or a click on nothing interactive returns. The whole .room is transformed, so the HTML
-     cards stay glued to the art;
+   - focus zooms: the room zooms/pans to frame a zone; "← back", Esc, or a click on nothing interactive returns. The
+     whole .room is transformed, so the HTML cards stay glued to the art. Only zones marked `click` (Kapi the waiter)
+     zoom on a click / Enter — the rail, counter, stations and shelves used to, and it read as an accident; those
+     zones remain for the chaos glance and BrewCamera.zoom();
    - chaos attention: on chaos.triggered the kitchen camera glances at the broken station once (rate limited, never
      while the user is interacting, never pulling you out of another room).
    Mouse hits are geometric (SVG coordinates vs the zones below), so existing click targets keep working; keyboard and
@@ -15,6 +16,8 @@
   /* ---------- zones, in room coordinates [x, y, w, h] ---------- */
   Z.lobby.push({id: 'rail', label: 'the ticket rail', r: [280, 40, 1040, 250]});  // lobby.js RAIL_L 310 … RAIL_R 1290
   Z.lobby.push({id: 'counter', label: 'the counter and pastry fridge', r: [430, B - 190, 420, 250]});
+  // Kapi (waiter.js WX/WY): the hit is the doodle, the frame leaves the left of the view to his chat panel
+  Z.lobby.push({id: 'waiter', label: 'Kapi, the waiter', r: [1486, 776, 110, 216], frame: [1060, 560, 540, 440], click: true, verb: 'chat with'});
   const STN = {prep: 'prep board', oven: 'oven', fryer: 'fryer', press: 'panini press', espresso: 'espresso machine', grinder: 'grinder',
     blender: 'blender', cold: 'cold-brew tower', dishpit: 'dish pit'};
   const KM = {prep: [230, 500, 150], oven: [400, 430, 120], fryer: [545, 490, 110], press: [705, 500, 190], espresso: [930, 466, 220],
@@ -48,7 +51,7 @@
     const el = rooms[room]; if (!el) return;
     if (zoomed && zoomed.room !== room) unzoom(true);
     zoomed = {room, zone: zone.id, auto};
-    el.classList.add('zoomed'); el.style.transform = frameOf(zone.r);
+    el.classList.add('zoomed'); el.style.transform = frameOf(zone.frame || zone.r);
     back.hidden = false; back.textContent = `← back · ${zone.label.replace(/^the /, '')}`;
     document.body.classList.add('cam-zoomed');
     window.BREW_LIVE?.emit?.('camera.zoom', {room, zone: zone.id});
@@ -69,10 +72,10 @@
   for (const [room, list] of Object.entries(Z)) {
     const sc = scenes[room]; if (!sc) continue;
     const g = document.createElementNS(SVGNS, 'g'); g.id = room + '-zoom';
-    for (const z of list) {
+    for (const z of list.filter((x) => x.click)) {
       const r = document.createElementNS(SVGNS, 'rect');
       const [x, y, w, h] = z.r;
-      Object.entries({x, y, width: w, height: h, rx: 18, class: 'zoomhit', tabindex: 0, role: 'button', 'aria-label': `zoom to ${z.label}`}).forEach(([k, v]) => r.setAttribute(k, v));
+      Object.entries({x, y, width: w, height: h, rx: 18, class: 'zoomhit', tabindex: 0, role: 'button', 'aria-label': `${z.verb || 'zoom to'} ${z.label}`}).forEach(([k, v]) => r.setAttribute(k, v));
       r.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); zoomed?.zone === z.id ? unzoom() : zoom(room, z); } });
       g.appendChild(r);
     }
@@ -82,7 +85,7 @@
       if (zoomed) return unzoom();
       const ctm = sc.getScreenCTM(); if (!ctm) return;
       const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(ctm.inverse());
-      const hit = list.find((z) => p.x >= z.r[0] && p.x <= z.r[0] + z.r[2] && p.y >= z.r[1] && p.y <= z.r[1] + z.r[3]);
+      const hit = list.find((z) => z.click && p.x >= z.r[0] && p.x <= z.r[0] + z.r[2] && p.y >= z.r[1] && p.y <= z.r[1] + z.r[3]);
       if (hit) zoom(room, hit);
     });
   }

@@ -12,6 +12,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from brew.config.loader import repo_root
+from brew.llm import LLMPool
 from brew.policies.charter import CharterViolation
 from brew.settings import Settings, get_settings
 from brew.sim.actions import ActionError
@@ -42,7 +44,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
         app.state.manager = WorldManager(s)
         app.state.jobs = JobRegistry()
+        app.state.waiter_pads = {}
+        if getattr(app.state, "llm", None) is None:  # (tests may set their own pool before startup)
+            app.state.llm = LLMPool.from_env(dotenv=repo_root() / ".env") if s.llm_enabled else LLMPool()
         yield
+        await app.state.llm.aclose()
         app.state.jobs.shutdown()
         await app.state.manager.shutdown()
 
@@ -93,7 +99,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         code = {404: "not_found", 405: "method_not_allowed"}.get(e.status_code, "http_error")
         return ORJSONResponse(error_body(code, str(e.detail)), status_code=e.status_code)
 
-    from .routers import analysis, meta, read, worlds, ws
+    from .routers import analysis, meta, read, waiter, worlds, ws
 
     prefix = "/api/v1"
     app.include_router(meta.router, prefix=prefix)
@@ -101,6 +107,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(read.router, prefix=prefix)
     app.include_router(analysis.router, prefix=prefix)
     app.include_router(ws.router, prefix=prefix)
+    app.include_router(waiter.router, prefix=prefix)
     if s.serve_design:
         _mount_design(app)
     return app
@@ -110,8 +117,6 @@ def _mount_design(app: FastAPI) -> None:
     """Serve ``design/`` at ``/`` (index -> brew.html). Mounted last so ``/api/v1/*`` wins."""
     from fastapi.responses import FileResponse
     from fastapi.staticfiles import StaticFiles
-
-    from brew.config.loader import repo_root
 
     d = repo_root() / "design"
     if not (d / "brew.html").exists():
