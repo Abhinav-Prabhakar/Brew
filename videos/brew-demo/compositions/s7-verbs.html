@@ -87,10 +87,10 @@
       <div id="s7-root" data-composition-id="s7-verbs" data-width="1920" data-height="1080">
         <div id="s7-kick" class="b">
           <div id="s7-cam">
-            <video id="s7-v1" class="clip" src="assets/clips/v_prep.mp4" muted playsinline data-start="0" data-duration="0.7143" data-track-index="0"></video>
-            <video id="s7-v2" class="clip" data-hf-media-start-basis="local" src="assets/clips/v_price.mp4" muted playsinline data-start="0.7143" data-duration="0.7143" data-track-index="0"></video>
-            <video id="s7-v3" class="clip" data-hf-media-start-basis="local" src="assets/clips/v_cook.mp4" muted playsinline data-start="1.4286" data-duration="0.7143" data-track-index="0"></video>
-            <video id="s7-v4" class="clip" data-hf-media-start-basis="local" src="assets/clips/v_rescue.mp4" muted playsinline data-start="2.1429" data-duration="0.7142" data-track-index="0"></video>
+            <video id="s7-v1" class="clip" src="assets/clips/v_prep.mp4" muted playsinline data-start="0" data-duration="0.5952" data-track-index="0"></video>
+            <video id="s7-v2" class="clip" data-hf-media-start-basis="local" src="assets/clips/v_price.mp4" muted playsinline data-start="0.5952" data-duration="0.5952" data-track-index="0"></video>
+            <video id="s7-v3" class="clip" data-hf-media-start-basis="local" src="assets/clips/v_cook.mp4" muted playsinline data-start="1.1905" data-duration="0.5952" data-track-index="0"></video>
+            <video id="s7-v4" class="clip" data-hf-media-start-basis="local" src="assets/clips/v_rescue.mp4" muted playsinline data-start="1.7857" data-duration="0.5953" data-track-index="0"></video>
           </div>
         </div>
         <div id="s7-tint"></div>
@@ -107,26 +107,24 @@
       <script>
         (() => {
           const { t, E, pop, hide, cam } = BREW;
-          const S = t(88), at = (e) => t(e) - S;
+          const S = t(76), at = (e) => t(e) - S;
           const c = (cx, cy, s) => cam(1920, 1200, cx, cy, s);
           // four decisions the manager makes, a quarter-note each, over the screen it makes them on
           const shots = [
-            { cam: c(520, 890, 1.9), tint: "#8fa585", rot: -4 }, // the lobby's decision card: "prep 4 L cold brew..."
-            { cam: c(690, 285, 2.0), tint: "#e3b25a", rot: 3 }, // the menu book's price column
-            { cam: c(560, 860, 1.7), tint: "#e07e52", rot: -2 }, // the kitchen's crew and stations
-            { cam: c(330, 880, 1.9), tint: "#f7c3a3", rot: 4 }, // the pantry's use-today markdowns
+            { a: c(520, 890, 1.8), b: c(540, 880, 2.0), tint: "#8fa585", rot: -4 }, // the lobby's decision card: "prep 4 L cold brew..."
+            { a: c(690, 285, 1.9), b: c(700, 290, 2.1), tint: "#e3b25a", rot: 3 }, // the menu book's price column
+            { a: c(560, 860, 1.6), b: c(580, 850, 1.8), tint: "#e07e52", rot: -2 }, // the kitchen's crew and stations
+            { a: c(330, 880, 1.8), b: c(350, 870, 2.0), tint: "#f7c3a3", rot: 4 }, // the pantry's use-today markdowns
           ];
           const tl = gsap.timeline({ paused: true });
           shots.forEach((s, i) => {
-            const T = at(88 + i * 2);
-            tl.set("#s7-cam", s.cam, T);
+            const T = at(76 + i * 2);
+            // the camera pushes in through each card instead of kicking
+            tl.fromTo("#s7-cam", s.a, { ...s.b, duration: 2 * E, ease: "none", immediateRender: i === 0 }, T);
             tl.set("#s7-tint", { backgroundColor: s.tint }, T);
-            tl.fromTo("#s7-white", { opacity: 0.75 }, { opacity: 0, duration: 0.14, ease: "power2.out", immediateRender: i === 0 }, T);
-            tl.fromTo("#s7-kick", { scale: 1.14 }, { scale: 1, duration: 0.3, ease: "power3.out", immediateRender: false }, T);
-            tl.fromTo("#s7-kick", { scale: 1 }, { scale: 1.05, duration: 0.14, ease: "power2.out", yoyo: true, repeat: 1, immediateRender: false }, T + E);
-            pop(tl, `#s7-c${i + 1}`, T, { from: 1.8, rot: s.rot, rot0: -s.rot * 4, dur: 0.16 });
-            pop(tl, `#s7-n${i + 1}`, T, { from: 2, rot: -s.rot, rot0: s.rot * 3, dur: 0.16 });
-            tl.fromTo(`#s7-c${i + 1} b`, { scale: 1 }, { scale: 1.07, duration: 0.12, ease: "power2.out", yoyo: true, repeat: 1, transformOrigin: "30% 60%", immediateRender: false }, T + E);
+            tl.fromTo("#s7-white", { opacity: 0.6 }, { opacity: 0, duration: 0.14, ease: "power2.out", immediateRender: i === 0 }, T);
+            pop(tl, `#s7-c${i + 1}`, T, { from: 1.35, rot: s.rot, rot0: -s.rot * 2.5, y: 0, dur: 0.22 });
+            pop(tl, `#s7-n${i + 1}`, T, { from: 1.5, rot: -s.rot, rot0: s.rot * 2, y: 0, dur: 0.22 });
             if (i < 3) {
               hide(tl, `#s7-c${i + 1}`, T + 2 * E - 0.02, 0.02);
               hide(tl, `#s7-n${i + 1}`, T + 2 * E - 0.02, 0.02);

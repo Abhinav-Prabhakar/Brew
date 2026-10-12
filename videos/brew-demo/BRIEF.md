@@ -6,7 +6,7 @@ message: "brew looks like a cosy hand-drawn café, and under the ink a learned m
 destination: youtube / README embed
 aspect: 1920x1080
 language: en
-length: 62s
+length: 38s
 audience: engineers and reviewers meeting the project for the first time
 narration: no
 ---
@@ -23,8 +23,8 @@ the day closes on a printed receipt. Left behind on purpose: the dark, neon "AI 
 
 - assets/footage/*.mp4 — the real UI, recorded from design/brew.html replaying the golden fixtures (and a live
   scripted backend for Kapi) by tools/capture_footage.py. Every screen in the film is the real page.
-- assets/music/track.wav — the first 62 s of "Champion" (Mojo Soundtrack), chosen by the user, faded out over the
-  last second. It is licensed stock music: it is NOT in the repo, and publishing the film needs the user's licence.
+- assets/music/track.wav — "Champion" (Mojo Soundtrack), chosen and licensed by the user: from 3.6 s, played 1.2x faster, ending on a
+  bar line at about 37 s. The track itself is NOT in the repo; only the film carries it.
   tools/analyze_music.py finds its grid and hits (beats.js); the whole film is cut to them.
 
 ## Customizations
@@ -32,6 +32,9 @@ the day closes on a printed receipt. Left behind on purpose: the dark, neon "AI 
 - Second pass (user feedback: too slow, like a template slideshow): cut to the new track's beat, high-energy
   pacing, varied transitions, everything on screen reacting to the hits, hand-drawn elements that animate on the
   beat. The styling stays.
+- Third pass (user feedback: still slow, bounces too hard): about half the beats for the same story, several
+  things per hit, the music at 1.2x; big elements no longer bounce (continuous camera moves instead), only small
+  doodles take a light kick.
 - Count-ups on the arena numbers; the brand's own fonts (Gochi Hand, Patrick Hand, Caveat, Courier Prime) and
   palette (paper #fbf7f1, ink #1d1a1c, terracotta #e07e52).
 

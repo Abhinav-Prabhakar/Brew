@@ -1,6 +1,6 @@
 # brew · one day at the café (the demo film)
 
-A 62-second film about brew, built with [HyperFrames](https://hyperframes.heygen.com): HTML scenes on one seekable
+A 38-second film about brew, built with [HyperFrames](https://hyperframes.heygen.com): HTML scenes on one seekable
 timeline, cut to the beat of its music. Every screen in it is the real page.
 
 - `index.html` — the film: the beat kit (`BREW`), paper, the transition overlays, the music, eleven scenes
@@ -8,7 +8,7 @@ timeline, cut to the beat of its music. Every screen in it is the real page.
 - `compositions/` — the scenes (`s0-open` … `s10-close`) and the day rail
 - `tools/capture_footage.py` — records the real UI (replayed fixtures; a scripted backend for Kapi) with the installed Chrome
 - `tools/cut_footage.sh` — cuts the recordings into the shots the scenes use (`assets/clips/`)
-- `tools/analyze_music.py` — finds the track's tempo, phase and hits, writes `beats.js` and the 62-second `track.wav`
+- `tools/analyze_music.py` — finds the track's tempo, phase and hits, writes `beats.js` and the film's `track.wav` (the track from 3.6 s, 1.2× faster)
 - `tools/make_music.py` — the first cut's synthesised score (not used by the current cut)
 - `STORYBOARD.md` — what happens on which beat
 

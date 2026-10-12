@@ -77,8 +77,8 @@
           <div id="s8-winb" class="b">
             <div id="s8-win" class="win">
               <div id="s8-cam" class="cam">
-                <video id="s8-v1" class="clip" src="assets/clips/kapi1.mp4" muted playsinline data-start="0" data-duration="1.4286" data-track-index="0"></video>
-                <video id="s8-v2" class="clip" data-hf-media-start-basis="local" src="assets/clips/kapi2.mp4" muted playsinline data-start="1.4286" data-duration="1.4286" data-track-index="0"></video>
+                <video id="s8-v1" class="clip" src="assets/clips/kapi1.mp4" muted playsinline data-start="0" data-duration="1.1905" data-track-index="0"></video>
+                <video id="s8-v2" class="clip" data-hf-media-start-basis="local" src="assets/clips/kapi2.mp4" muted playsinline data-start="1.1905" data-duration="1.1905" data-track-index="0"></video>
               </div>
             </div>
           </div>
@@ -98,28 +98,26 @@
       <script>
         (() => {
           const { t, pop, write, draw, bump, cam } = BREW;
-          const S = t(96), at = (e) => t(e) - S;
+          const S = t(48), at = (e) => t(e) - S;
           const c = (cx, cy, s) => cam(1264, 790, cx, cy, s);
-          const wide = c(800, 500, 1), board = c(1150, 420, 1.45), slip = c(820, 560, 1.55);
+          const wide = c(800, 500, 1), board = c(1150, 420, 1.45), board2 = c(1160, 430, 1.55), slip = c(820, 560, 1.5), slip2 = c(800, 540, 1.62);
           const tl = gsap.timeline({ paused: true });
+          // (the ink iris is opening) the window settles with the title; stomp: the first line and the board
           tl.fromTo("#s8-cam", wide, { ...wide, duration: 0.01 }, 0);
-          // a hard cut out of the montage: the window lands on the downbeat
-          tl.fromTo("#s8-win", { scale: 1.3, rotation: 3 }, { scale: 1, rotation: 1, duration: 0.2, ease: "power4.out" }, 0);
-          pop(tl, "#s8-title", 0.06, { from: 1.8, rot0: -8 });
-          pop(tl, "#s8-stamp", at(97), { from: 2.2, rot: -3, rot0: -20 });
-          draw(tl, ".s8-note path", at(97), 0.14, 0.06);
-          pop(tl, "#s8-say1", at(98), { from: 1.6, rot0: -6 });
-          tl.fromTo("#s8-cam", wide, { ...board, duration: 0.16, ease: "expo.out", immediateRender: false }, at(98));
-          // half way through the bar the footage cuts to the order
-          tl.set("#s8-cam", wide, at(100));
-          pop(tl, "#s8-say2", at(100), { from: 1.6, rot0: 6 });
-          tl.fromTo("#s8-cam", wide, { ...slip, duration: 0.16, ease: "expo.out", immediateRender: false }, at(101));
-          write(tl, "#s8-n2", at(101), 0.24);
-          draw(tl, "#s8-arrow path", at(102), 0.2);
-          tl.fromTo("#s8-pool", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.2, ease: "power2.out" }, at(102));
-          bump(tl, "#s8-winb", t(97), t(104), { amt: 0.03, rot: 0.6, min: 0.5 });
-          bump(tl, "#s8-col", t(99), t(104), { amt: 0.02, y: 9, min: 0.5 });
-          bump(tl, ".s8-note", t(98), t(104), { amt: 0.5, rot: 22, min: 0.2 });
+          tl.fromTo("#s8-win", { scale: 1.12, rotation: 3 }, { scale: 1, rotation: 1, duration: 0.34, ease: "expo.out" }, 0);
+          pop(tl, "#s8-title", 0.1, { from: 1.4, rot0: -5 });
+          pop(tl, "#s8-stamp", 0.16, { rot: -3, rot0: -10 });
+          pop(tl, "#s8-say1", at(49), { rot0: -4 });
+          tl.fromTo("#s8-cam", wide, { ...board, duration: 0.3, ease: "expo.out", immediateRender: false }, at(49));
+          tl.fromTo("#s8-cam", board, { ...board2, duration: at(52) - at(49) - 0.3, ease: "none", immediateRender: false }, at(49) + 0.3);
+          draw(tl, ".s8-note path", at(50), 0.14, 0.06);
+          // half way through the bar the footage cuts to the order; the two stomps after: the line, the ticket
+          tl.fromTo("#s8-cam", slip, { ...slip2, duration: at(56) - at(52), ease: "none", immediateRender: false }, at(52));
+          pop(tl, "#s8-say2", at(52), { rot0: 4 });
+          write(tl, "#s8-n2", at(53), 0.22);
+          draw(tl, "#s8-arrow path", at(53), 0.2);
+          tl.fromTo("#s8-pool", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.2, ease: "power2.out" }, at(54));
+          bump(tl, ".s8-note", t(50) + 0.2, t(56), { amt: 0.3, rot: 14, min: 0.3 });
           window.__timelines["s8-kapi"] = tl;
         })();
       </script>

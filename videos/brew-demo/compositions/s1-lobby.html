@@ -74,7 +74,7 @@
           <div id="s1-winb" class="b">
             <div id="s1-win" class="win">
               <div id="s1-cam" class="cam">
-                <video id="s1-vid" class="clip" src="assets/clips/lobby.mp4" muted playsinline data-start="0" data-duration="5.7143" data-track-index="0"></video>
+                <video id="s1-vid" class="clip" src="assets/clips/lobby.mp4" muted playsinline data-start="0" data-duration="3.5714" data-track-index="0"></video>
               </div>
             </div>
           </div>
@@ -100,42 +100,43 @@
           const { t, pop, hide, write, draw, bump, cam } = BREW;
           const S = t(8), at = (e) => t(e) - S;
           const c = (cx, cy, s) => cam(1296, 810, cx, cy, s);
-          const wide = c(800, 500, 1), rail = c(430, 170, 1.9), queue = c(1180, 560, 2), card = c(520, 890, 1.9);
-          const snap = (from, to, e) => tl.fromTo("#s1-cam", from, { ...to, duration: 0.16, ease: "expo.out", immediateRender: false }, at(e));
+          const wide = c(800, 500, 1), wide2 = c(760, 470, 1.08), rail = c(430, 170, 1.9), rail2 = c(480, 190, 2.02),
+            queue = c(1180, 560, 2), queue2 = c(1140, 560, 2.12), card = c(520, 890, 1.9), card2 = c(560, 880, 2.02);
           const tl = gsap.timeline({ paused: true });
-          tl.fromTo("#s1-cam", wide, { ...wide, duration: 0.01 }, 0);
-          // the page whips in on the bar line; stamp, title on the next two stomps
+          // the camera never stands still: it glides inside each shot and snaps to the next one on a stomp
+          const shot = (a, b, e0, e1, first) => {
+            tl.fromTo("#s1-cam", first ? a : a, { ...b, duration: at(e1) - at(e0), ease: "none", immediateRender: !!first }, at(e0));
+          };
+          shot(wide, wide2, 8, 10, true);
+          shot(rail, rail2, 10, 13);
+          shot(queue, queue2, 13, 14);
+          shot(card, card2, 14, 16);
+          shot(wide2, wide, 16, 20);
+          // the downbeat: the page whips in with its stamp and title already landing
           tl.fromTo("#s1-wrap", { x: 2300, skewX: 14 }, { x: 0, skewX: 0, duration: 0.2, ease: "power3.out" }, 0);
-          pop(tl, "#s1-stamp", at(9), { from: 2.2, rot: -3, rot0: -20 });
-          pop(tl, "#s1-title span", at(10), { from: 1.5, rot: 0, rot0: -4 });
-          pop(tl, "#s1-title em", at(10) + 0.09, { from: 2.2, rot: -3, rot0: 8 });
-          // hit, hit: the rail is circled, the note points at it
-          draw(tl, "#s1-circle path", at(13), 0.2);
-          write(tl, "#s1-n1", at(13), 0.24);
-          draw(tl, "#s1-arrow path", at(14), 0.14, 0.1);
-          // bar two: three stomps, three snap zooms
-          hide(tl, "#s1-circle", at(16), 0.05);
-          hide(tl, "#s1-arrow", at(16), 0.05);
-          snap(wide, rail, 16);
-          pop(tl, "#s1-t1", at(16), { rot: 3, rot0: 14 });
-          hide(tl, "#s1-t1", at(17), 0.05);
-          snap(rail, queue, 17);
-          pop(tl, "#s1-t2", at(17), { rot: -3, rot0: -14 });
-          write(tl, "#s1-n2", at(17), 0.24);
-          hide(tl, "#s1-t2", at(18), 0.05);
-          snap(queue, card, 18);
-          pop(tl, "#s1-t3", at(18), { rot: 2, rot0: 12 });
-          // hit, hit: back out, and the last note with its sparks
-          hide(tl, "#s1-t3", at(21), 0.05);
-          snap(card, wide, 21);
-          write(tl, "#s1-n3", at(22), 0.24);
-          draw(tl, ".s1-spark path", at(22), 0.14, 0.04);
-          // everything on screen takes the beat
-          bump(tl, "#s1-winb", t(9), t(24), { amt: 0.028, rot: 0.5 });
-          bump(tl, "#s1-col", t(11), t(24), { amt: 0.02, y: 9 });
-          bump(tl, ".s1-spark", t(22) + 0.2, t(24), { amt: 0.5, rot: 25, min: 0.2 });
+          pop(tl, "#s1-stamp", 0.08, { rot: -3, rot0: -10 });
+          pop(tl, "#s1-title span", 0.14, { rot0: -3 });
+          pop(tl, "#s1-title em", 0.2, { from: 1.4, rot: -3, rot0: 5 });
+          // stomp: the rail is circled and named. stomp: into it.
+          draw(tl, "#s1-circle path", at(9), 0.2);
+          draw(tl, "#s1-arrow path", at(9) + 0.06, 0.14, 0.08);
+          write(tl, "#s1-n1", at(9), 0.24);
+          hide(tl, "#s1-circle", at(10), 0.05);
+          hide(tl, "#s1-arrow", at(10), 0.05);
+          pop(tl, "#s1-t1", at(10), { rot: 3, rot0: 9 });
+          // the two after the gap: the queue, the decision card
+          hide(tl, "#s1-t1", at(13), 0.05);
+          pop(tl, "#s1-t2", at(13), { rot: -3, rot0: -9 });
+          write(tl, "#s1-n2", at(13), 0.24);
+          hide(tl, "#s1-t2", at(14), 0.05);
+          pop(tl, "#s1-t3", at(14), { rot: 2, rot0: 8 });
+          // next downbeat: back out, the last note and its sparks
+          hide(tl, "#s1-t3", at(16), 0.05);
+          write(tl, "#s1-n3", at(16), 0.24);
+          draw(tl, ".s1-spark path", at(17), 0.14, 0.04);
+          bump(tl, ".s1-spark", t(17) + 0.2, t(20), { amt: 0.25, rot: 14, min: 0.3 });
           // out: straight through the window into the kitchen
-          tl.fromTo("#s1-wrap", { scale: 1, opacity: 1 }, { scale: 2.6, opacity: 0, duration: 0.17, ease: "power3.in", immediateRender: false }, at(24) - 0.17);
+          tl.fromTo("#s1-wrap", { scale: 1, opacity: 1 }, { scale: 2.6, opacity: 0, duration: 0.17, ease: "power3.in", immediateRender: false }, at(20) - 0.17);
           window.__timelines["s1-lobby"] = tl;
         })();
       </script>

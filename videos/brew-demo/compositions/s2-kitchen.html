@@ -110,7 +110,7 @@
           <div id="s2-winb" class="b">
             <div id="s2-win" class="win">
               <div id="s2-cam" class="cam">
-                <video id="s2-vid" class="clip" src="assets/clips/kitchen.mp4" muted playsinline data-start="0" data-duration="5.7143" data-track-index="0"></video>
+                <video id="s2-vid" class="clip" src="assets/clips/kitchen.mp4" muted playsinline data-start="0" data-duration="3.5714" data-track-index="0"></video>
               </div>
             </div>
           </div>
@@ -137,42 +137,40 @@
       <script>
         (() => {
           const { t, pop, hide, write, draw, bump, shake, cam } = BREW;
-          const S = t(24), at = (e) => t(e) - S;
+          const S = t(20), at = (e) => t(e) - S;
           const c = (cx, cy, s) => cam(1216, 760, cx, cy, s);
-          const wide = c(800, 500, 1), machine = c(960, 470, 1.45);
+          const wide = c(800, 500, 1), machine = c(960, 470, 1.4);
           const tl = gsap.timeline({ paused: true });
           tl.fromTo("#s2-flash", { opacity: 0 }, { opacity: 0, duration: 0.01 }, 0);
-          tl.fromTo("#s2-cam", wide, { ...wide, duration: 0.01 }, 0);
-          // in: through the lobby's window
+          // in: through the lobby's window, stamp and title landing with it; the camera creeps toward the machine
           tl.fromTo("#s2-wrap", { scale: 0.45, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.2, ease: "power3.out" }, 0);
-          pop(tl, "#s2-stamp", at(25), { from: 2.2, rot: 3, rot0: 20 });
-          pop(tl, "#s2-title span", at(26), { from: 1.5, rot0: 5, stagger: 0.07 });
-          // this bar's odd hits (eighths 4 and 6): hold your breath
-          write(tl, "#s2-wait", at(28), 0.3);
-          draw(tl, "#s2-arrow path", at(30), 0.14, 0.1);
-          tl.fromTo("#s2-cam", wide, { ...machine, duration: 0.5, ease: "power2.in", immediateRender: false }, at(30));
-          // the downbeat of the next bar is 08:30:00 in the footage
-          const T = at(32);
+          tl.fromTo("#s2-cam", wide, { ...machine, duration: at(24), ease: "power1.in" }, 0);
+          pop(tl, "#s2-stamp", 0.08, { rot: 3, rot0: 10 });
+          pop(tl, "#s2-title span", 0.14, { rot0: 3, stagger: 0.06 });
+          // the two stomps before the bar line: hold your breath
+          write(tl, "#s2-wait", at(21), 0.22);
+          draw(tl, "#s2-arrow path", at(22), 0.12, 0.08);
+          // the downbeat is 08:30:00 in the footage
+          const T = at(24);
           hide(tl, "#s2-wait", T, 0.04);
           hide(tl, "#s2-arrow", T, 0.04);
-          tl.fromTo("#s2-flash", { opacity: 0.7 }, { opacity: 0, duration: 0.4, ease: "power2.out", immediateRender: false }, T);
-          tl.fromTo("#s2-cam", machine, { ...wide, duration: 0.16, ease: "expo.out", immediateRender: false }, T);
-          shake(tl, "#s2-root", T, 26, 8);
-          pop(tl, "#s2-down", T, { from: 3.2, rot: -9, rot0: -30, dur: 0.16 });
-          pop(tl, "#s2-title em", T, { from: 2.4, rot: -3, rot0: 10 });
+          tl.fromTo("#s2-flash", { opacity: 0.6 }, { opacity: 0, duration: 0.4, ease: "power2.out", immediateRender: false }, T);
+          tl.fromTo("#s2-cam", machine, { ...wide, duration: 0.3, ease: "expo.out", immediateRender: false }, T);
+          shake(tl, "#s2-root", T, 10, 5);
+          pop(tl, "#s2-down", T, { from: 2, rot: -9, rot0: -20, y: 0, dur: 0.24 });
+          pop(tl, "#s2-title em", T, { from: 1.5, rot: -3, rot0: 6 });
           draw(tl, ".s2-bolt path", T, 0.12, 0.05);
-          tl.fromTo("#s2-tape", { x: -2400 }, { x: 0, duration: 0.24, ease: "power3.out" }, at(33));
-          tl.fromTo("#s2-tape", { backgroundPositionX: 0 }, { backgroundPositionX: 248, duration: 2.6, ease: "none", immediateRender: false }, at(33));
-          tl.fromTo("#s2-down", { scale: 1, x: 0, y: 0 }, { scale: 0.46, x: 248, y: -112, duration: 0.16, ease: "expo.out", immediateRender: false }, at(34));
-          pop(tl, "#s2-replan", at(34), { rot: -2, rot0: 10 });
-          // the last two hits: the chaos buttons, three and three
-          write(tl, "#s2-n2", at(37) - 0.12, 0.2);
+          tl.fromTo("#s2-tape", { x: -2400 }, { x: 0, duration: 0.3, ease: "power3.out" }, T + 0.05);
+          tl.fromTo("#s2-tape", { backgroundPositionX: 0 }, { backgroundPositionX: 248, duration: 2.3, ease: "none", immediateRender: false }, T + 0.05);
+          // stomp: the re-plan. stomp: three chaos buttons. then the other three and their heading.
+          tl.fromTo("#s2-down", { scale: 1, x: 0, y: 0 }, { scale: 0.46, x: 248, y: -112, duration: 0.3, ease: "expo.out", immediateRender: false }, at(25));
+          pop(tl, "#s2-replan", at(25), { rot: -2, rot0: 6 });
+          write(tl, "#s2-n2", at(26) - 0.1, 0.2);
           const chips = gsap.utils.toArray(".s2-chip");
-          pop(tl, chips.slice(0, 3), at(37), { from: 2, rot0: 14, stagger: 0.06 });
-          pop(tl, chips.slice(3), at(38), { from: 2, rot0: -14, stagger: 0.06 });
-          bump(tl, "#s2-winb", t(25), t(40), { amt: 0.028, rot: 0.6 });
-          bump(tl, "#s2-col", t(27), t(40), { amt: 0.02, y: 9 });
-          bump(tl, ".s2-bolt", t(33), t(40), { amt: 0.35, rot: 14 });
+          pop(tl, chips.slice(0, 3), at(26), { rot0: 8, stagger: 0.05 });
+          pop(tl, chips.slice(3), at(28), { rot0: -8, stagger: 0.05 });
+          tl.fromTo("#s2-cam", wide, { ...c(820, 520, 1.06), duration: at(32) - at(25), ease: "none", immediateRender: false }, at(25) + 0.3);
+          bump(tl, ".s2-bolt", t(25), t(32), { amt: 0.2, rot: 8, min: 0.4 });
           window.__timelines["s2-kitchen"] = tl;
         })();
       </script>

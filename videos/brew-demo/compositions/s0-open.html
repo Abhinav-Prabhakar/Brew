@@ -160,41 +160,36 @@
       </div>
       <script>
         (() => {
-          const { t, pop, write, draw, bump, shake } = BREW;
-          const at = (e) => t(e); // this scene starts at 0 s; the first stomp (e = 0) is at 4.755 s
+          const { t, pop, write, draw, bump } = BREW;
+          const at = (e) => t(e); // this scene starts at 0 s; the first stomp (e = 0) is just under a second in
           const tl = gsap.timeline({ paused: true });
-          tl.fromTo("#s0-sun", { y: 460, scale: 0.7 }, { y: 0, scale: 1, duration: 7.4, ease: "power1.out" }, 0);
-          // the drone: a slow pencil
-          draw(tl, "#s0-guide path", 0.2, 1.6);
-          tl.fromTo(".s0-c", { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 1.0, stagger: 0.5, ease: "power1.inOut" }, 0.5);
-          tl.fromTo(".s0-s", { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 0.9, stagger: 0.25, ease: "power1.inOut" }, 2.6);
-          write(tl, "#s0-tag", 1.5, 1.9);
-          tl.fromTo("#s0-wrap", { scale: 1.06 }, { scale: 1, duration: at(0) - 0.35, ease: "none" }, 0);
-          // ...breathe in...
-          tl.fromTo("#s0-wrap", { scale: 1 }, { scale: 0.93, duration: 0.3, ease: "power2.in", immediateRender: false }, at(0) - 0.32);
-          // stomp, stomp, stomp: the logo, the heart, the underline
-          tl.fromTo("#s0-wrap", { scale: 0.93 }, { scale: 1, duration: 0.14, ease: "power4.out", immediateRender: false }, at(0));
-          pop(tl, "#s0-logo", at(0), { from: 2.3, rot: -2, rot0: -9, dur: 0.18 });
+          tl.fromTo("#s0-sun", { y: 460, scale: 0.7 }, { y: 0, scale: 1, duration: at(8), ease: "power1.out" }, 0);
+          // the breath before the first stomp: a pencil sketches the cup and the line
+          draw(tl, "#s0-guide path", 0.02, 0.5);
+          tl.fromTo(".s0-c", { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 0.4, stagger: 0.1, ease: "power1.inOut" }, 0.05);
+          tl.fromTo(".s0-s", { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 0.4, stagger: 0.08, ease: "power1.inOut" }, 0.45);
+          write(tl, "#s0-tag", 0.2, 0.7);
+          tl.fromTo("#s0-wrap", { scale: 1.05 }, { scale: 0.97, duration: at(0), ease: "power1.in" }, 0);
+          // stomp, stomp, stomp: the logo; the heart and its burst; the underline, the sparks and the clock
+          tl.fromTo("#s0-wrap", { scale: 0.97 }, { scale: 1, duration: 0.3, ease: "expo.out", immediateRender: false }, at(0));
+          pop(tl, "#s0-logo", at(0), { from: 1.5, rot: -2, rot0: -6, y: 0, dur: 0.3 });
           tl.fromTo("#s0-guide", { opacity: 0.55 }, { opacity: 0, duration: 0.05, immediateRender: false }, at(0));
-          shake(tl, "#s0-root", at(0), 22);
-          pop(tl, "#s0-heart", at(1), { from: 2.6, rot: 0, rot0: 30 });
+          pop(tl, "#s0-heart", at(1), { from: 1.8, rot: 0, rot0: 24, y: 0 });
           draw(tl, "#s0-burst path", at(1), 0.14, 0.02);
           draw(tl, "#s0-under path", at(2), 0.2);
           draw(tl, ".s0-spark path", at(2), 0.16, 0.05);
-          // ...and two more: the clock, the door sign
-          pop(tl, "#s0-clock", at(5), { from: 1.8, rot: 2, rot0: -10 });
-          pop(tl, "#s0-open", at(6), { from: 2, rot: -5, rot0: 14 });
-          // the beat keeps kicking what is there
-          bump(tl, "#s0-logob", t(1), t(8), { amt: 0.05, rot: 0.8 });
-          bump(tl, "#s0-cupb", t(0), t(8), { amt: 0.07, rot: 2 });
-          bump(tl, ".s0-spark", t(5), t(8), { amt: 0.4, rot: 20 });
-          // the morning runs on to 08:08 through the pickup, and the page whips away on the bar line
+          pop(tl, "#s0-clock", at(2), { rot: 2, rot0: -6 });
+          // two more: the door sign, and the morning running on to 08:08
+          pop(tl, "#s0-open", at(5), { rot: -5, rot0: 8 });
           const clock = { m: 420 };
           const time = document.getElementById("s0-time");
-          tl.to(clock, { m: 488, duration: 0.42, ease: "power1.in", onUpdate: () => {
+          tl.to(clock, { m: 488, duration: 0.7, ease: "power1.inOut", onUpdate: () => {
             const m = Math.round(clock.m);
             time.textContent = "0" + Math.floor(m / 60) + ":" + String(m % 60).padStart(2, "0") + " am";
-          } }, at(6) + 0.24);
+          } }, at(5));
+          tl.fromTo("#s0-cupb", { y: 0, rotation: 0 }, { y: -14, rotation: 3, duration: at(8) - at(0), ease: "sine.inOut" }, at(0));
+          bump(tl, ".s0-spark", t(2) + 0.2, t(8), { amt: 0.25, rot: 14, min: 0.3 });
+          // the page whips away on the bar line
           tl.fromTo("#s0-wrap", { x: 0, skewX: 0 }, { x: -2300, skewX: 14, duration: 0.17, ease: "power3.in", immediateRender: false }, at(8) - 0.17);
           window.__timelines["s0-open"] = tl;
         })();

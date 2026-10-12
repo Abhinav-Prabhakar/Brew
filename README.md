@@ -89,9 +89,9 @@ statement.
 ## The film
 
 <div align="center">
-<a href="docs/images/brew-film.mp4"><img src="docs/images/brew-film.webp" width="100%" alt="one day at brew, a 62-second film cut to the beat: the café tour on the stomps, 'an ML system' on the drop, four managers racing, closing time" /></a>
+<a href="docs/images/brew-film.mp4"><img src="docs/images/brew-film.webp" width="100%" alt="one day at brew, a 38-second film cut to the beat: the café tour on the stomps, 'an ML system' on the drop, four managers racing, closing time" /></a>
 <br />
-<b>▶ <a href="docs/images/brew-film.mp4">watch it with sound</a></b> · 62 seconds · every screen in it is the real page
+<b>▶ <a href="docs/images/brew-film.mp4">watch it with sound</a></b> · 38 seconds · every screen in it is the real page
 </div>
 
 One day at brew, cut to the beat of its music: the café tour lands on the stomps, "…an ML system" on the drop, the

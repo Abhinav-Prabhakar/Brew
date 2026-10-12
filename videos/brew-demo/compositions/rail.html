@@ -69,24 +69,24 @@
       </div>
       <script>
         (() => {
-          // the café's day under the tour (07:00 -> 22:00 over 1740 px): the cup jumps to each scene's hour on its
-          // first hit and hops on every hit after
+          // the café's day under the tour (07:00 -> 22:00 over 1740 px): the cup glides to each scene's hour and
+          // gives a small hop on the strong hits
           const { t, hits } = BREW;
-          const S = t(8), END = t(56);
+          const S = t(8), END = t(48);
           const at = (e) => t(e) - S;
           const x = (h) => ((h - 7) / 15) * 1740;
-          const day = [[8, 8.13], [24, 8.5], [40, 9], [48, 13.5]];
+          const day = [[8, 8.13], [20, 8.5], [32, 9], [40, 13.5]];
           const tl = gsap.timeline({ paused: true });
           tl.fromTo("#rail-root", { y: 90 }, { y: 0, duration: 0.2, ease: "power3.out" }, 0);
-          tl.fromTo("#rail-cup", { x: 0 }, { x: x(8.13), duration: 0.3, ease: "back.out(1.6)" }, 0.05);
+          tl.fromTo("#rail-cup", { x: 0 }, { x: x(8.13), duration: 0.3, ease: "power3.out" }, 0.05);
           tl.fromTo("#rail-fill", { scaleX: 0 }, { scaleX: x(8.13) / 1740, duration: 0.3, ease: "power3.out" }, 0.05);
           day.slice(1).forEach(([e, h], i) => {
             const prev = day[i][1];
-            tl.fromTo("#rail-cup", { x: x(prev) }, { x: x(h), duration: 0.3, ease: "back.out(1.4)", immediateRender: false }, at(e));
-            tl.fromTo("#rail-fill", { scaleX: x(prev) / 1740 }, { scaleX: x(h) / 1740, duration: 0.3, ease: "power3.out", immediateRender: false }, at(e));
+            tl.fromTo("#rail-cup", { x: x(prev) }, { x: x(h), duration: 0.34, ease: "power3.inOut", immediateRender: false }, at(e));
+            tl.fromTo("#rail-fill", { scaleX: x(prev) / 1740 }, { scaleX: x(h) / 1740, duration: 0.34, ease: "power3.inOut", immediateRender: false }, at(e));
           });
-          hits(S, END, 0.5).forEach((h) => {
-            tl.fromTo("#rail-cup", { y: -16 * h.s, rotation: h.e % 2 ? 9 : -9 }, { y: 0, rotation: 0, duration: 0.22, ease: "power2.out", immediateRender: false }, h.t);
+          hits(S, END, 0.7).forEach((h) => {
+            tl.fromTo("#rail-cup", { y: -8 }, { y: 0, duration: 0.22, ease: "power2.out", immediateRender: false }, h.t);
           });
           tl.fromTo("#rail-root", { y: 0 }, { y: 90, duration: 0.16, ease: "power3.in", immediateRender: false }, END - S - 0.18);
           window.__timelines["rail"] = tl;

@@ -83,7 +83,7 @@
           <div id="s3-winb" class="b">
             <div id="s3-win" class="win">
               <div id="s3-cam" class="cam">
-                <video id="s3-vid" class="clip" src="assets/clips/menu.mp4" muted playsinline data-start="0" data-duration="2.8571" data-track-index="0"></video>
+                <video id="s3-vid" class="clip" src="assets/clips/menu.mp4" muted playsinline data-start="0" data-duration="2.381" data-track-index="0"></video>
               </div>
             </div>
           </div>
@@ -101,28 +101,27 @@
       </div>
       <script>
         (() => {
-          const { t, pop, write, draw, bump, cam } = BREW;
-          const S = t(40), at = (e) => t(e) - S;
+          const { t, pop, write, draw, cam } = BREW;
+          const S = t(32), at = (e) => t(e) - S;
           const c = (cx, cy, s) => cam(1216, 760, cx, cy, s);
-          const wide = c(800, 500, 1), price = c(690, 285, 2.1);
+          const wide = c(800, 500, 1), price = c(690, 285, 2.1), price2 = c(700, 290, 2.25);
           const tl = gsap.timeline({ paused: true });
-          tl.fromTo("#s3-cam", wide, { ...wide, duration: 0.01 }, 0);
-          // (the hazard tape is still crossing the frame as this starts)
-          pop(tl, "#s3-stamp", at(41), { from: 2.2, rot: -3, rot0: -20 });
-          pop(tl, "#s3-title", at(42), { from: 1.5, rot0: -5 });
-          tl.fromTo("#s3-cam", wide, { ...price, duration: 0.5, ease: "power3.inOut", immediateRender: false }, at(42) + 0.1);
-          write(tl, "#s3-item", at(44) - 0.1, 0.2);
-          pop(tl, "#s3-old", at(44), { from: 1.6, rot0: 6 });
-          // hit: the owner's price change lands (in the footage too) and is struck through. hit: the new price.
-          draw(tl, "#s3-strike path", at(45), 0.1);
-          tl.fromTo("#s3-old", { opacity: 1 }, { opacity: 0.45, duration: 0.1, immediateRender: false }, at(45));
-          draw(tl, "#s3-circle path", at(45), 0.18);
-          pop(tl, "#s3-new", at(46), { from: 2.4, rot: -4, rot0: 14 });
-          pop(tl, "#s3-charter", at(47.5), { rot: 2, rot0: -10 });
-          bump(tl, "#s3-winb", t(40), t(48), { amt: 0.03, rot: 0.6 });
-          bump(tl, "#s3-col", t(43), t(48), { amt: 0.02, y: 9 });
+          // (the hazard tape is still crossing the frame as this starts) one move: all the way in to the price
+          tl.fromTo("#s3-cam", wide, { ...price, duration: at(34), ease: "power3.inOut" }, 0);
+          tl.fromTo("#s3-cam", price, { ...price2, duration: at(40) - at(34), ease: "none", immediateRender: false }, at(34));
+          pop(tl, "#s3-stamp", 0.1, { rot: -3, rot0: -10 });
+          pop(tl, "#s3-title", 0.16, { rot0: -3 });
+          write(tl, "#s3-item", at(33), 0.2);
+          pop(tl, "#s3-old", at(33), { rot0: 4 });
+          // stomp: the owner's price change lands (in the footage too) and is struck through, circled
+          draw(tl, "#s3-strike path", at(34), 0.1);
+          tl.fromTo("#s3-old", { opacity: 1 }, { opacity: 0.45, duration: 0.1, immediateRender: false }, at(34));
+          draw(tl, "#s3-circle path", at(34), 0.18);
+          // the two after the gap: the new price, the charter
+          pop(tl, "#s3-new", at(37), { from: 1.6, rot: -4, rot0: 8 });
+          pop(tl, "#s3-charter", at(38), { rot: 2, rot0: -6 });
           // out: the page is pushed up
-          tl.fromTo("#s3-wrap", { y: 0 }, { y: -1160, duration: 0.17, ease: "power3.in", immediateRender: false }, at(48) - 0.17);
+          tl.fromTo("#s3-wrap", { y: 0 }, { y: -1160, duration: 0.17, ease: "power3.in", immediateRender: false }, at(40) - 0.17);
           window.__timelines["s3-menu"] = tl;
         })();
       </script>

@@ -90,30 +90,29 @@
       </div>
       <script>
         (() => {
-          const { t, E, pop, hide, draw, bump, shake } = BREW;
+          const { t, E, pop, hide, draw, shake } = BREW;
           const S = t(56), at = (e) => t(e) - S;
           const tl = gsap.timeline({ paused: true });
           tl.fromTo("#s5-bg", { opacity: 0 }, { opacity: 0, duration: 0.01 }, 0);
           tl.fromTo(".s5-ray path", { strokeDashoffset: 1 }, { strokeDashoffset: 1, duration: 0.01 }, 0);
           // two stomps: the line everyone has already read, by hand
-          pop(tl, "#s5-a", at(56) + 0.06, { from: 1.5, rot0: -6, dur: 0.22 });
-          pop(tl, "#s5-b", at(57), { from: 1.5, rot0: 6, dur: 0.22 });
+          pop(tl, "#s5-a", at(56) + 0.04, { from: 1.3, rot0: -4, dur: 0.26 });
+          pop(tl, "#s5-b", at(57), { from: 1.3, rot0: 4, dur: 0.26 });
           draw(tl, "#s5-cup path", at(57), 0.16, 0.04);
-          tl.fromTo("#s5-line", { y: 0 }, { y: -16, duration: 0.66, ease: "sine.inOut" }, at(58));
-          // the drum roll: four words, one an eighth, each bigger and louder, on a new colour
-          tl.fromTo("#s5-line", { y: -16, scale: 1 }, { y: -310, scale: 0.36, duration: 0.14, ease: "expo.out", immediateRender: false }, at(60));
+          tl.fromTo("#s5-line", { scale: 1 }, { scale: 1.05, duration: at(60) - at(57) - 0.3, ease: "none" }, at(57) + 0.28);
+          // the drum roll: four words, one an eighth, each bigger, on a new colour
+          tl.fromTo("#s5-line", { y: 0, scale: 1.05 }, { y: -310, scale: 0.36, duration: 0.14, ease: "expo.out", immediateRender: false }, at(60));
           hide(tl, "#s5-cup", at(60), 0.05);
           const colours = ["#f7c3a3", "#e3b25a", "#8fa585", "#e07e52"];
           ["#s5-w1", "#s5-w2", "#s5-w3", "#s5-w4"].forEach((w, i) => {
             const T = at(60 + i);
             tl.set("#s5-bg", { backgroundColor: colours[i], opacity: 1 }, T);
-            pop(tl, w, T, { from: 1.5 + i * 0.12, rot: i % 2 ? 3 : -3, rot0: i % 2 ? -8 : 8, dur: 0.14 });
+            pop(tl, w, T, { from: 1.3 + i * 0.08, rot: i % 2 ? 3 : -3, rot0: i % 2 ? -6 : 6, y: 0, dur: 0.14 });
             if (i < 3) hide(tl, w, T + E - 0.02, 0.02);
             tl.fromTo(w, { scale: 1 }, { scale: 1.06 + i * 0.03, duration: E - 0.16, ease: "none", immediateRender: false }, T + 0.14);
-            shake(tl, "#s5-shake", T, 8 + i * 6, 6);
+            if (i === 3) shake(tl, "#s5-shake", T, 8, 5);
             tl.fromTo(".s5-ray path", { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 0.12, ease: "power2.out", immediateRender: false }, T);
           });
-          bump(tl, "#s5-lineb", t(57) + 0.3, t(60), { amt: 0.04, min: 0.2 });
           window.__timelines["s5-sentence"] = tl;
         })();
       </script>

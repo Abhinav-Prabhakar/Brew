@@ -75,7 +75,7 @@
           <div id="s4-winb" class="b">
             <div id="s4-win" class="win">
               <div id="s4-cam" class="cam">
-                <video id="s4-vid" class="clip" src="assets/clips/pantry.mp4" muted playsinline data-start="0" data-duration="2.8571" data-track-index="0"></video>
+                <video id="s4-vid" class="clip" src="assets/clips/pantry.mp4" muted playsinline data-start="0" data-duration="2.381" data-track-index="0"></video>
               </div>
             </div>
           </div>
@@ -94,27 +94,25 @@
       </div>
       <script>
         (() => {
-          const { t, pop, write, draw, bump } = BREW;
-          const S = t(48), at = (e) => t(e) - S;
+          const { t, pop, write, draw } = BREW;
+          const S = t(40), at = (e) => t(e) - S;
           const tl = gsap.timeline({ paused: true });
-          // in: pushed up from below as the menu leaves
+          // in: pushed up from below as the menu leaves, stamp, title and the first label landing with it
           tl.fromTo("#s4-wrap", { y: 1160 }, { y: 0, duration: 0.2, ease: "power3.out" }, 0);
-          tl.fromTo("#s4-cam", { scale: 1.14, x: -85, y: -50 }, { scale: 1, x: 0, y: 0, duration: 2.8, ease: "power1.out" }, 0);
-          pop(tl, "#s4-stamp", at(49), { from: 2.2, rot: 3, rot0: 20 });
-          pop(tl, "#s4-t1", at(49), { rot: -3, rot0: -16 });
-          pop(tl, "#s4-title", at(50), { from: 1.5, rot0: 5 });
-          pop(tl, "#s4-t2", at(50), { rot: 3, rot0: 16 });
-          // hit: the number. hit: what it is.
+          tl.fromTo("#s4-cam", { scale: 1.16, x: -97, y: -60 }, { scale: 1, x: 0, y: 0, duration: at(48), ease: "power1.out" }, 0);
+          pop(tl, "#s4-stamp", 0.08, { rot: 3, rot0: 10 });
+          pop(tl, "#s4-title", 0.14, { rot0: 3 });
+          pop(tl, "#s4-t1", at(41), { rot: -3, rot0: -9 });
+          pop(tl, "#s4-t2", at(42), { rot: 3, rot0: 9 });
+          pop(tl, "#s4-t3", at(42) + 0.12, { rot: -2, rot0: -8 });
+          // the two after the gap: the number, and what it is
           const n = { v: 0 };
           const num = document.getElementById("s4-num");
-          pop(tl, "#s4-stat", at(53), { from: 2.2, rot: -3, rot0: 8 });
-          tl.to(n, { v: 53, duration: 0.3, ease: "power2.out", onUpdate: () => (num.textContent = String(Math.round(n.v))) }, at(53));
-          draw(tl, "#s4-under path", at(54), 0.16);
-          write(tl, "#s4-n1", at(54), 0.24);
-          pop(tl, "#s4-t3", at(54), { rot: -2, rot0: -14 });
-          tl.fromTo("#s4-n2", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.2, ease: "power2.out" }, at(55));
-          bump(tl, "#s4-winb", t(49), t(56), { amt: 0.03, rot: 0.6 });
-          bump(tl, "#s4-col", t(51), t(56), { amt: 0.02, y: 9 });
+          pop(tl, "#s4-stat", at(45), { from: 1.5, rot: -3, rot0: 5 });
+          tl.to(n, { v: 53, duration: 0.3, ease: "power2.out", onUpdate: () => (num.textContent = String(Math.round(n.v))) }, at(45));
+          draw(tl, "#s4-under path", at(46), 0.16);
+          write(tl, "#s4-n1", at(46), 0.22);
+          tl.fromTo("#s4-n2", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.2, ease: "power2.out" }, at(46) + 0.15);
           window.__timelines["s4-pantry"] = tl;
         })();
       </script>
