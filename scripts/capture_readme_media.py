@@ -2,8 +2,10 @@
 
     uv run python scripts/capture_readme_media.py            # stills + GIFs
     uv run python scripts/capture_readme_media.py --stills   # stills only
+    uv run python scripts/capture_readme_media.py --channel chrome   # the installed Chrome, no `playwright install`
 
-Stills: the real page (design/brew.html) replaying a golden stream paused at a fixed moment (`speed=0` + `stepTo`),
+Kapi's room is the one live shot: a throwaway backend (scripted waiter, no keys) is started for it. The other
+stills: the real page (design/brew.html) replaying a golden stream paused at a fixed moment (`speed=0` + `stepTo`),
 `?still` (no motion), 1600x1000, saved as 256-colour PNGs. GIFs: the same page with motion on; Python advances the
 replay in fixed sim-time steps per frame (events are deterministic) while the CSS motion runs in real time between
 frames, then Pillow assembles the frames (shared palette, 960 px wide, ~8 fps). No ffmpeg needed. Google Fonts must
@@ -14,10 +16,13 @@ from __future__ import annotations
 
 import argparse
 import io
-import socket
+import os
 import subprocess
-import sys
+import threading
 import time
+import urllib.request
+from functools import partial
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
@@ -34,10 +39,19 @@ def hms(s: str) -> float:
     return int(h) * 3600 + int(m) * 60
 
 
-def free_port() -> int:
-    with socket.socket() as s:
-        s.bind(("127.0.0.1", 0))
-        return int(s.getsockname()[1])
+class Quiet(SimpleHTTPRequestHandler):
+    def log_message(self, *a: Any) -> None:
+        pass
+
+
+class Server(ThreadingHTTPServer):
+    request_queue_size = 128  # the page opens many connections at once; the default backlog (5) resets some
+
+
+def serve() -> Server:
+    srv = Server(("127.0.0.1", 0), partial(Quiet, directory=str(ROOT)))
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    return srv
 
 
 def open_page(browser: Any, base: str, fixture: str, still: bool, room: str = "lobby") -> Any:
@@ -92,6 +106,7 @@ def stills(browser: Any, base: str) -> None:
     pg = open_page(browser, base, "lunch_delivery", True, "pantry")
     pg.evaluate(f"BrewLive.source.stepTo({hms('13:30')})")
     pg.wait_for_timeout(800)
+    pg.evaluate("document.querySelectorAll('#viewport > .toast').forEach((x) => x.remove())")  # (a profit milestone)
     save_png(shot(pg), "pantry")
     pg.close()
 
@@ -103,6 +118,37 @@ def stills(browser: Any, base: str) -> None:
     pg.wait_for_timeout(430)
     save_png(shot(pg), "menu_turn")
     pg.close()
+
+
+def kapi(browser: Any) -> None:
+    """Kapi's room needs a café that answers: a throwaway backend (scripted waiter, no keys, no database)."""
+    print("kapi")
+    with ThreadingHTTPServer(("127.0.0.1", 0), Quiet) as probe:
+        port = probe.server_address[1]
+    env = {**os.environ, "BREW_LLM_ENABLED": "0", "BREW_DB_ENABLED": "0", "BREW_HOURS": "00:00-24:00"}
+    api = subprocess.Popen(["uv", "run", "brew-api", "--port", str(port)], cwd=ROOT, env=env,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)  # fmt: skip
+    base = f"http://127.0.0.1:{port}"
+    try:
+        for _ in range(120):
+            try:
+                urllib.request.urlopen(f"{base}/api/v1/waiter/status", timeout=1)
+                break
+            except OSError:
+                time.sleep(0.5)
+        pg = browser.new_page(viewport=VIEW, device_scale_factor=1)
+        pg.goto(f"{base}/?still#waiter")
+        pg.wait_for_function("window.BrewLive && BrewLive.state && window.BrewWaiter && BrewWaiter.isOpen", timeout=30000)
+        pg.evaluate("document.fonts.ready")
+        pg.wait_for_timeout(1500)
+        for line in ("show me the bakes", "a butter croissant and an oat latte please"):
+            pg.evaluate("(m) => { BrewWaiter.send(m); }", line)
+            pg.wait_for_function("!BrewWaiter.busy", timeout=30000)
+            pg.wait_for_timeout(800)
+        save_png(shot(pg), "kapi")
+        pg.close()
+    finally:
+        api.terminate()
 
 
 def gif_replay(browser: Any, base: str, fixture: str, room: str, start: str, sim_per_frame: float, n: int, name: str, setup: str = "") -> None:
@@ -145,22 +191,21 @@ def gifs(browser: Any, base: str) -> None:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--stills", action="store_true", help="stills only")
+    ap.add_argument("--channel", help="use an installed browser (e.g. chrome) instead of Playwright's own Chromium")
     a = ap.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
-    port = free_port()
-    srv = subprocess.Popen([sys.executable, "-m", "http.server", str(port), "--bind", "127.0.0.1"], cwd=ROOT,
-                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)  # fmt: skip
-    time.sleep(0.6)
+    srv = serve()
     try:
         with sync_playwright() as p:
-            b = p.chromium.launch()
-            base = f"http://127.0.0.1:{port}"
+            b = p.chromium.launch(channel=a.channel)
+            base = f"http://127.0.0.1:{srv.server_address[1]}"
             stills(b, base)
+            kapi(b)
             if not a.stills:
                 gifs(b, base)
             b.close()
     finally:
-        srv.terminate()
+        srv.shutdown()
 
 
 if __name__ == "__main__":

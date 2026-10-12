@@ -46,8 +46,8 @@ statement.
 | **Pantry**: every lot with its freshness, FEFO arrows, days of cover, the waste chart against naive, and the policy's own purchase order to approve. | **Menu book**: flies off the lectern with real 3D page turns; live prices are struck through in ink and rewritten; meal combos and the rescue shelf have their own spreads. |
 | ![the profit card expanded into the policy comparison](docs/images/comparison.png) | ![the kitchen GIF](docs/images/kitchen_chaos.gif) |
 | **What you'd otherwise make**: click today's profit and it unfolds into D vs A/B/C: one dot per simulated week, 95 % CI of the mean. | **Chaos, live**: the machine breaks at 08:30, the station LEDs and crew react, the re-plan lands within seconds. |
-
-<div align="center"><img src="docs/images/menu_book.gif" width="70%" alt="the owner's 09:00 price change rewritten in the open menu book, then a page turn" /></div>
+| ![kapi's room: the waiter, his speech bubble and the bakes on the board as cards](docs/images/kapi.png) | ![the owner's 09:00 price change rewritten in the open menu book, then a page turn](docs/images/menu_book.gif) |
+| **Kapi, the waiter**: a room of his own (the 4th tab). Ask for the bakes and they go on the board as cards you can tap to order; order in words and he writes the ticket for the rail. | **Prices, rewritten live**: the owner's 09:00 price change is struck through and re-inked in the open menu book, then a page turn. |
 
 ## The decision stack
 
