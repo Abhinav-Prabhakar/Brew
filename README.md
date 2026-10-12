@@ -88,20 +88,11 @@ statement.
 
 ## The film
 
-![](./docs/images/brew-film.mp4)
-
 <div align="center">
 <a href="docs/images/brew-film.mp4"><img src="docs/images/brew-film.webp" width="100%" alt="one day at brew, a 38-second film cut to the beat: the café tour on the stomps, 'an ML system' on the drop, four managers racing, closing time" /></a>
 <br />
 <b>▶ <a href="docs/images/brew-film.mp4">watch it with sound</a></b> · 38 seconds · every screen in it is the real page
 </div>
-
-One day at brew, cut to the beat of its music: the café tour lands on the stomps, "…an ML system" on the drop, the
-four managers race through the loudest bars, and the day prints out as a receipt. The preview above is silent; the
-film is [`docs/images/brew-film.mp4`](docs/images/brew-film.mp4). It is built from HTML with
-[HyperFrames](https://hyperframes.heygen.com), and its source is in [`videos/brew-demo`](videos/brew-demo/): the real
-UI recorded from the replay fixtures, and an edit timed to the drum hits that `tools/analyze_music.py` finds in the
-track. Music: "Champion" by Mojo Soundtrack, used under licence (the track itself is not in this repository).
 
 ## Highlights
 
@@ -119,14 +110,9 @@ track. Music: "Champion" by Mojo Soundtrack, used under licence (the track itsel
   It is a scheduling layer under every policy (held tasks are simply not offered for dispatch yet), so nothing is
   retrained. Baseline policy, one day: about a third less shelf time and fresher food at hand-over, rider waiting
   about the same. A rider who turns up early, or a bumped ticket, releases the hold at once.
-- **Kapi, the waiter**: a doodle with a notepad in front of the counter. Click him (or the 4th tab, "kapi") and you walk over to his stage, a room of its own — Kapi drawn
-  large, and the illustration does the talking: he looks up and thinks (a thought cloud with his dry inner
-  monologue), tears a ticket off his pad, stamps a note, flags the team, then answers in a speech bubble that types
-  itself out. Order from him (a real, paid ticket lands on the rail), ask about the menu, complain — he writes it
-  down and escalates what matters. Type, or use the mic and watch your words appear as you speak; "chat" toggles the
-  written history. He looks things up in the menu book with a tool call, puts dishes on a board as cards you can
-  tap to order, takes reviews and pencils in tables (both pretend for now: nothing is stored or held). Behind him: an LLM pool with several providers and several keys each, rotated round-robin with failover,
-  and a scripted stand-in so he works with no keys at all ([setup](#the-waiters-llm-keys)).
+- **Kapi, the waiter**: a doodle with a notepad and a room of his own (the 4th tab). Ask about the menu and the
+  dishes go on a board as cards you can tap; order in words, or by voice, and a real ticket lands on the rail.
+  He runs on an LLM pool with failover, or fully scripted with no keys at all.
 - **Feels like a game**: Web Audio sound design with ducking, a faint café radio (four synthesised stations — click
   the radio to change the tune), parallax, and
   p95 frame time ≤ 16.7 ms in the kitchen and pantry (static art baked to bitmaps once). It's axe-clean, fully
@@ -192,6 +178,9 @@ uv run brew-api                          # → http://localhost:8000/
 - With no backend, the page plays a recorded morning, labelled as a replay, and switches to live when the server
   wakes.
 - For a fast café: `BREW_DB_ENABLED=0 BREW_LIVE_RATE=60 uv run brew-api`.
+- Kapi works with no keys (scripted answers). For an LLM, copy `.env.example` to `.env`, add keys such as
+  `ANTHROPIC_API_KEYS=…` (several, comma separated) and restart; `.env.example` lists every provider and voice
+  option, and `GET /api/v1/waiter/status` shows what is wired up.
 - Other opening hours: `BREW_HOURS=07:00-24:00 uv run brew-api`. This applies to live worlds only (the crew and demand stretch to fit); the tests, training and arena keep the café's real 08:00–22:00, which is what policy D was trained on.
 
 ```bash
@@ -199,38 +188,6 @@ uv run pytest -q                                   # backend + frontend (Playwri
 uv run ruff check . && uv run mypy src
 uv run python scripts/capture_readme_media.py      # regenerate everything in docs/images/
 ```
-
-## The waiter's LLM keys
-
-Kapi talks through `brew.llm.pool`: every (provider, key) pair is a slot, calls rotate over the slots, and a slot
-that fails (rate limit, rejected key, server error, timeout) rests with exponential backoff while the call moves on
-to the next. With no keys, or when every slot is down, the scripted waiter answers instead — the chat never breaks.
-
-Copy `.env.example` to `.env` (git-ignored) or export the variables, then restart `brew-api`:
-
-```bash
-ANTHROPIC_API_KEYS=sk-ant-…,sk-ant-…     # several keys per provider, comma separated
-OPENAI_API_KEYS=sk-…
-GROQ_API_KEYS=gsk_…,gsk_…
-BREW_LLM_ORDER=anthropic,groq,openai     # optional: which providers, in what order
-BREW_LLM_STRATEGY=round_robin            # or "priority": first provider first, the rest only as fallback
-BREW_LLM_GROQ_MODEL=llama-3.3-70b-versatile   # optional per-provider model / URL overrides; several models,
-                                              # comma separated, are a fallback chain of their own
-```
-
-Known providers: `anthropic`, `openai`, `gemini`, `groq`, `openrouter`; any other OpenAI-compatible endpoint works with
-`BREW_LLM_<NAME>_URL`, `BREW_LLM_<NAME>_MODEL` and `<NAME>_API_KEYS`. `GET /api/v1/waiter/status` shows what is wired
-up and how each key is doing (keys masked). `BREW_LLM_ENABLED=0` forces the scripted waiter.
-
-**His voice.** In voice chat Kapi answers aloud; otherwise he stays silent. `brew.llm.tts` works
-like the chat pool: `BREW_TTS_ORDER=elevenlabs,openai,groq,browser` picks the providers in order, each with its own
-rotating keys, voice (`BREW_TTS_<NAME>_VOICE`), model and — for OpenAI-style voices — `BREW_TTS_<NAME>_INSTRUCTIONS`
-("a tired, sarcastic waiter"). `BREW_TTS_<NAME>_PREFIX` puts style tags in front of each line (ElevenLabs v3: `[sarcastic]
-[deadpan]`; dropped when he is worried), `BREW_TTS_<NAME>_SETTINGS` passes provider settings, `BREW_TTS_SPEED` sets the
-playback speed. The speaker button turns voice chat on (using the mic does too), and after he has spoken the mic
-opens again for your next line. `browser` is the browser's own voice: free, keyless, and the fallback when no provider
-answers. Any OpenAI-compatible speech endpoint or plain GET service can be added by name (see `.env.example`);
-`GET /api/v1/waiter/voice` shows what is active.
 
 ## Keys
 
@@ -269,18 +226,6 @@ And for anyone who opens devtools, there's a hand-drawn cup and a hint in the co
 head barista.
 
 </details>
-
-## Repository layout
-
-```
-Dockerfile       uv-built image (locked deps, CPU torch) · docker-compose.yml with the brew-data volume
-src/brew/        sim (digital twin) · policies A–E · forecast · opt (CP-SAT, LPs) · rl · api (FastAPI + WS)
-design/          the frontend: brew.html, lobby / kitchen / pantry / menu / hud, camera, audio, a11y
-design/live/     client layer: bus, pure store + reducers, WsSource / ReplaySource, REST polling, boot
-models/          the ONNX champion (models/rl_policy/D/full-5033b06) and forecasters
-tests/           backend suites; tests/frontend (contract, store, render, e2e, visual, perf, a11y, resilience)
-docs/            training logs, the implementation spec, handoffs, README media
-```
 
 ## Docs
 
