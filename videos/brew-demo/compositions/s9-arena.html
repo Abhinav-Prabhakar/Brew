@@ -1,0 +1,256 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #s9-root {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+        }
+        #s9-glow {
+          position: absolute;
+          left: 760px;
+          top: 240px;
+          width: 1300px;
+          height: 1300px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(224, 126, 82, 0.5), rgba(224, 126, 82, 0) 65%);
+        }
+        #s9-headb {
+          left: 0;
+          top: 0;
+          width: 1920px;
+          height: 1080px;
+          transform-origin: 40% 40%;
+        }
+        #s9-head {
+          position: absolute;
+          left: 110px;
+          top: 150px;
+          width: 1700px;
+          height: 620px;
+          transform-origin: 0 0;
+        }
+        .s9-line {
+          position: absolute;
+          left: 0;
+          font-family: var(--hand);
+          font-size: 220px;
+          line-height: 1;
+          white-space: nowrap;
+          transform-origin: 20% 60%;
+        }
+        #s9-l1 {
+          top: 0;
+        }
+        #s9-l2 {
+          top: 230px;
+          color: var(--terra-ink);
+        }
+        #s9-scrib {
+          position: absolute;
+          left: 0;
+          top: 196px;
+          width: 620px;
+          height: 50px;
+          stroke-width: 13;
+        }
+        #s9-sub {
+          position: absolute;
+          left: 10px;
+          top: 500px;
+          font-family: var(--body);
+          font-size: 56px;
+          line-height: 1;
+          white-space: nowrap;
+        }
+        #s9-chartb {
+          left: 0;
+          top: 0;
+          width: 1920px;
+          height: 1080px;
+          transform-origin: 30% 55%;
+        }
+        .s9-row {
+          position: absolute;
+          left: 110px;
+          width: 1700px;
+          height: 96px;
+        }
+        .s9-row b {
+          position: absolute;
+          left: 0;
+          top: 14px;
+          width: 340px;
+          font-family: var(--hand);
+          font-weight: 400;
+          font-size: 56px;
+          line-height: 1;
+          white-space: nowrap;
+        }
+        .s9-bar {
+          position: absolute;
+          left: 360px;
+          top: 6px;
+          height: 80px;
+          border: 4px solid var(--ink);
+          border-radius: 14px;
+          box-shadow: 7px 7px 0 var(--ink);
+          transform-origin: 0 50%;
+        }
+        .s9-val {
+          position: absolute;
+          top: 10px;
+          font-family: var(--hand);
+          font-size: 64px;
+          line-height: 1;
+          white-space: nowrap;
+          font-variant-numeric: tabular-nums;
+          transform-origin: 0 50%;
+        }
+        #s9-delta {
+          left: 1230px;
+          top: 70px;
+          width: 590px;
+          height: 200px;
+          background: var(--terra);
+          padding: 18px 28px;
+        }
+        #s9-delta b {
+          display: block;
+          font-family: var(--hand);
+          font-weight: 400;
+          font-size: 96px;
+          line-height: 1;
+          white-space: nowrap;
+        }
+        #s9-delta > span {
+          display: block;
+          margin-top: 10px;
+          font-family: var(--body);
+          font-size: 32px;
+          line-height: 1.1;
+          white-space: nowrap;
+        }
+        .s9-chip {
+          top: 858px;
+          font-size: 40px;
+        }
+        #s9-honest {
+          left: 116px;
+          top: 958px;
+          width: 1700px;
+          font-size: 48px;
+        }
+        .s9-spark {
+          position: absolute;
+          left: 1470px;
+          top: 754px;
+          width: 14px;
+          height: 46px;
+          margin: -23px 0 0 -7px;
+          border-radius: 7px;
+          background: var(--ink);
+        }
+        #s9-crown {
+          left: 1700px;
+          top: 596px;
+          width: 150px;
+          height: 100px;
+          stroke-width: 9;
+          fill: var(--mustard);
+        }
+        #s9-ring {
+          left: 1456px;
+          top: 690px;
+          width: 400px;
+          height: 130px;
+          stroke-width: 9;
+        }
+      </style>
+      <div id="s9-root" data-composition-id="s9-arena" data-width="1920" data-height="1080">
+        <div id="s9-glow"></div>
+        <div id="s9-headb" class="b">
+          <div id="s9-head">
+            <div id="s9-l1" class="s9-line">same customers.</div>
+            <svg id="s9-scrib" class="doodle" viewBox="0 0 620 50"><path pathLength="1" d="M6 30 Q 160 6 310 26 T 614 16" /></svg>
+            <div id="s9-l2" class="s9-line">four managers.</div>
+            <div id="s9-sub">10 seeds × 7 days · common random numbers · held-out seeds</div>
+          </div>
+        </div>
+        <div id="s9-chartb" class="b">
+          <div class="s9-row" style="top: 312px"><b>A · naive</b><div class="s9-bar" style="width: 592px; background: #c9a27a"></div><div class="s9-val" style="left: 978px">₹<span>0</span></div></div>
+          <div class="s9-row" style="top: 448px"><b>B · heuristic</b><div class="s9-bar" style="width: 700px; background: #e3b25a"></div><div class="s9-val" style="left: 1086px">₹<span>0</span></div></div>
+          <div class="s9-row" style="top: 584px"><b>C · optimiser</b><div class="s9-bar" style="width: 924px; background: #8fa585"></div><div class="s9-val" style="left: 1310px">₹<span>0</span></div></div>
+          <div class="s9-row" id="s9-rowd" style="top: 720px"><b>D · learned</b><div class="s9-bar" style="width: 1000px; background: #e07e52"></div><div class="s9-val" style="left: 1386px">₹<span>0</span></div></div>
+        </div>
+        <div class="s9-spark"></div><div class="s9-spark"></div><div class="s9-spark"></div><div class="s9-spark"></div><div class="s9-spark"></div><div class="s9-spark"></div><div class="s9-spark"></div><div class="s9-spark"></div>
+        <svg id="s9-ring" class="doodle" viewBox="0 0 400 130"><path pathLength="1" d="M200 10 C 90 4 10 34 14 68 C 18 108 130 124 220 120 C 320 116 390 92 386 60 C 382 24 290 4 170 14" /></svg>
+        <svg id="s9-crown" class="doodle" viewBox="0 0 150 100"><path pathLength="1" d="M12 88 L22 26 L52 62 L75 10 L98 62 L128 26 L138 88 Z" /></svg>
+        <div id="s9-delta" class="card"><b>+₹<span id="s9-dnum">0</span></b><span>a day over naive · 95% CI ₹38.5k to ₹47.3k</span></div>
+        <div class="tag paper s9-chip" style="left: 116px">10 of 10 seeds won</div>
+        <div class="tag sage s9-chip" style="left: 560px">late orders 13.9% → 8.8%</div>
+        <div class="tag mustard s9-chip" style="left: 1130px">walk-outs 119 → 65</div>
+        <div id="s9-honest" class="note">honest read: the optimiser still wastes less (6.4 kg vs 10.4 kg a day)</div>
+      </div>
+      <script>
+        (() => {
+          const { t, E, pop, hide, write, draw, bump, shake, inr } = BREW;
+          const S = t(104), at = (e) => t(e) - S;
+          const tl = gsap.timeline({ paused: true });
+          tl.fromTo("#s9-glow", { scale: 0.6, opacity: 0 }, { scale: 1.15, opacity: 1, duration: 8.5, ease: "power1.out" }, 0);
+          // bar one: the claim. stomp: same customers. stomp (the third): four managers.
+          pop(tl, "#s9-l1", at(104) + 0.1, { from: 2.2, rot: -1, rot0: 6, dur: 0.18 });
+          draw(tl, "#s9-scrib path", at(105) + 0.1, 0.16);
+          tl.fromTo("#s9-l2", { opacity: 0, x: -1900, skewX: 20 }, { opacity: 1, x: 0, skewX: 0, duration: 0.2, ease: "power4.out" }, at(106));
+          write(tl, "#s9-sub", at(109), 0.3);
+          tl.fromTo("#s9-head", { scale: 1, x: 0, y: 0 }, { scale: 0.4, x: 4, y: -90, duration: 0.2, ease: "expo.out", immediateRender: false }, at(111) + 0.1);
+          hide(tl, "#s9-sub", at(111) + 0.1, 0.1);
+          hide(tl, "#s9-scrib", at(111) + 0.1, 0.1);
+          // bar two: stomp, stomp, stomp are A, B, C; the two after are D's label and the start of its run
+          const rows = gsap.utils.toArray(".s9-row");
+          const vals = [62112, 73465, 96948, 104885];
+          const starts = [at(112), at(113), at(114), at(118)];
+          const durs = [0.24, 0.24, 0.24, 2 * E];
+          rows.forEach((row, i) => {
+            const p = { v: 0 };
+            const out = row.querySelector(".s9-val span");
+            pop(tl, row.querySelector("b"), i === 3 ? at(117) : starts[i], { from: 1.5, rot0: -5, x: -60 });
+            tl.fromTo(row.querySelector(".s9-bar"), { scaleX: 0 }, { scaleX: 1, duration: durs[i], ease: i === 3 ? "power3.in" : "power4.out" }, starts[i]);
+            tl.fromTo(row.querySelector(".s9-val"), { opacity: 0 }, { opacity: 1, duration: 0.06 }, starts[i] + (i === 3 ? 0.4 : 0.05));
+            tl.to(p, { v: vals[i], duration: durs[i] + (i === 3 ? 0 : 0.12), ease: i === 3 ? "power3.in" : "power3.out", onUpdate: () => (out.textContent = inr(p.v)) }, starts[i]);
+          });
+          // bar three, downbeat: D lands
+          const hit = at(120);
+          shake(tl, "#s9-root", hit, 22, 8);
+          tl.fromTo("#s9-rowd .s9-val", { scale: 1.5 }, { scale: 1, duration: 0.3, ease: "power3.out", immediateRender: false }, hit);
+          tl.fromTo(".s9-spark", { opacity: 0 }, { opacity: 0, duration: 0.01 }, 0);
+          gsap.utils.toArray(".s9-spark").forEach((el, i) => {
+            const a = (i / 8) * Math.PI * 2 + 0.3;
+            tl.fromTo(el, { x: 0, y: 0, rotation: (a * 180) / Math.PI + 90, scaleY: 1, opacity: 1 }, { x: Math.cos(a) * 250, y: Math.sin(a) * 160, scaleY: 0.2, opacity: 0, duration: 0.4, ease: "power3.out", immediateRender: false }, hit);
+          });
+          draw(tl, "#s9-crown path", hit, 0.14);
+          const d = { v: 0 };
+          const dn = document.getElementById("s9-dnum");
+          pop(tl, "#s9-delta", at(121), { from: 2.2, rot: 4, rot0: 20 });
+          tl.to(d, { v: 42773, duration: 0.5, ease: "power3.out", onUpdate: () => (dn.textContent = inr(d.v)) }, at(121));
+          draw(tl, "#s9-ring path", at(122), 0.18);
+          const chips = gsap.utils.toArray(".s9-chip");
+          pop(tl, chips[0], at(122), { rot: -1.5, rot0: -12 });
+          pop(tl, chips[1], at(125), { rot: 1.5, rot0: 12 });
+          pop(tl, chips[2], at(126), { rot: -1.5, rot0: -12 });
+          write(tl, "#s9-honest", at(124), 0.9);
+          bump(tl, "#s9-headb", t(105), t(111), { amt: 0.04, min: 0.5 });
+          bump(tl, "#s9-chartb", t(115), t(120), { amt: 0.025, min: 0.5 });
+          bump(tl, "#s9-chartb", t(121), t(128), { amt: 0.03, rot: 0.4, min: 0.5 });
+          bump(tl, "#s9-crown", t(121), t(128), { amt: 0.3, rot: 12, min: 0.3 });
+          window.__timelines["s9-arena"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

@@ -1,0 +1,122 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #s5-root {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+        }
+        #s5-bg {
+          position: absolute;
+          inset: 0;
+          background: var(--pink);
+        }
+        #s5-lineb {
+          left: 0;
+          top: 0;
+          width: 1920px;
+          height: 1080px;
+        }
+        #s5-line {
+          position: absolute;
+          left: 0;
+          top: 380px;
+          width: 1920px;
+          text-align: center;
+          font-family: var(--note);
+          font-weight: 700;
+          font-size: 230px;
+          line-height: 1;
+          white-space: nowrap;
+          transform-origin: 50% 50%;
+        }
+        #s5-line span {
+          display: inline-block;
+        }
+        #s5-cup {
+          left: 1590px;
+          top: 170px;
+          width: 200px;
+          height: 220px;
+          stroke-width: 8;
+        }
+        .s5-word {
+          position: absolute;
+          left: 0;
+          top: 300px;
+          width: 1920px;
+          text-align: center;
+          font-family: var(--hand);
+          font-size: 440px;
+          line-height: 1;
+          white-space: nowrap;
+          color: var(--ink);
+          transform-origin: 50% 55%;
+        }
+        .s5-ray {
+          left: 0;
+          top: 0;
+          width: 1920px;
+          height: 1080px;
+          stroke-width: 12;
+        }
+      </style>
+      <div id="s5-root" data-composition-id="s5-sentence" data-width="1920" data-height="1080">
+        <div id="s5-bg"></div>
+        <div id="s5-shake" class="wrap">
+          <div id="s5-lineb" class="b">
+            <div id="s5-line"><span id="s5-a">a cosy</span> <span id="s5-b">little café…</span></div>
+          </div>
+          <svg id="s5-cup" class="doodle" viewBox="0 0 200 220">
+            <path pathLength="1" d="M30 110 h110 v36 a46 46 0 0 1 -46 46 h-18 a46 46 0 0 1 -46 -46 z" />
+            <path pathLength="1" d="M140 122 h14 a20 20 0 0 1 0 40 h-16" />
+            <path pathLength="1" d="M60 86 q-18 -22 0 -44 q18 -22 0 -40" />
+            <path pathLength="1" d="M108 86 q-18 -22 0 -44 q18 -22 0 -40" />
+          </svg>
+          <svg class="doodle s5-ray" viewBox="0 0 1920 1080">
+            <path pathLength="1" d="M300 160 L120 60" /><path pathLength="1" d="M1620 160 L1800 60" /><path pathLength="1" d="M300 920 L120 1020" /><path pathLength="1" d="M1620 920 L1800 1020" />
+            <path pathLength="1" d="M960 110 V20" /><path pathLength="1" d="M960 970 V1060" /><path pathLength="1" d="M190 540 H60" /><path pathLength="1" d="M1730 540 H1860" />
+          </svg>
+          <div id="s5-w1" class="s5-word" data-layout-allow-overlap>that</div>
+          <div id="s5-w2" class="s5-word" data-layout-allow-overlap>happens</div>
+          <div id="s5-w3" class="s5-word" data-layout-allow-overlap>to</div>
+          <div id="s5-w4" class="s5-word" data-layout-allow-overlap>be</div>
+        </div>
+      </div>
+      <script>
+        (() => {
+          const { t, E, pop, hide, draw, bump, shake } = BREW;
+          const S = t(56), at = (e) => t(e) - S;
+          const tl = gsap.timeline({ paused: true });
+          tl.fromTo("#s5-bg", { opacity: 0 }, { opacity: 0, duration: 0.01 }, 0);
+          tl.fromTo(".s5-ray path", { strokeDashoffset: 1 }, { strokeDashoffset: 1, duration: 0.01 }, 0);
+          // two stomps: the line everyone has already read, by hand
+          pop(tl, "#s5-a", at(56) + 0.06, { from: 1.5, rot0: -6, dur: 0.22 });
+          pop(tl, "#s5-b", at(57), { from: 1.5, rot0: 6, dur: 0.22 });
+          draw(tl, "#s5-cup path", at(57), 0.16, 0.04);
+          tl.fromTo("#s5-line", { y: 0 }, { y: -16, duration: 0.66, ease: "sine.inOut" }, at(58));
+          // the drum roll: four words, one an eighth, each bigger and louder, on a new colour
+          tl.fromTo("#s5-line", { y: -16, scale: 1 }, { y: -310, scale: 0.36, duration: 0.14, ease: "expo.out", immediateRender: false }, at(60));
+          hide(tl, "#s5-cup", at(60), 0.05);
+          const colours = ["#f7c3a3", "#e3b25a", "#8fa585", "#e07e52"];
+          ["#s5-w1", "#s5-w2", "#s5-w3", "#s5-w4"].forEach((w, i) => {
+            const T = at(60 + i);
+            tl.set("#s5-bg", { backgroundColor: colours[i], opacity: 1 }, T);
+            pop(tl, w, T, { from: 1.5 + i * 0.12, rot: i % 2 ? 3 : -3, rot0: i % 2 ? -8 : 8, dur: 0.14 });
+            if (i < 3) hide(tl, w, T + E - 0.02, 0.02);
+            tl.fromTo(w, { scale: 1 }, { scale: 1.06 + i * 0.03, duration: E - 0.16, ease: "none", immediateRender: false }, T + 0.14);
+            shake(tl, "#s5-shake", T, 8 + i * 6, 6);
+            tl.fromTo(".s5-ray path", { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 0.12, ease: "power2.out", immediateRender: false }, T);
+          });
+          bump(tl, "#s5-lineb", t(57) + 0.3, t(60), { amt: 0.04, min: 0.2 });
+          window.__timelines["s5-sentence"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

@@ -3,5 +3,5 @@ node_modules/
 snapshots/
 assets/footage/
 assets/clips/
-assets/music/*.wav
+assets/music/
 renders/

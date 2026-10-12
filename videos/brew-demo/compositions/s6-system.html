@@ -1,0 +1,249 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #s6-root {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+        }
+        #s6-glow {
+          position: absolute;
+          left: 260px;
+          top: -200px;
+          width: 1400px;
+          height: 1400px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(224, 126, 82, 0.55), rgba(224, 126, 82, 0) 64%);
+        }
+        #s6-headb {
+          left: 0;
+          top: 0;
+          width: 1920px;
+          height: 1080px;
+          transform-origin: 50% 45%;
+        }
+        #s6-head {
+          position: absolute;
+          left: 110px;
+          top: 170px;
+          width: 1720px;
+          height: 560px;
+          transform-origin: 0 0;
+        }
+        #s6-top {
+          position: absolute;
+          left: 20px;
+          top: 0;
+          font-family: var(--note);
+          font-weight: 700;
+          font-size: 92px;
+          line-height: 1;
+          white-space: nowrap;
+        }
+        #s6-ml {
+          position: absolute;
+          left: 0;
+          top: 110px;
+          font-family: var(--hand);
+          font-size: 300px;
+          line-height: 1;
+          color: var(--terra-ink);
+          white-space: nowrap;
+          transform-origin: 40% 60%;
+        }
+        #s6-under {
+          position: absolute;
+          left: 0;
+          top: 400px;
+          width: 1660px;
+          height: 90px;
+          stroke-width: 14;
+        }
+        .s6-ray {
+          left: 0;
+          top: 0;
+          width: 1920px;
+          height: 1080px;
+          stroke-width: 13;
+        }
+        .s6-star {
+          width: 120px;
+          height: 120px;
+          stroke-width: 8;
+          fill: var(--mustard);
+        }
+        #s6-note {
+          left: 0;
+          top: 760px;
+          width: 1920px;
+          text-align: center;
+          font-size: 120px;
+        }
+        #s6-down {
+          left: 910px;
+          top: 890px;
+          width: 100px;
+          height: 150px;
+          stroke-width: 12;
+        }
+        #s6-lead {
+          left: 130px;
+          top: 520px;
+          width: 760px;
+          font-size: 104px;
+        }
+        #s6-arrow {
+          left: 430px;
+          top: 650px;
+          width: 440px;
+          height: 200px;
+          stroke-width: 10;
+        }
+        #s6-stackb {
+          left: 950px;
+          top: 290px;
+          width: 880px;
+          height: 680px;
+        }
+        .s6-layer {
+          left: 0;
+          width: 880px;
+          height: 100px;
+          display: flex;
+          align-items: center;
+          gap: 20px;
+          padding: 0 26px 0 18px;
+          border-radius: 18px;
+          box-shadow: 8px 8px 0 var(--ink);
+        }
+        .s6-layer i {
+          flex: none;
+          width: 62px;
+          height: 62px;
+          border-radius: 50%;
+          border: 4px solid var(--ink);
+          background: var(--paper);
+          font-family: var(--mono);
+          font-style: normal;
+          font-weight: 700;
+          font-size: 34px;
+          line-height: 54px;
+          text-align: center;
+        }
+        .s6-layer b {
+          font-family: var(--hand);
+          font-weight: 400;
+          font-size: 44px;
+          white-space: nowrap;
+        }
+        .s6-layer span {
+          margin-left: auto;
+          font-family: var(--body);
+          font-size: 31px;
+          white-space: nowrap;
+        }
+        #s6-crown {
+          left: 858px;
+          top: 470px;
+          width: 120px;
+          height: 80px;
+          stroke-width: 9;
+          fill: var(--mustard);
+        }
+        #s6-ring {
+          left: 910px;
+          top: 486px;
+          width: 960px;
+          height: 170px;
+          stroke-width: 9;
+        }
+        .s6-tag {
+          left: 130px;
+          font-size: 42px;
+        }
+      </style>
+      <div id="s6-root" data-composition-id="s6-system" data-width="1920" data-height="1080">
+        <div id="s6-glow"></div>
+        <div id="s6-shake" class="wrap">
+          <svg class="doodle s6-ray" viewBox="0 0 1920 1080">
+            <path pathLength="1" d="M250 130 L90 40" /><path pathLength="1" d="M1670 130 L1830 40" /><path pathLength="1" d="M250 800 L90 900" /><path pathLength="1" d="M1670 800 L1830 900" />
+            <path pathLength="1" d="M700 90 L670 10" /><path pathLength="1" d="M1220 90 L1250 10" /><path pathLength="1" d="M90 470 H10" /><path pathLength="1" d="M1830 470 H1910" />
+          </svg>
+          <div id="s6-headb" class="b">
+            <div id="s6-head">
+              <div id="s6-top">a cosy little café that happens to be</div>
+              <div id="s6-ml">an ML system.</div>
+              <svg id="s6-under" class="doodle" viewBox="0 0 1660 90"><path pathLength="1" d="M10 30 Q 420 4 830 28 T 1650 22" /><path pathLength="1" d="M120 70 Q 500 48 880 66 T 1560 60" /></svg>
+            </div>
+          </div>
+          <svg class="doodle s6-star" style="left: 1560px; top: 110px" viewBox="0 0 100 100"><path pathLength="1" d="M50 6 L61 38 L95 38 L67 58 L78 92 L50 71 L22 92 L33 58 L5 38 L39 38 Z" /></svg>
+          <svg class="doodle s6-star" style="left: 60px; top: 560px" viewBox="0 0 100 100"><path pathLength="1" d="M50 6 L61 38 L95 38 L67 58 L78 92 L50 71 L22 92 L33 58 L5 38 L39 38 Z" /></svg>
+          <svg class="doodle s6-star" style="left: 1730px; top: 620px" viewBox="0 0 100 100"><path pathLength="1" d="M50 6 L61 38 L95 38 L67 58 L78 92 L50 71 L22 92 L33 58 L5 38 L39 38 Z" /></svg>
+          <div id="s6-note" class="note">under the ink</div>
+          <svg id="s6-down" class="doodle" viewBox="0 0 100 150"><path pathLength="1" d="M50 6 V132" /><path pathLength="1" d="M10 92 L50 138 L90 92" /></svg>
+          <div id="s6-lead" class="note">under the ink:</div>
+          <svg id="s6-arrow" class="doodle" viewBox="0 0 440 200"><path pathLength="1" d="M10 20 Q 190 190 420 110" /><path pathLength="1" d="M372 70 L424 110 L366 148" /></svg>
+          <div id="s6-stackb" class="b">
+            <div class="card s6-layer" style="top: 580px; background: #c9a27a"><i>1</i><b>digital twin</b><span>discrete-event café · CRN seeds</span></div>
+            <div class="card s6-layer" style="top: 464px; background: #e3b25a"><i>2</i><b>forecasts</b><span>LightGBM quantile demand</span></div>
+            <div class="card s6-layer" style="top: 348px; background: #8fa585"><i>3</i><b>operations research</b><span>CP-SAT · newsvendor</span></div>
+            <div class="card s6-layer" id="s6-rl" style="top: 232px; background: #e07e52"><i>4</i><b>the RL manager</b><span>MaskablePPO → ONNX</span></div>
+            <div class="card s6-layer" style="top: 116px; background: #f7c3a3"><i>5</i><b>shield / charter</b><span>every action checked</span></div>
+            <div class="card s6-layer" style="top: 0; background: #fbf7f1"><i>6</i><b>live UI</b><span>WebSocket · 71 typed events</span></div>
+          </div>
+          <svg id="s6-ring" class="doodle" viewBox="0 0 960 170"><path pathLength="1" d="M480 12 C 200 4 14 40 18 88 C 22 140 300 162 520 158 C 780 154 946 122 942 78 C 938 30 700 6 420 18" /></svg>
+          <svg id="s6-crown" class="doodle" viewBox="0 0 150 100"><path pathLength="1" d="M12 88 L22 26 L52 62 L75 10 L98 62 L128 26 L138 88 Z" /></svg>
+          <div id="s6-t1" class="tag mustard s6-tag" style="top: 800px">decides every 15 sim-minutes</div>
+          <div id="s6-t2" class="tag paper s6-tag" style="top: 900px">prices · prep · dispatch · rescue</div>
+        </div>
+      </div>
+      <script>
+        (() => {
+          const { t, pop, hide, write, draw, bump, shake } = BREW;
+          const S = t(64), at = (e) => t(e) - S;
+          const tl = gsap.timeline({ paused: true });
+          tl.fromTo("#s6-glow", { scale: 0.5, opacity: 0 }, { scale: 1.2, opacity: 1, duration: 2.8, ease: "power2.out" }, 0);
+          // THE DROP. the full band comes in on these three words.
+          pop(tl, "#s6-ml", 0, { from: 2.6, rot: -2, rot0: -8, dur: 0.18 });
+          shake(tl, "#s6-shake", 0, 34, 9);
+          draw(tl, ".s6-ray path", 0, 0.14, 0.012);
+          draw(tl, "#s6-under path", at(65), 0.2, 0.12);
+          draw(tl, ".s6-star path", at(66), 0.16, 0.06);
+          write(tl, "#s6-note", at(69), 0.24);
+          draw(tl, "#s6-down path", at(70), 0.12, 0.08);
+          tl.fromTo("#s6-down", { y: 0 }, { y: 26, duration: 0.18, ease: "sine.inOut", yoyo: true, repeat: 3, immediateRender: false }, at(70) + 0.1);
+          // bar two: the line steps aside and the stack is stomped in from the ground up (three hits, two hits, one)
+          const T = at(72);
+          hide(tl, "#s6-note", T, 0.04);
+          hide(tl, "#s6-down", T, 0.04);
+          hide(tl, ".s6-ray", T, 0.04);
+          hide(tl, ".s6-star", T, 0.04);
+          tl.fromTo("#s6-glow", { opacity: 1 }, { opacity: 0.35, duration: 0.3, immediateRender: false }, T);
+          tl.fromTo("#s6-head", { scale: 1, x: 0, y: 0 }, { scale: 0.5, x: 0, y: -80, duration: 0.2, ease: "expo.out", immediateRender: false }, T);
+          write(tl, "#s6-lead", T + 0.1, 0.22);
+          draw(tl, "#s6-arrow path", at(73), 0.16, 0.1);
+          const layers = gsap.utils.toArray(".s6-layer");
+          [72, 73, 74, 77, 78, 80].forEach((e, i) => {
+            tl.fromTo(layers[i], { opacity: 0, y: 300, rotation: i % 2 ? 9 : -9, scale: 1.25 }, { opacity: 1, y: 0, rotation: i % 2 ? 0.8 : -0.8, scale: 1, duration: 0.2, ease: "power4.out" }, at(e));
+          });
+          // bar three: the one that decides
+          draw(tl, "#s6-ring path", at(81), 0.22);
+          draw(tl, "#s6-crown path", at(82), 0.16);
+          tl.fromTo("#s6-rl i", { rotation: 0 }, { rotation: 360, duration: 0.34, ease: "power2.out" }, at(82));
+          pop(tl, "#s6-t1", at(85), { rot: -2, rot0: 10 });
+          pop(tl, "#s6-t2", at(86), { rot: 2, rot0: -10 });
+          // the band is playing: everything takes every hit
+          bump(tl, "#s6-headb", t(65), t(88), { amt: 0.045, rot: 0.5, min: 0.5 });
+          bump(tl, "#s6-stackb", t(75), t(88), { amt: 0.03, rot: 0.6, min: 0.5 });
+          bump(tl, "#s6-crown", t(83), t(88), { amt: 0.3, rot: 12, min: 0.3 });
+          window.__timelines["s6-system"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

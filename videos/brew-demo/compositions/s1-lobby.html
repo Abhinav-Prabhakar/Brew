@@ -1,0 +1,144 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #s1-root {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+        }
+        #s1-winb {
+          left: 560px;
+          top: 96px;
+          width: 1296px;
+          height: 810px;
+        }
+        #s1-win {
+          left: 0;
+          top: 0;
+          width: 1296px;
+          height: 810px;
+        }
+        #s1-stamp {
+          left: 70px;
+          top: 120px;
+        }
+        #s1-title {
+          left: 66px;
+          top: 210px;
+          width: 480px;
+          font-size: 84px;
+        }
+        #s1-title span,
+        #s1-title em {
+          display: block;
+          white-space: nowrap;
+        }
+        #s1-title em {
+          font-size: 150px;
+          transform-origin: 20% 60%;
+        }
+        .s1-note {
+          left: 70px;
+          width: 480px;
+          font-size: 50px;
+        }
+        #s1-circle {
+          left: 650px;
+          top: 118px;
+          width: 500px;
+          height: 220px;
+          stroke-width: 9;
+        }
+        #s1-arrow {
+          left: 420px;
+          top: 330px;
+          width: 250px;
+          height: 190px;
+          stroke-width: 8;
+        }
+        .s1-tag {
+          font-size: 46px;
+        }
+        .s1-spark {
+          width: 86px;
+          height: 86px;
+        }
+      </style>
+      <div id="s1-root" data-composition-id="s1-lobby" data-width="1920" data-height="1080">
+        <div id="s1-wrap" class="wrap">
+          <div id="s1-winb" class="b">
+            <div id="s1-win" class="win">
+              <div id="s1-cam" class="cam">
+                <video id="s1-vid" class="clip" src="assets/clips/lobby.mp4" muted playsinline data-start="0" data-duration="5.7143" data-track-index="0"></video>
+              </div>
+            </div>
+          </div>
+          <div id="s1-col" class="col">
+            <div id="s1-stamp" class="stamp">08:08</div>
+            <div id="s1-title" class="title"><span>the morning</span><em>rush</em></div>
+            <div id="s1-n1" class="note s1-note" style="top: 540px">→ tickets hit the rail</div>
+            <div id="s1-n2" class="note s1-note" style="top: 630px">→ customers lose patience</div>
+            <div id="s1-n3" class="note s1-note" style="top: 720px">→ every number is live</div>
+          </div>
+          <svg id="s1-circle" class="doodle terra" viewBox="0 0 500 220"><path pathLength="1" d="M250 16 C 100 6 14 54 20 116 C 26 182 180 208 280 202 C 410 196 486 150 480 98 C 474 40 350 6 200 22" /></svg>
+          <svg id="s1-arrow" class="doodle" viewBox="0 0 250 190"><path pathLength="1" d="M14 176 Q 60 40 226 30" /><path pathLength="1" d="M180 8 L230 30 L190 70" /></svg>
+          <div id="s1-t1" class="tag mustard s1-tag" style="left: 1240px; top: 480px">the ticket rail</div>
+          <div id="s1-t2" class="tag sage s1-tag" style="left: 700px; top: 250px">patience, ticking</div>
+          <div id="s1-t3" class="tag terra s1-tag" style="left: 1130px; top: 250px">the manager says why</div>
+          <svg class="doodle s1-spark" style="left: 1760px; top: 40px" viewBox="0 0 80 80"><path pathLength="1" d="M40 4 Q44 36 76 40 Q44 44 40 76 Q36 44 4 40 Q36 36 40 4 Z" /></svg>
+          <svg class="doodle s1-spark" style="left: 1480px; top: 20px" viewBox="0 0 80 80"><path pathLength="1" d="M40 4 Q44 36 76 40 Q44 44 40 76 Q36 44 4 40 Q36 36 40 4 Z" /></svg>
+          <svg class="doodle s1-spark" style="left: 1846px; top: 190px" viewBox="0 0 80 80"><path pathLength="1" d="M40 4 Q44 36 76 40 Q44 44 40 76 Q36 44 4 40 Q36 36 40 4 Z" /></svg>
+        </div>
+      </div>
+      <script>
+        (() => {
+          const { t, pop, hide, write, draw, bump, cam } = BREW;
+          const S = t(8), at = (e) => t(e) - S;
+          const c = (cx, cy, s) => cam(1296, 810, cx, cy, s);
+          const wide = c(800, 500, 1), rail = c(430, 170, 1.9), queue = c(1180, 560, 2), card = c(520, 890, 1.9);
+          const snap = (from, to, e) => tl.fromTo("#s1-cam", from, { ...to, duration: 0.16, ease: "expo.out", immediateRender: false }, at(e));
+          const tl = gsap.timeline({ paused: true });
+          tl.fromTo("#s1-cam", wide, { ...wide, duration: 0.01 }, 0);
+          // the page whips in on the bar line; stamp, title on the next two stomps
+          tl.fromTo("#s1-wrap", { x: 2300, skewX: 14 }, { x: 0, skewX: 0, duration: 0.2, ease: "power3.out" }, 0);
+          pop(tl, "#s1-stamp", at(9), { from: 2.2, rot: -3, rot0: -20 });
+          pop(tl, "#s1-title span", at(10), { from: 1.5, rot: 0, rot0: -4 });
+          pop(tl, "#s1-title em", at(10) + 0.09, { from: 2.2, rot: -3, rot0: 8 });
+          // hit, hit: the rail is circled, the note points at it
+          draw(tl, "#s1-circle path", at(13), 0.2);
+          write(tl, "#s1-n1", at(13), 0.24);
+          draw(tl, "#s1-arrow path", at(14), 0.14, 0.1);
+          // bar two: three stomps, three snap zooms
+          hide(tl, "#s1-circle", at(16), 0.05);
+          hide(tl, "#s1-arrow", at(16), 0.05);
+          snap(wide, rail, 16);
+          pop(tl, "#s1-t1", at(16), { rot: 3, rot0: 14 });
+          hide(tl, "#s1-t1", at(17), 0.05);
+          snap(rail, queue, 17);
+          pop(tl, "#s1-t2", at(17), { rot: -3, rot0: -14 });
+          write(tl, "#s1-n2", at(17), 0.24);
+          hide(tl, "#s1-t2", at(18), 0.05);
+          snap(queue, card, 18);
+          pop(tl, "#s1-t3", at(18), { rot: 2, rot0: 12 });
+          // hit, hit: back out, and the last note with its sparks
+          hide(tl, "#s1-t3", at(21), 0.05);
+          snap(card, wide, 21);
+          write(tl, "#s1-n3", at(22), 0.24);
+          draw(tl, ".s1-spark path", at(22), 0.14, 0.04);
+          // everything on screen takes the beat
+          bump(tl, "#s1-winb", t(9), t(24), { amt: 0.028, rot: 0.5 });
+          bump(tl, "#s1-col", t(11), t(24), { amt: 0.02, y: 9 });
+          bump(tl, ".s1-spark", t(22) + 0.2, t(24), { amt: 0.5, rot: 25, min: 0.2 });
+          // out: straight through the window into the kitchen
+          tl.fromTo("#s1-wrap", { scale: 1, opacity: 1 }, { scale: 2.6, opacity: 0, duration: 0.17, ease: "power3.in", immediateRender: false }, at(24) - 0.17);
+          window.__timelines["s1-lobby"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

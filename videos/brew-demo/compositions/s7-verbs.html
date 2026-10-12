@@ -1,0 +1,140 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #s7-root {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+          background: var(--ink);
+        }
+        #s7-kick {
+          left: 0;
+          top: -60px;
+          width: 1920px;
+          height: 1200px;
+        }
+        #s7-cam {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 1920px;
+          height: 1200px;
+          transform-origin: 0 0;
+        }
+        #s7-cam video {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 1920px;
+          height: 1200px;
+          display: block;
+        }
+        #s7-tint {
+          position: absolute;
+          inset: 0;
+          mix-blend-mode: multiply;
+          background: var(--sage);
+          opacity: 0.6;
+        }
+        #s7-white {
+          position: absolute;
+          inset: 0;
+          background: #fffdf9;
+        }
+        .s7-card {
+          position: absolute;
+          background: var(--paper);
+          border: 7px solid var(--ink);
+          border-radius: 34px;
+          box-shadow: 18px 18px 0 var(--ink);
+          padding: 20px 60px 30px;
+          white-space: nowrap;
+        }
+        .s7-card small {
+          display: block;
+          font-family: var(--note);
+          font-weight: 700;
+          font-size: 110px;
+          line-height: 1;
+          color: var(--ink);
+        }
+        .s7-card b {
+          display: block;
+          font-family: var(--hand);
+          font-weight: 400;
+          font-size: 330px;
+          line-height: 1;
+          margin-top: 14px;
+          color: var(--terra-ink);
+        }
+        .s7-n {
+          position: absolute;
+          font-family: var(--mono);
+          font-weight: 700;
+          font-size: 60px;
+          line-height: 1;
+          color: var(--paper);
+          background: var(--ink);
+          padding: 16px 24px 10px;
+          border-radius: 14px;
+        }
+      </style>
+      <div id="s7-root" data-composition-id="s7-verbs" data-width="1920" data-height="1080">
+        <div id="s7-kick" class="b">
+          <div id="s7-cam">
+            <video id="s7-v1" class="clip" src="assets/clips/v_prep.mp4" muted playsinline data-start="0" data-duration="0.7143" data-track-index="0"></video>
+            <video id="s7-v2" class="clip" data-hf-media-start-basis="local" src="assets/clips/v_price.mp4" muted playsinline data-start="0.7143" data-duration="0.7143" data-track-index="0"></video>
+            <video id="s7-v3" class="clip" data-hf-media-start-basis="local" src="assets/clips/v_cook.mp4" muted playsinline data-start="1.4286" data-duration="0.7143" data-track-index="0"></video>
+            <video id="s7-v4" class="clip" data-hf-media-start-basis="local" src="assets/clips/v_rescue.mp4" muted playsinline data-start="2.1429" data-duration="0.7142" data-track-index="0"></video>
+          </div>
+        </div>
+        <div id="s7-tint"></div>
+        <div id="s7-c1" class="s7-card" style="left: 110px; top: 420px"><small>what to</small><b>prep.</b></div>
+        <div id="s7-c2" class="s7-card" style="left: 760px; top: 110px"><small>what to</small><b>charge.</b></div>
+        <div id="s7-c3" class="s7-card" style="left: 90px; top: 150px"><small data-layout-allow-overlap>what to</small><b data-layout-allow-overlap>cook first.</b></div>
+        <div id="s7-c4" class="s7-card" style="left: 700px; top: 440px"><small>what to</small><b>rescue.</b></div>
+        <div id="s7-n1" class="s7-n" style="left: 1620px; top: 80px">1 / 4</div>
+        <div id="s7-n2" class="s7-n" style="left: 120px; top: 900px">2 / 4</div>
+        <div id="s7-n3" class="s7-n" style="left: 1620px; top: 900px">3 / 4</div>
+        <div id="s7-n4" class="s7-n" style="left: 120px; top: 80px">4 / 4</div>
+        <div id="s7-white"></div>
+      </div>
+      <script>
+        (() => {
+          const { t, E, pop, hide, cam } = BREW;
+          const S = t(88), at = (e) => t(e) - S;
+          const c = (cx, cy, s) => cam(1920, 1200, cx, cy, s);
+          // four decisions the manager makes, a quarter-note each, over the screen it makes them on
+          const shots = [
+            { cam: c(520, 890, 1.9), tint: "#8fa585", rot: -4 }, // the lobby's decision card: "prep 4 L cold brew..."
+            { cam: c(690, 285, 2.0), tint: "#e3b25a", rot: 3 }, // the menu book's price column
+            { cam: c(560, 860, 1.7), tint: "#e07e52", rot: -2 }, // the kitchen's crew and stations
+            { cam: c(330, 880, 1.9), tint: "#f7c3a3", rot: 4 }, // the pantry's use-today markdowns
+          ];
+          const tl = gsap.timeline({ paused: true });
+          shots.forEach((s, i) => {
+            const T = at(88 + i * 2);
+            tl.set("#s7-cam", s.cam, T);
+            tl.set("#s7-tint", { backgroundColor: s.tint }, T);
+            tl.fromTo("#s7-white", { opacity: 0.75 }, { opacity: 0, duration: 0.14, ease: "power2.out", immediateRender: i === 0 }, T);
+            tl.fromTo("#s7-kick", { scale: 1.14 }, { scale: 1, duration: 0.3, ease: "power3.out", immediateRender: false }, T);
+            tl.fromTo("#s7-kick", { scale: 1 }, { scale: 1.05, duration: 0.14, ease: "power2.out", yoyo: true, repeat: 1, immediateRender: false }, T + E);
+            pop(tl, `#s7-c${i + 1}`, T, { from: 1.8, rot: s.rot, rot0: -s.rot * 4, dur: 0.16 });
+            pop(tl, `#s7-n${i + 1}`, T, { from: 2, rot: -s.rot, rot0: s.rot * 3, dur: 0.16 });
+            tl.fromTo(`#s7-c${i + 1} b`, { scale: 1 }, { scale: 1.07, duration: 0.12, ease: "power2.out", yoyo: true, repeat: 1, transformOrigin: "30% 60%", immediateRender: false }, T + E);
+            if (i < 3) {
+              hide(tl, `#s7-c${i + 1}`, T + 2 * E - 0.02, 0.02);
+              hide(tl, `#s7-n${i + 1}`, T + 2 * E - 0.02, 0.02);
+            }
+          });
+          window.__timelines["s7-verbs"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

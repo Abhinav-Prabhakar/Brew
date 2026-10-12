@@ -6,7 +6,7 @@ message: "brew looks like a cosy hand-drawn café, and under the ink a learned m
 destination: youtube / README embed
 aspect: 1920x1080
 language: en
-length: 64s
+length: 62s
 audience: engineers and reviewers meeting the project for the first time
 narration: no
 ---
@@ -23,17 +23,21 @@ the day closes on a printed receipt. Left behind on purpose: the dark, neon "AI 
 
 - assets/footage/*.mp4 — the real UI, recorded from design/brew.html replaying the golden fixtures (and a live
   scripted backend for Kapi) by tools/capture_footage.py. Every screen in the film is the real page.
-- assets/music/brew-day.wav — the score, synthesised by tools/make_music.py (90 bpm, 24 bars = 64 s), same idea as
-  the café's own synthesised radio. Scene cuts sit on its bar lines.
+- assets/music/track.wav — the first 62 s of "Champion" (Mojo Soundtrack), chosen by the user, faded out over the
+  last second. It is licensed stock music: it is NOT in the repo, and publishing the film needs the user's licence.
+  tools/analyze_music.py finds its grid and hits (beats.js); the whole film is cut to them.
 
 ## Customizations
 
-- Cuts on the music's bar grid; count-ups on the arena numbers; the brand's own fonts (Gochi Hand, Patrick Hand,
-  Caveat, Courier Prime) and palette (paper #fbf7f1, ink #1d1a1c, terracotta #e07e52).
+- Second pass (user feedback: too slow, like a template slideshow): cut to the new track's beat, high-energy
+  pacing, varied transitions, everything on screen reacting to the hits, hand-drawn elements that animate on the
+  beat. The styling stays.
+- Count-ups on the arena numbers; the brand's own fonts (Gochi Hand, Patrick Hand, Caveat, Courier Prime) and
+  palette (paper #fbf7f1, ink #1d1a1c, terracotta #e07e52).
 
 ## Notes
 
 - Numbers come from README "Final arena" (10 seeds × 7 days, CRN-paired): A ₹62,112 · B ₹73,465 · C ₹96,948 ·
   D ₹104,885 per day. No other claims are invented.
 - Autonomous run (the user said go all in): decisions are stated in the hand-off, not asked.
-- HeyGen is not signed in, so the music catalogue was unavailable; the score is synthesised locally instead.
+- The first cut used a locally synthesised score (tools/make_music.py, kept for reference); the user replaced it.

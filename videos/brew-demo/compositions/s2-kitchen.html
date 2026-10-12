@@ -1,0 +1,181 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #s2-root {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+        }
+        #s2-flash {
+          position: absolute;
+          inset: 0;
+          background: var(--terra);
+        }
+        #s2-tape {
+          position: absolute;
+          left: -100px;
+          top: 930px;
+          width: 2200px;
+          height: 54px;
+          border-top: 4px solid var(--ink);
+          border-bottom: 4px solid var(--ink);
+          background: repeating-linear-gradient(-45deg, #e3b25a 0 44px, #1d1a1c 44px 88px);
+        }
+        #s2-winb {
+          left: 70px;
+          top: 110px;
+          width: 1216px;
+          height: 760px;
+        }
+        #s2-win {
+          left: 0;
+          top: 0;
+          width: 1216px;
+          height: 760px;
+        }
+        #s2-stamp {
+          left: 1346px;
+          top: 120px;
+        }
+        #s2-title {
+          left: 1342px;
+          top: 214px;
+          width: 540px;
+          font-size: 80px;
+        }
+        #s2-title span,
+        #s2-title em {
+          display: block;
+          white-space: nowrap;
+        }
+        #s2-title em {
+          font-size: 160px;
+          transform-origin: 20% 60%;
+        }
+        #s2-wait {
+          left: 1346px;
+          top: 400px;
+          width: 520px;
+          font-size: 64px;
+        }
+        #s2-arrow {
+          left: 1090px;
+          top: 420px;
+          width: 250px;
+          height: 150px;
+          stroke-width: 9;
+        }
+        #s2-down {
+          left: 700px;
+          top: 150px;
+          font-size: 130px;
+          padding: 10px 36px 18px;
+          border-width: 6px;
+          box-shadow: 10px 10px 0 var(--ink);
+        }
+        .s2-bolt {
+          width: 110px;
+          height: 140px;
+          stroke-width: 8;
+          fill: var(--mustard);
+        }
+        #s2-replan {
+          left: 1346px;
+          top: 566px;
+          font-size: 44px;
+        }
+        #s2-n2 {
+          left: 1346px;
+          top: 652px;
+          width: 520px;
+          font-size: 46px;
+        }
+        .s2-chip {
+          font-size: 30px;
+          padding: 9px 16px 11px;
+          border-width: 3px;
+          border-radius: 13px;
+          box-shadow: 4px 4px 0 var(--ink);
+        }
+      </style>
+      <div id="s2-root" data-composition-id="s2-kitchen" data-width="1920" data-height="1080">
+        <div id="s2-wrap" class="wrap">
+          <div id="s2-flash"></div>
+          <div id="s2-tape"></div>
+          <div id="s2-winb" class="b">
+            <div id="s2-win" class="win">
+              <div id="s2-cam" class="cam">
+                <video id="s2-vid" class="clip" src="assets/clips/kitchen.mp4" muted playsinline data-start="0" data-duration="5.7143" data-track-index="0"></video>
+              </div>
+            </div>
+          </div>
+          <div id="s2-col" class="col">
+            <div id="s2-stamp" class="stamp">08:30</div>
+            <div id="s2-title" class="title"><span>the espresso</span><span>machine</span><em>breaks</em></div>
+            <div id="s2-wait" class="note">wait for it…</div>
+            <div id="s2-replan" class="tag sage">policy D re-plans, at once</div>
+            <div id="s2-n2" class="note">chaos you can press:</div>
+            <div class="tag paper s2-chip" style="left: 1346px; top: 724px">barista sick</div>
+            <div class="tag paper s2-chip" style="left: 1560px; top: 724px">oven breaks</div>
+            <div class="tag paper s2-chip" style="left: 1346px; top: 790px">milk late</div>
+            <div class="tag paper s2-chip" style="left: 1522px; top: 790px">rain storm</div>
+            <div class="tag paper s2-chip" style="left: 1346px; top: 856px">no riders</div>
+            <div class="tag paper s2-chip" style="left: 1522px; top: 856px">power cut</div>
+          </div>
+          <svg id="s2-arrow" class="doodle" viewBox="0 0 250 150"><path pathLength="1" d="M240 20 Q 130 10 24 110" /><path pathLength="1" d="M20 56 L22 112 L78 104" /></svg>
+          <div id="s2-down" class="tag terra">DOWN</div>
+          <svg class="doodle s2-bolt" style="left: -6px; top: 26px" viewBox="0 0 110 140"><path pathLength="1" d="M70 6 L20 74 L52 74 L34 134 L92 58 L60 58 Z" /></svg>
+          <svg class="doodle s2-bolt" style="left: 590px; top: 16px" viewBox="0 0 110 140"><path pathLength="1" d="M70 6 L20 74 L52 74 L34 134 L92 58 L60 58 Z" /></svg>
+          <svg class="doodle s2-bolt" style="left: 1200px; top: 770px" viewBox="0 0 110 140"><path pathLength="1" d="M70 6 L20 74 L52 74 L34 134 L92 58 L60 58 Z" /></svg>
+        </div>
+      </div>
+      <script>
+        (() => {
+          const { t, pop, hide, write, draw, bump, shake, cam } = BREW;
+          const S = t(24), at = (e) => t(e) - S;
+          const c = (cx, cy, s) => cam(1216, 760, cx, cy, s);
+          const wide = c(800, 500, 1), machine = c(960, 470, 1.45);
+          const tl = gsap.timeline({ paused: true });
+          tl.fromTo("#s2-flash", { opacity: 0 }, { opacity: 0, duration: 0.01 }, 0);
+          tl.fromTo("#s2-cam", wide, { ...wide, duration: 0.01 }, 0);
+          // in: through the lobby's window
+          tl.fromTo("#s2-wrap", { scale: 0.45, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.2, ease: "power3.out" }, 0);
+          pop(tl, "#s2-stamp", at(25), { from: 2.2, rot: 3, rot0: 20 });
+          pop(tl, "#s2-title span", at(26), { from: 1.5, rot0: 5, stagger: 0.07 });
+          // this bar's odd hits (eighths 4 and 6): hold your breath
+          write(tl, "#s2-wait", at(28), 0.3);
+          draw(tl, "#s2-arrow path", at(30), 0.14, 0.1);
+          tl.fromTo("#s2-cam", wide, { ...machine, duration: 0.5, ease: "power2.in", immediateRender: false }, at(30));
+          // the downbeat of the next bar is 08:30:00 in the footage
+          const T = at(32);
+          hide(tl, "#s2-wait", T, 0.04);
+          hide(tl, "#s2-arrow", T, 0.04);
+          tl.fromTo("#s2-flash", { opacity: 0.7 }, { opacity: 0, duration: 0.4, ease: "power2.out", immediateRender: false }, T);
+          tl.fromTo("#s2-cam", machine, { ...wide, duration: 0.16, ease: "expo.out", immediateRender: false }, T);
+          shake(tl, "#s2-root", T, 26, 8);
+          pop(tl, "#s2-down", T, { from: 3.2, rot: -9, rot0: -30, dur: 0.16 });
+          pop(tl, "#s2-title em", T, { from: 2.4, rot: -3, rot0: 10 });
+          draw(tl, ".s2-bolt path", T, 0.12, 0.05);
+          tl.fromTo("#s2-tape", { x: -2400 }, { x: 0, duration: 0.24, ease: "power3.out" }, at(33));
+          tl.fromTo("#s2-tape", { backgroundPositionX: 0 }, { backgroundPositionX: 248, duration: 2.6, ease: "none", immediateRender: false }, at(33));
+          tl.fromTo("#s2-down", { scale: 1, x: 0, y: 0 }, { scale: 0.46, x: 248, y: -112, duration: 0.16, ease: "expo.out", immediateRender: false }, at(34));
+          pop(tl, "#s2-replan", at(34), { rot: -2, rot0: 10 });
+          // the last two hits: the chaos buttons, three and three
+          write(tl, "#s2-n2", at(37) - 0.12, 0.2);
+          const chips = gsap.utils.toArray(".s2-chip");
+          pop(tl, chips.slice(0, 3), at(37), { from: 2, rot0: 14, stagger: 0.06 });
+          pop(tl, chips.slice(3), at(38), { from: 2, rot0: -14, stagger: 0.06 });
+          bump(tl, "#s2-winb", t(25), t(40), { amt: 0.028, rot: 0.6 });
+          bump(tl, "#s2-col", t(27), t(40), { amt: 0.02, y: 9 });
+          bump(tl, ".s2-bolt", t(33), t(40), { amt: 0.35, rot: 14 });
+          window.__timelines["s2-kitchen"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

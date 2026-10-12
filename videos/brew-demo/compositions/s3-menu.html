@@ -1,0 +1,131 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #s3-root {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+        }
+        #s3-winb {
+          left: 634px;
+          top: 110px;
+          width: 1216px;
+          height: 760px;
+        }
+        #s3-win {
+          left: 0;
+          top: 0;
+          width: 1216px;
+          height: 760px;
+        }
+        #s3-stamp {
+          left: 70px;
+          top: 120px;
+        }
+        #s3-title {
+          left: 66px;
+          top: 214px;
+          width: 540px;
+          font-size: 88px;
+        }
+        #s3-item {
+          left: 72px;
+          top: 510px;
+          width: 520px;
+          font-size: 56px;
+        }
+        .s3-price {
+          position: absolute;
+          font-family: var(--hand);
+          font-size: 120px;
+          line-height: 1;
+          white-space: nowrap;
+        }
+        #s3-old {
+          left: 66px;
+          top: 580px;
+          color: var(--ink);
+        }
+        #s3-strike {
+          left: 40px;
+          top: 610px;
+          width: 330px;
+          height: 60px;
+          stroke-width: 13;
+        }
+        #s3-new {
+          left: 66px;
+          top: 690px;
+          font-size: 210px;
+          color: var(--terra-ink);
+          transform-origin: 20% 80%;
+        }
+        #s3-charter {
+          left: 70px;
+          top: 912px;
+          font-size: 34px;
+        }
+        #s3-circle {
+          left: 1022px;
+          top: 380px;
+          width: 440px;
+          height: 220px;
+          stroke-width: 10;
+        }
+      </style>
+      <div id="s3-root" data-composition-id="s3-menu" data-width="1920" data-height="1080">
+        <div id="s3-wrap" class="wrap">
+          <div id="s3-winb" class="b">
+            <div id="s3-win" class="win">
+              <div id="s3-cam" class="cam">
+                <video id="s3-vid" class="clip" src="assets/clips/menu.mp4" muted playsinline data-start="0" data-duration="2.8571" data-track-index="0"></video>
+              </div>
+            </div>
+          </div>
+          <div id="s3-col" class="col">
+            <div id="s3-stamp" class="stamp">09:00</div>
+            <div id="s3-title" class="title">prices, rewritten <em>in ink</em></div>
+            <div id="s3-item" class="note">cappuccino</div>
+            <div id="s3-old" class="s3-price">₹220</div>
+            <div id="s3-new" class="s3-price">₹215</div>
+            <div id="s3-charter" class="tag sage">inside a fair-pricing charter</div>
+          </div>
+          <svg id="s3-strike" class="doodle terra" viewBox="0 0 330 60"><path pathLength="1" d="M6 44 Q 90 10 170 30 T 324 14" /></svg>
+          <svg id="s3-circle" class="doodle terra" viewBox="0 0 440 220"><path pathLength="1" d="M220 16 C 90 8 14 56 20 116 C 26 180 160 208 250 202 C 360 196 426 150 420 98 C 414 42 310 8 180 22" /></svg>
+        </div>
+      </div>
+      <script>
+        (() => {
+          const { t, pop, write, draw, bump, cam } = BREW;
+          const S = t(40), at = (e) => t(e) - S;
+          const c = (cx, cy, s) => cam(1216, 760, cx, cy, s);
+          const wide = c(800, 500, 1), price = c(690, 285, 2.1);
+          const tl = gsap.timeline({ paused: true });
+          tl.fromTo("#s3-cam", wide, { ...wide, duration: 0.01 }, 0);
+          // (the hazard tape is still crossing the frame as this starts)
+          pop(tl, "#s3-stamp", at(41), { from: 2.2, rot: -3, rot0: -20 });
+          pop(tl, "#s3-title", at(42), { from: 1.5, rot0: -5 });
+          tl.fromTo("#s3-cam", wide, { ...price, duration: 0.5, ease: "power3.inOut", immediateRender: false }, at(42) + 0.1);
+          write(tl, "#s3-item", at(44) - 0.1, 0.2);
+          pop(tl, "#s3-old", at(44), { from: 1.6, rot0: 6 });
+          // hit: the owner's price change lands (in the footage too) and is struck through. hit: the new price.
+          draw(tl, "#s3-strike path", at(45), 0.1);
+          tl.fromTo("#s3-old", { opacity: 1 }, { opacity: 0.45, duration: 0.1, immediateRender: false }, at(45));
+          draw(tl, "#s3-circle path", at(45), 0.18);
+          pop(tl, "#s3-new", at(46), { from: 2.4, rot: -4, rot0: 14 });
+          pop(tl, "#s3-charter", at(47.5), { rot: 2, rot0: -10 });
+          bump(tl, "#s3-winb", t(40), t(48), { amt: 0.03, rot: 0.6 });
+          bump(tl, "#s3-col", t(43), t(48), { amt: 0.02, y: 9 });
+          // out: the page is pushed up
+          tl.fromTo("#s3-wrap", { y: 0 }, { y: -1160, duration: 0.17, ease: "power3.in", immediateRender: false }, at(48) - 0.17);
+          window.__timelines["s3-menu"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

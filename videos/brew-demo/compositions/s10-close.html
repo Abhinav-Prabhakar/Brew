@@ -1,0 +1,290 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #s10-root {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+        }
+        #s10-night {
+          position: absolute;
+          left: 1060px;
+          top: -420px;
+          width: 1200px;
+          height: 1200px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(61, 69, 86, 0.4), rgba(61, 69, 86, 0) 66%);
+        }
+        #s10-moon {
+          left: 1720px;
+          top: 60px;
+          width: 120px;
+          height: 120px;
+          stroke-width: 8;
+          fill: var(--mustard);
+        }
+        #s10-slot {
+          position: absolute;
+          left: 120px;
+          top: 70px;
+          width: 620px;
+          height: 30px;
+          border-radius: 15px;
+          background: var(--ink);
+        }
+        #s10-mask {
+          position: absolute;
+          left: 150px;
+          top: 86px;
+          width: 560px;
+          height: 940px;
+          overflow: hidden;
+        }
+        #s10-paperb {
+          left: 0;
+          top: 0;
+          width: 560px;
+          height: 790px;
+          transform-origin: 50% 0;
+        }
+        #s10-paper {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 560px;
+          height: 790px;
+          background: #fffdf9;
+          border: 4px solid var(--ink);
+          border-top: 0;
+          border-radius: 0 0 10px 10px;
+          padding: 34px 30px 0;
+          font-family: var(--mono);
+          font-weight: 700;
+          font-size: 29px;
+          line-height: 46px;
+          color: var(--ink);
+        }
+        #s10-paper p {
+          display: flex;
+          justify-content: space-between;
+          white-space: nowrap;
+        }
+        #s10-paper p.c {
+          justify-content: center;
+        }
+        #s10-paper p.h {
+          font-family: var(--hand);
+          font-weight: 400;
+          font-size: 56px;
+          line-height: 62px;
+          justify-content: center;
+        }
+        #s10-paper hr {
+          border: 0;
+          border-top: 4px dashed var(--ink);
+          margin: 12px 0;
+        }
+        #s10-stamp {
+          left: 1250px;
+          top: 76px;
+          white-space: nowrap;
+        }
+        #s10-logob {
+          left: 830px;
+          top: 190px;
+          width: 1040px;
+          height: 380px;
+          transform-origin: 45% 65%;
+        }
+        #s10-logo {
+          position: absolute;
+          left: 0;
+          top: 0;
+          font-family: var(--hand);
+          font-size: 360px;
+          line-height: 1;
+          color: #b55c39;
+          text-shadow: 10px 10px 0 var(--ink);
+          letter-spacing: 6px;
+          transform-origin: 40% 70%;
+        }
+        #s10-heart {
+          position: absolute;
+          left: 800px;
+          top: 92px;
+          width: 236px;
+          height: 236px;
+          transform-origin: 50% 60%;
+        }
+        #s10-under {
+          left: 850px;
+          top: 540px;
+          width: 760px;
+          height: 60px;
+          stroke-width: 12;
+        }
+        #s10-tagline {
+          left: 850px;
+          top: 620px;
+          width: 960px;
+          font-size: 78px;
+          line-height: 1;
+        }
+        #s10-cmd {
+          left: 850px;
+          top: 820px;
+          font-family: var(--mono);
+          font-weight: 700;
+          font-size: 44px;
+          padding: 16px 26px 12px;
+        }
+        #s10-repo {
+          position: absolute;
+          left: 852px;
+          top: 940px;
+          font-family: var(--body);
+          font-size: 42px;
+          line-height: 1;
+          white-space: nowrap;
+        }
+        .s10-line {
+          position: absolute;
+          left: 880px;
+          font-family: var(--hand);
+          font-size: 80px;
+          line-height: 1;
+          white-space: nowrap;
+          color: var(--ink);
+          transform-origin: 10% 60%;
+        }
+        .s10-line em {
+          font-style: normal;
+          color: var(--terra-ink);
+        }
+        .s10-tick {
+          left: 790px;
+          width: 80px;
+          height: 70px;
+          stroke-width: 11;
+        }
+        #s10-linesb {
+          left: 0;
+          top: 0;
+          width: 1920px;
+          height: 1080px;
+          transform-origin: 70% 50%;
+        }
+        .s10-h {
+          width: 80px;
+          height: 76px;
+          stroke-width: 8;
+        }
+        #s10-fade {
+          position: absolute;
+          inset: 0;
+          background: var(--paper);
+        }
+      </style>
+      <div id="s10-root" data-composition-id="s10-close" data-width="1920" data-height="1080">
+        <div id="s10-night"></div>
+        <svg id="s10-moon" class="doodle" viewBox="0 0 120 120"><path pathLength="1" d="M78 12 A50 50 0 1 0 108 86 A40 40 0 1 1 78 12 Z" /></svg>
+        <div id="s10-mask">
+          <div id="s10-paperb" class="b">
+            <div id="s10-paper">
+              <p class="h">brew café ♡</p>
+              <p class="c">tue · 22:00 · z-report</p>
+              <hr />
+              <p><span>1 × digital twin</span><span>✓</span></p>
+              <p><span>1 × LightGBM forecasts</span><span>✓</span></p>
+              <p><span>1 × CP-SAT + newsvendor</span><span>✓</span></p>
+              <p><span>1 × MaskablePPO → ONNX</span><span>✓</span></p>
+              <p><span>1 × shield / charter</span><span>✓</span></p>
+              <p><span>1 × FastAPI + WebSocket</span><span>✓</span></p>
+              <p><span>518 × pytest</span><span>✓</span></p>
+              <hr />
+              <p><span>D · learned</span><span>₹1,04,885/day</span></p>
+              <p><span>vs naive</span><span>+₹42,773</span></p>
+              <hr />
+              <p class="c">thank u ♡</p>
+            </div>
+          </div>
+        </div>
+        <div id="s10-slot"></div>
+        <div id="s10-stamp" class="stamp">22:00 · closed</div>
+        <!-- while the receipt prints: the three rules the project was built by, one a stomp -->
+        <div id="s10-linesb" class="b">
+          <div id="s10-lines">
+            <svg class="doodle terra s10-tick" style="top: 300px" viewBox="0 0 80 70"><path pathLength="1" d="M8 38 L30 60 L72 8" /></svg>
+            <div class="s10-line" style="top: 290px">measure, <em>don't assert.</em></div>
+            <svg class="doodle terra s10-tick" style="top: 480px" viewBox="0 0 80 70"><path pathLength="1" d="M8 38 L30 60 L72 8" /></svg>
+            <div class="s10-line" style="top: 470px">explainable <em>by construction.</em></div>
+            <svg class="doodle terra s10-tick" style="top: 660px" viewBox="0 0 80 70"><path pathLength="1" d="M8 38 L30 60 L72 8" /></svg>
+            <div class="s10-line" style="top: 650px">one hand <em>drew it.</em></div>
+          </div>
+        </div>
+        <div id="s10-logob" class="b">
+          <div id="s10-logo">brew</div>
+          <svg id="s10-heart" viewBox="0 0 108 104">
+            <path d="M54 92 C 16 64 6 42 15 27 C 24 12 45 13 54 33 C 63 13 84 12 93 27 C 102 42 92 64 54 92 Z" fill="none" stroke="#1d1a1c" stroke-width="12" stroke-linejoin="round" transform="translate(5 5)" />
+            <path d="M54 92 C 16 64 6 42 15 27 C 24 12 45 13 54 33 C 63 13 84 12 93 27 C 102 42 92 64 54 92 Z" fill="none" stroke="#b55c39" stroke-width="12" stroke-linejoin="round" />
+          </svg>
+        </div>
+        <svg id="s10-under" class="doodle" viewBox="0 0 760 60"><path pathLength="1" d="M8 34 Q 190 6 380 30 T 752 22" /></svg>
+        <div id="s10-tagline" class="note">a cosy little café that happens to be an ML system.</div>
+        <div id="s10-cmd" class="tag mustard">$ docker compose up</div>
+        <div id="s10-repo">github.com/Abhinav-Prabhakar/Brew</div>
+        <svg class="doodle terra s10-h" style="left: 770px; top: 150px" viewBox="0 0 108 104"><path pathLength="1" d="M54 92 C 16 64 6 42 15 27 C 24 12 45 13 54 33 C 63 13 84 12 93 27 C 102 42 92 64 54 92 Z" /></svg>
+        <svg class="doodle terra s10-h" style="left: 1800px; top: 470px" viewBox="0 0 108 104"><path pathLength="1" d="M54 92 C 16 64 6 42 15 27 C 24 12 45 13 54 33 C 63 13 84 12 93 27 C 102 42 92 64 54 92 Z" /></svg>
+        <svg class="doodle terra s10-h" style="left: 1500px; top: 110px" viewBox="0 0 108 104"><path pathLength="1" d="M54 92 C 16 64 6 42 15 27 C 24 12 45 13 54 33 C 63 13 84 12 93 27 C 102 42 92 64 54 92 Z" /></svg>
+        <div id="s10-fade"></div>
+      </div>
+      <script>
+        (() => {
+          const { t, hits, pop, write, draw, bump, length } = BREW;
+          const S = t(128), at = (e) => t(e) - S;
+          const tl = gsap.timeline({ paused: true });
+          tl.fromTo("#s10-fade", { opacity: 0 }, { opacity: 0, duration: 0.01 }, 0);
+          tl.fromTo("#s10-night", { y: 240, opacity: 0 }, { y: 0, opacity: 1, duration: 5, ease: "power1.out" }, 0);
+          // the break: the band drops out, the stomps come back. night has fallen.
+          tl.fromTo("#s10-slot", { scaleX: 0 }, { scaleX: 1, duration: 0.3, ease: "power3.out" }, 0.3);
+          draw(tl, "#s10-moon path", 0.25, 0.5);
+          pop(tl, "#s10-stamp", at(130), { from: 2.2, rot: 3, rot0: 20 });
+          // the day prints: the receipt feeds out one notch on every stomp of two bars
+          const feed = hits(S, t(144), 0.6);
+          const H = 790;
+          feed.forEach((h, i) => {
+            const y0 = -H + (H * i) / feed.length, y1 = -H + (H * (i + 1)) / feed.length;
+            tl.fromTo("#s10-paper", { y: y0 }, { y: y1, duration: 0.11, ease: "power2.out", immediateRender: i === 0 }, h.t);
+          });
+          bump(tl, "#s10-paperb", S, t(144), { amt: 0.03, min: 0.6 });
+          const lines = gsap.utils.toArray(".s10-line"), ticks = gsap.utils.toArray(".s10-tick path");
+          [133, 136, 138].forEach((e, i) => {
+            pop(tl, lines[i], at(e), { from: 1.6, rot: i % 2 ? 1.5 : -1.5, rot0: i % 2 ? -7 : 7 });
+            draw(tl, ticks[i], at(e) + 0.12, 0.12);
+          });
+          bump(tl, "#s10-linesb", t(134), t(144), { amt: 0.03, rot: 0.4, min: 0.6 });
+          tl.fromTo("#s10-lines", { opacity: 1, scale: 1 }, { opacity: 0, scale: 0.8, duration: 0.1, ease: "power2.in", transformOrigin: "70% 50%", immediateRender: false }, at(144) - 0.1);
+          // bar three: stomp, stomp, stomp: the logo, the heart, the line. then the two that tell you how to run it.
+          pop(tl, "#s10-logo", at(144), { from: 2.4, rot: -2, rot0: -10, dur: 0.18 });
+          pop(tl, "#s10-heart", at(145), { from: 2.6, rot: 0, rot0: 30 });
+          draw(tl, "#s10-under path", at(146), 0.18);
+          write(tl, "#s10-tagline", at(146), 0.6);
+          pop(tl, "#s10-cmd", at(149), { rot: -2, rot0: 10 });
+          pop(tl, "#s10-repo", at(150), { from: 1.3, rot0: 0 });
+          // the last bar: the heart takes every stomp, small hearts answer
+          bump(tl, "#s10-logob", t(145), length, { amt: 0.05, rot: 0.8, min: 0.5 });
+          gsap.utils.toArray(".s10-h").forEach((el, i) => draw(tl, el.querySelector("path"), at([152, 154, 156][i]), 0.16));
+          bump(tl, ".s10-h", t(153), length, { amt: 0.4, rot: 16, min: 0.4 });
+          // out with the music's fade
+          tl.fromTo("#s10-fade", { opacity: 0 }, { opacity: 1, duration: 0.8, ease: "power1.inOut", immediateRender: false }, length - S - 0.85);
+          window.__timelines["s10-close"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

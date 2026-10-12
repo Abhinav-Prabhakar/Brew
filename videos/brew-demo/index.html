@@ -5,6 +5,60 @@
     <meta name="viewport" content="width=1920, height=1080" />
     <title>brew · one day at the café</title>
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <script src="beats.js"></script>
+    <script>
+      /* The kit every scene uses. The film is cut to the music's own grid (beats.js, written by
+         tools/analyze_music.py): BREW.t(e) is the time of eighth-note e (e = 0 is the first stomp), a bar is 8
+         eighths, and the stomp motif hits eighths 0, 1, 2, 5, 6 of a bar. Things appear ON a hit and settle after it
+         (pop), and whatever is already on screen is kicked by every hit (bump). */
+      window.BREW = (() => {
+        const D = window.BREW_BEATS;
+        const E = D.eighth;
+        const t = (e) => D.t0 + e * E;
+        const hits = (a, b, min = 0) =>
+          D.hits.filter(([e, s]) => s >= min && t(e) >= a - 1e-4 && t(e) < b - 1e-4).map(([e, s]) => ({ t: t(e) - a, e, s }));
+        // every hit between a and b (film seconds) kicks the target; it settles in `dur`
+        const bump = (tl, sel, a, b, o = {}) => {
+          const { amt = 0.035, rot = 0, y = 0, min = 0.3, dur = 0.26 } = o;
+          hits(a, b, min).forEach((h, i) => {
+            const k = 0.4 + 0.6 * h.s;
+            const flip = i % 2 ? -1 : 1;
+            tl.fromTo(sel, { scale: 1 + amt * k, rotation: flip * rot * k, y: -y * k }, { scale: 1, rotation: 0, y: 0, duration: dur, ease: "power2.out", immediateRender: false }, h.t);
+          });
+        };
+        // appear on the hit, already too big, and settle
+        const pop = (tl, sel, at, o = {}) => {
+          const { from = 1.7, rot = 0, rot0 = rot + 9, dur = 0.2, x = 0, y = 0, stagger = 0 } = o;
+          tl.fromTo(sel, { opacity: 0, scale: from, rotation: rot0, x, y }, { opacity: 1, scale: 1, rotation: rot, x: 0, y: 0, duration: dur, stagger, ease: "power4.out" }, at);
+        };
+        const hide = (tl, sel, at, dur = 0.08) => tl.fromTo(sel, { opacity: 1 }, { opacity: 0, duration: dur, ease: "none", immediateRender: false }, at);
+        // handwriting: the line is uncovered left to right
+        const write = (tl, sel, at, dur = 0.3) =>
+          tl.fromTo(sel, { clipPath: "inset(-20% 100% -20% 0)" }, { clipPath: "inset(-20% 0% -20% 0)", duration: dur, ease: "power2.out" }, at);
+        // a doodle draws itself (its paths carry pathLength="1")
+        const draw = (tl, sel, at, dur = 0.22, stagger = 0) =>
+          tl.fromTo(sel, { strokeDashoffset: 1, fillOpacity: 0 }, { strokeDashoffset: 0, fillOpacity: 1, duration: dur, stagger, ease: "power2.out" }, at);
+        const shake = (tl, sel, at, amp = 18, n = 7) => {
+          let px = 0, py = 0;
+          for (let i = 0; i < n; i++) {
+            const last = i === n - 1, s = i % 2 ? -1 : 1, k = 1 - i / n;
+            const x = last ? 0 : s * amp * k, y = last ? 0 : -s * amp * 0.55 * k;
+            tl.fromTo(sel, { x: px, y: py }, { x, y, duration: 0.045, ease: "none", immediateRender: false }, at + i * 0.045);
+            px = x; py = y;
+          }
+        };
+        // a camera on a footage window: centre (cx, cy) of the 1600x1000 recording at scale s, clamped to the frame
+        const cam = (W, H, cx, cy, s) => {
+          const k = W / 1600;
+          return { scale: s, x: Math.min(0, Math.max(-(W * s - W), -(cx * k * s - W / 2))), y: Math.min(0, Math.max(-(H * s - H), -(cy * k * s - H / 2))) };
+        };
+        const inr = (n) => {
+          const s = String(Math.round(n));
+          return s.length <= 3 ? s : s.slice(0, -3).replace(/\B(?=(\d{2})+(?!\d))/g, ",") + "," + s.slice(-3);
+        };
+        return { E, t, hits, bump, pop, hide, write, draw, shake, cam, inr, length: D.length };
+      })();
+    </script>
     <style>
       /* one day at brew: the café's own paper, ink and terracotta. Shared by every scene (the scenes are mounted
          into this page, so these rules reach them). */
@@ -155,7 +209,71 @@
         background: var(--terra);
       }
 
-      /* ---- host furniture: the cover wipes and the day rail ---- */
+      /* ---- scene scaffolding: .wrap carries a scene's entrance and exit, .b wrappers take the beat ---- */
+      .wrap {
+        position: absolute;
+        inset: 0;
+        transform-origin: 50% 50%;
+      }
+      .b {
+        position: absolute;
+        transform-origin: 50% 50%;
+      }
+      .col {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1920px;
+        height: 1080px;
+        transform-origin: 50% 50%;
+      }
+      /* hand-drawn marks: ink lines that boil (the #boil filter gets a new wobble on every drum hit) */
+      .doodle {
+        position: absolute;
+        overflow: visible;
+        fill: none;
+        stroke: var(--ink);
+        stroke-width: 7;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        filter: url(#boil);
+      }
+      .doodle path,
+      .doodle circle {
+        stroke-dasharray: 1;
+      }
+      .doodle.terra {
+        stroke: var(--terra-ink);
+      }
+
+      /* ---- host furniture: overlays for the cuts that are not hard cuts ---- */
+      .over {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1920px;
+        height: 1080px;
+      }
+      #flash {
+        background: #fffdf9;
+      }
+      #tape-wipe {
+        left: -640px;
+        top: -260px;
+        width: 3200px;
+        height: 1600px;
+        border-left: 14px solid var(--ink);
+        border-right: 14px solid var(--ink);
+        background: repeating-linear-gradient(-45deg, #e3b25a 0 90px, #1d1a1c 90px 180px);
+      }
+      #iris {
+        left: -340px;
+        top: -760px;
+        width: 2600px;
+        height: 2600px;
+        border-radius: 50%;
+        background: var(--ink);
+      }
       .wipe {
         position: absolute;
         top: -60px;
@@ -163,82 +281,112 @@
         width: 2600px;
         height: 1200px;
       }
-      #wipe-b {
-        left: 820px;
-        width: 280px;
-      }
       #wipe-a {
         background: var(--terra);
       }
       #wipe-b {
+        left: 820px;
+        width: 280px;
         background: var(--ink);
+      }
+      #night {
+        top: -60px;
+        height: 1200px;
+        background: var(--navy);
+        border-bottom: 14px solid var(--ink);
+      }
+      .grain-texture {
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background-image: url("assets/grain.png");
+        background-size: 256px 256px;
+        mix-blend-mode: multiply;
+        opacity: 0.09;
       }
     </style>
   </head>
   <body>
-    <div id="stage" data-composition-id="main" data-start="0" data-duration="64" data-width="1920" data-height="1080">
+    <div id="stage" data-composition-id="main" data-start="0" data-duration="62" data-width="1920" data-height="1080">
       <div id="paper"></div>
       <div id="dots"></div>
+      <svg id="defs" width="0" height="0" style="position: absolute">
+        <filter id="boil" x="-20%" y="-20%" width="140%" height="140%">
+          <feTurbulence id="boil-noise" type="fractalNoise" baseFrequency="0.028" numOctaves="1" seed="2" result="n" />
+          <feDisplacementMap in="SourceGraphic" in2="n" scale="9" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+      </svg>
 
-      <!-- the nine scenes, cut on the score's bar lines (90 bpm, one bar = 2.6667 s) -->
-      <div id="scene-s1-open" class="scene" data-composition-id="s1-open" data-composition-src="compositions/s1-open.html" data-start="0" data-duration="5.3333" data-track-index="1" data-width="1920" data-height="1080"></div>
-      <div id="scene-s2-lobby" class="scene" data-composition-id="s2-lobby" data-composition-src="compositions/s2-lobby.html" data-start="5.3333" data-duration="8" data-track-index="1" data-width="1920" data-height="1080"></div>
-      <div id="scene-s3-stack" class="scene" data-composition-id="s3-stack" data-composition-src="compositions/s3-stack.html" data-start="13.3333" data-duration="5.3334" data-track-index="1" data-width="1920" data-height="1080"></div>
-      <div id="scene-s4-kitchen" class="scene" data-composition-id="s4-kitchen" data-composition-src="compositions/s4-kitchen.html" data-start="18.6667" data-duration="8" data-track-index="1" data-width="1920" data-height="1080"></div>
-      <div id="scene-s5-menu" class="scene" data-composition-id="s5-menu" data-composition-src="compositions/s5-menu.html" data-start="26.6667" data-duration="5.3333" data-track-index="1" data-width="1920" data-height="1080"></div>
-      <div id="scene-s6-pantry" class="scene" data-composition-id="s6-pantry" data-composition-src="compositions/s6-pantry.html" data-start="32" data-duration="5.3333" data-track-index="1" data-width="1920" data-height="1080"></div>
-      <div id="scene-s7-kapi" class="scene" data-composition-id="s7-kapi" data-composition-src="compositions/s7-kapi.html" data-start="37.3333" data-duration="8" data-track-index="1" data-width="1920" data-height="1080"></div>
-      <div id="scene-s8-arena" class="scene" data-composition-id="s8-arena" data-composition-src="compositions/s8-arena.html" data-start="45.3333" data-duration="10.6667" data-track-index="1" data-width="1920" data-height="1080"></div>
-      <div id="scene-s9-close" class="scene" data-composition-id="s9-close" data-composition-src="compositions/s9-close.html" data-start="56" data-duration="8" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <!-- eleven scenes; every start is a bar line of the music (eighths 8, 24, 40, 48, 56, 64, 88, 96, 104, 128) -->
+      <div id="scene-s0-open" class="scene" data-composition-id="s0-open" data-composition-src="compositions/s0-open.html" data-start="0" data-duration="7.6121" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div id="scene-s1-lobby" class="scene" data-composition-id="s1-lobby" data-composition-src="compositions/s1-lobby.html" data-start="7.6121" data-duration="5.7143" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div id="scene-s2-kitchen" class="scene" data-composition-id="s2-kitchen" data-composition-src="compositions/s2-kitchen.html" data-start="13.3264" data-duration="5.7143" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div id="scene-s3-menu" class="scene" data-composition-id="s3-menu" data-composition-src="compositions/s3-menu.html" data-start="19.0407" data-duration="2.8572" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div id="scene-s4-pantry" class="scene" data-composition-id="s4-pantry" data-composition-src="compositions/s4-pantry.html" data-start="21.8979" data-duration="2.8571" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div id="scene-s5-sentence" class="scene" data-composition-id="s5-sentence" data-composition-src="compositions/s5-sentence.html" data-start="24.755" data-duration="2.8572" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div id="scene-s6-system" class="scene" data-composition-id="s6-system" data-composition-src="compositions/s6-system.html" data-start="27.6122" data-duration="8.5714" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div id="scene-s7-verbs" class="scene" data-composition-id="s7-verbs" data-composition-src="compositions/s7-verbs.html" data-start="36.1836" data-duration="2.8571" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div id="scene-s8-kapi" class="scene" data-composition-id="s8-kapi" data-composition-src="compositions/s8-kapi.html" data-start="39.0407" data-duration="2.8572" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div id="scene-s9-arena" class="scene" data-composition-id="s9-arena" data-composition-src="compositions/s9-arena.html" data-start="41.8979" data-duration="8.5714" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div id="scene-s10-close" class="scene" data-composition-id="s10-close" data-composition-src="compositions/s10-close.html" data-start="50.4693" data-duration="11.5307" data-track-index="1" data-width="1920" data-height="1080"></div>
 
-      <!-- the cover wipe on every cut -->
+      <!-- the day rail under the café tour: 07:00 to 22:00, a cup hopping along it on the hits -->
+      <div id="scene-rail" class="scene" data-composition-id="rail" data-composition-src="compositions/rail.html" data-start="7.6121" data-duration="17.1429" data-track-index="2" data-width="1920" data-height="1080"></div>
+
+      <div id="tape-wipe" class="over"></div>
+      <div id="iris" class="over"></div>
       <div id="wipe-a" class="wipe"></div>
       <div id="wipe-b" class="wipe"></div>
-
-      <!-- the day rail: 07:00 to 22:00 along the bottom edge, a cup walking it -->
-      <div id="scene-rail" class="scene" data-composition-id="rail" data-composition-src="compositions/rail.html" data-start="5.3333" data-duration="50.6667" data-track-index="2" data-width="1920" data-height="1080"></div>
+      <div id="night" class="over"></div>
+      <div id="flash" class="over"></div>
 
       <!-- grain (registry: grain-overlay) as still paper grain: a bitmap tile, no animation (moving noise made a 700 MB file) -->
       <div id="grain-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 100; overflow: hidden">
         <div class="grain-texture"></div>
       </div>
-      <style>
-        .grain-texture {
-          position: absolute;
-          top: -50%;
-          left: -50%;
-          width: 200%;
-          height: 200%;
-          background-image: url("assets/grain.png");
-          background-size: 256px 256px;
-          mix-blend-mode: multiply;
-          opacity: 0.09;
-        }
-      </style>
 
-      <audio id="music" src="assets/music/brew-day.wav" data-start="0" data-duration="64" data-track-index="5" data-volume="0.65"></audio>
+      <audio id="music" src="assets/music/track.wav" data-start="0" data-duration="62" data-track-index="5" data-volume="1"></audio>
     </div>
     <script>
       (() => {
-        const BAR = 8 / 3;
+        const { t, hits } = BREW;
         const tl = gsap.timeline({ paused: true });
-        // the paper breathes a little under everything
-        tl.fromTo("#dots", { x: 0, y: 0 }, { x: -44, y: -44, duration: 64, ease: "none" }, 0);
 
-        // cover wipes: two slanted blocks cross on each cut (the scene swaps underneath, exactly on the bar line)
-        const cuts = [2, 5, 7, 10, 12, 14, 17, 21].map((b) => b * BAR);
-        const colours = ["#e07e52", "#8fa585", "#e3b25a", "#e07e52", "#8fa585", "#f7c3a3", "#e3b25a", "#e07e52"];
-        cuts.forEach((T, i) => {
-          const dir = i % 2 ? -1 : 1;
-          const off = { x: -dir * 2700, skewX: -9 };
-          const on = { x: 0, skewX: -9 };
-          const out = { x: dir * 2700, skewX: -9 };
-          tl.set("#wipe-a", { backgroundColor: colours[i] }, T - 0.4);
-          // the colour block covers the cut; an ink band chases through it
-          tl.fromTo("#wipe-a", off, { ...on, duration: 0.3, ease: "power3.inOut", immediateRender: i === 0 }, T - 0.32);
-          tl.fromTo("#wipe-a", on, { ...out, duration: 0.3, ease: "power3.inOut", immediateRender: false }, T + 0.1);
-          tl.fromTo("#wipe-b", { x: -dir * 1500, skewX: -9 }, { x: dir * 1500, skewX: -9, duration: 0.5, ease: "power2.inOut", immediateRender: i === 0 }, T - 0.2);
+        // the hand-drawn lines boil: slowly through the quiet opening, then a new wobble on every drum hit
+        for (let k = 1; k <= 15; k++) tl.set("#boil-noise", { attr: { seed: 20 + k } }, k * 0.3);
+        hits(0, 62, 0.25).forEach((h, i) => tl.set("#boil-noise", { attr: { seed: 2 + (i % 9) * 3 } }, h.t));
+
+        // the paper's dot grid steps sideways on every strong hit
+        let px = 0;
+        hits(0, 62, 0.6).forEach((h, i) => {
+          const nx = px + (i % 2 ? -22 : 22) * (h.e >= 64 && h.e < 128 ? 2 : 1);
+          tl.fromTo("#dots", { x: px }, { x: nx, duration: 0.16, ease: "power3.out", immediateRender: false }, h.t);
+          px = nx;
         });
+
+        // --- the cuts that are not hard cuts ---
+        const flash = (at, peak, dur, first) => tl.fromTo("#flash", { opacity: peak }, { opacity: 0, duration: dur, ease: "power2.out", immediateRender: !!first }, at);
+        tl.fromTo("#flash", { opacity: 0 }, { opacity: 0, duration: 0.01 }, 0);
+        flash(t(0), 0.9, 0.3); // the first stomp: the logo
+        flash(t(64), 1, 0.36); // the drop
+        flash(t(120), 0.5, 0.25); // D lands
+        flash(t(144), 0.7, 0.3); // the logo again
+
+        // e40, kitchen -> menu: the hazard tape sweeps the whole frame
+        tl.fromTo("#tape-wipe", { x: -3700, rotation: -12 }, { x: 3700, rotation: -12, duration: 0.62, ease: "power1.inOut" }, t(40) - 0.31);
+        // e56, pantry -> the sentence: an ink iris closes and opens
+        tl.fromTo("#iris", { scale: 0 }, { scale: 1, duration: 0.22, ease: "power3.in" }, t(56) - 0.22);
+        tl.fromTo("#iris", { scale: 1, x: 0 }, { scale: 0, x: -420, duration: 0.24, ease: "power3.out", immediateRender: false }, t(56) + 0.02);
+        // e104, kapi -> the arena: the colour block with an ink band chasing through it
+        const off = { x: -2700, skewX: -9 }, on = { x: 0, skewX: -9 }, out = { x: 2700, skewX: -9 };
+        tl.fromTo("#wipe-a", off, { ...on, duration: 0.26, ease: "power3.inOut" }, t(104) - 0.28);
+        tl.fromTo("#wipe-a", on, { ...out, duration: 0.26, ease: "power3.inOut", immediateRender: false }, t(104) + 0.06);
+        tl.fromTo("#wipe-b", { x: -1500, skewX: -9 }, { x: 1500, skewX: -9, duration: 0.44, ease: "power2.inOut" }, t(104) - 0.18);
+        // e128, the arena -> closing time: night falls
+        tl.fromTo("#night", { y: -1300 }, { y: 0, duration: 0.24, ease: "power3.in" }, t(128) - 0.24);
+        tl.fromTo("#night", { y: 0 }, { y: 1300, duration: 0.3, ease: "power3.out", immediateRender: false }, t(128) + 0.04);
 
         window.__timelines["main"] = tl;
       })();

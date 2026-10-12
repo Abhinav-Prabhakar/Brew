@@ -1,0 +1,123 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #s4-root {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+        }
+        #s4-winb {
+          left: 70px;
+          top: 110px;
+          width: 1216px;
+          height: 760px;
+        }
+        #s4-win {
+          left: 0;
+          top: 0;
+          width: 1216px;
+          height: 760px;
+        }
+        #s4-stamp {
+          left: 1346px;
+          top: 120px;
+        }
+        #s4-title {
+          left: 1342px;
+          top: 214px;
+          width: 540px;
+          font-size: 80px;
+        }
+        .s4-tag {
+          font-size: 40px;
+        }
+        #s4-stat {
+          position: absolute;
+          left: 1338px;
+          top: 500px;
+          width: 540px;
+          font-family: var(--hand);
+          font-size: 220px;
+          line-height: 1;
+          color: var(--terra-ink);
+          transform-origin: 20% 70%;
+        }
+        #s4-under {
+          left: 1340px;
+          top: 700px;
+          width: 470px;
+          height: 50px;
+          stroke-width: 11;
+        }
+        #s4-n1 {
+          left: 1346px;
+          top: 760px;
+          width: 520px;
+          font-size: 48px;
+        }
+        #s4-n2 {
+          position: absolute;
+          left: 1346px;
+          top: 880px;
+          width: 520px;
+          font-family: var(--body);
+          font-size: 32px;
+          line-height: 1.1;
+        }
+      </style>
+      <div id="s4-root" data-composition-id="s4-pantry" data-width="1920" data-height="1080">
+        <div id="s4-wrap" class="wrap">
+          <div id="s4-winb" class="b">
+            <div id="s4-win" class="win">
+              <div id="s4-cam" class="cam">
+                <video id="s4-vid" class="clip" src="assets/clips/pantry.mp4" muted playsinline data-start="0" data-duration="2.8571" data-track-index="0"></video>
+              </div>
+            </div>
+          </div>
+          <div id="s4-col" class="col">
+            <div id="s4-stamp" class="stamp">13:30</div>
+            <div id="s4-title" class="title">the pantry knows <em>every lot</em></div>
+            <div id="s4-stat">−<span id="s4-num">53</span>%</div>
+            <div id="s4-n1" class="note">waste, with the rescue shelf</div>
+            <div id="s4-n2">policy C · measured with forked worlds</div>
+          </div>
+          <svg id="s4-under" class="doodle" viewBox="0 0 470 50"><path pathLength="1" d="M6 30 Q 120 6 236 26 T 464 16" /></svg>
+          <div id="s4-t1" class="tag sage s4-tag" style="left: 280px; top: 176px">first to expire, first out</div>
+          <div id="s4-t2" class="tag mustard s4-tag" style="left: 560px; top: 640px">days of cover</div>
+          <div id="s4-t3" class="tag terra s4-tag" style="left: 800px; top: 800px">it writes its own order</div>
+        </div>
+      </div>
+      <script>
+        (() => {
+          const { t, pop, write, draw, bump } = BREW;
+          const S = t(48), at = (e) => t(e) - S;
+          const tl = gsap.timeline({ paused: true });
+          // in: pushed up from below as the menu leaves
+          tl.fromTo("#s4-wrap", { y: 1160 }, { y: 0, duration: 0.2, ease: "power3.out" }, 0);
+          tl.fromTo("#s4-cam", { scale: 1.14, x: -85, y: -50 }, { scale: 1, x: 0, y: 0, duration: 2.8, ease: "power1.out" }, 0);
+          pop(tl, "#s4-stamp", at(49), { from: 2.2, rot: 3, rot0: 20 });
+          pop(tl, "#s4-t1", at(49), { rot: -3, rot0: -16 });
+          pop(tl, "#s4-title", at(50), { from: 1.5, rot0: 5 });
+          pop(tl, "#s4-t2", at(50), { rot: 3, rot0: 16 });
+          // hit: the number. hit: what it is.
+          const n = { v: 0 };
+          const num = document.getElementById("s4-num");
+          pop(tl, "#s4-stat", at(53), { from: 2.2, rot: -3, rot0: 8 });
+          tl.to(n, { v: 53, duration: 0.3, ease: "power2.out", onUpdate: () => (num.textContent = String(Math.round(n.v))) }, at(53));
+          draw(tl, "#s4-under path", at(54), 0.16);
+          write(tl, "#s4-n1", at(54), 0.24);
+          pop(tl, "#s4-t3", at(54), { rot: -2, rot0: -14 });
+          tl.fromTo("#s4-n2", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.2, ease: "power2.out" }, at(55));
+          bump(tl, "#s4-winb", t(49), t(56), { amt: 0.03, rot: 0.6 });
+          bump(tl, "#s4-col", t(51), t(56), { amt: 0.02, y: 9 });
+          window.__timelines["s4-pantry"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

@@ -8,7 +8,7 @@ brew runs a live, real-time digital twin of an independent café and lets a lear
 what to charge, what to cook first, what to rescue before it's thrown away. Every number on screen comes from the
 simulation as it happens, and every claim below comes from paired, seed-controlled experiments.
 
-![tests](https://img.shields.io/badge/pytest-495%20tests-8fa585?style=flat-square)
+![tests](https://img.shields.io/badge/pytest-518%20tests-8fa585?style=flat-square)
 ![policy](https://img.shields.io/badge/RL-MaskablePPO-e07e52?style=flat-square)
 ![onnx](https://img.shields.io/badge/serving-ONNX-3d4556?style=flat-square)
 ![uv](https://img.shields.io/badge/python-uv%20·%203.12-c9a27a?style=flat-square)
@@ -85,6 +85,21 @@ statement.
 - **Explainable by construction.** Every decision carries a headline and a trigger, and `/decisions/{id}/explain`
   says why.
 - **One hand drew it.** Wobbly ink, paper grain, one motion vocabulary; every sound is synthesised, with no samples.
+
+## The film
+
+<div align="center">
+<a href="docs/images/brew-film.mp4"><img src="docs/images/brew-film.webp" width="100%" alt="one day at brew, a 62-second film cut to the beat: the café tour on the stomps, 'an ML system' on the drop, four managers racing, closing time" /></a>
+<br />
+<b>▶ <a href="docs/images/brew-film.mp4">watch it with sound</a></b> · 62 seconds · every screen in it is the real page
+</div>
+
+One day at brew, cut to the beat of its music: the café tour lands on the stomps, "…an ML system" on the drop, the
+four managers race through the loudest bars, and the day prints out as a receipt. The preview above is silent; the
+film is [`docs/images/brew-film.mp4`](docs/images/brew-film.mp4). It is built from HTML with
+[HyperFrames](https://hyperframes.heygen.com), and its source is in [`videos/brew-demo`](videos/brew-demo/): the real
+UI recorded from the replay fixtures, and an edit timed to the drum hits that `tools/analyze_music.py` finds in the
+track. Music: "Champion" by Mojo Soundtrack, used under licence (the track itself is not in this repository).
 
 ## Highlights
 
