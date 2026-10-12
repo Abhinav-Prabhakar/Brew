@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>brew · one day at the café</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      /* one day at brew: the café's own paper, ink and terracotta. Shared by every scene (the scenes are mounted
+         into this page, so these rules reach them). */
+      :root {
+        --ink: #1d1a1c;
+        --paper: #fbf7f1;
+        --ground: #efe6dc;
+        --pink: #f7c3a3;
+        --pink-l: #fdeee4;
+        --terra: #e07e52;
+        --terra-ink: #a3452f;
+        --sage: #8fa585;
+        --olive: #6f7a4c;
+        --mustard: #e3b25a;
+        --navy: #3d4556;
+        --kraft: #c9a27a;
+        --hand: "Gochi Hand", cursive;
+        --body: "Patrick Hand", cursive;
+        --note: "Caveat", cursive;
+        --mono: "Courier Prime", monospace;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #fbf7f1;
+      }
+      #stage {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        font-family: var(--body);
+        color: var(--ink);
+      }
+      #paper {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(circle at 18% 12%, rgba(247, 195, 163, 0.5), rgba(247, 195, 163, 0) 46%),
+          radial-gradient(circle at 86% 92%, rgba(143, 165, 133, 0.3), rgba(143, 165, 133, 0) 42%), #fbf7f1;
+      }
+      #dots {
+        position: absolute;
+        inset: -60px;
+        background-image: radial-gradient(rgba(29, 26, 28, 0.16) 2px, rgba(29, 26, 28, 0) 2.6px);
+        background-size: 44px 44px;
+      }
+      .scene {
+        position: absolute;
+        inset: 0;
+      }
+
+      /* ---- the vocabulary the scenes share ---- */
+      .card {
+        position: absolute;
+        background: var(--paper);
+        border: 4px solid var(--ink);
+        border-radius: 22px;
+        box-shadow: 10px 10px 0 var(--ink);
+      }
+      .win {
+        position: absolute;
+        overflow: hidden;
+        background: var(--paper);
+        border: 5px solid var(--ink);
+        border-radius: 26px;
+        box-shadow: 16px 16px 0 var(--ink);
+      }
+      .win .cam {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        transform-origin: 0 0;
+      }
+      .win video {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+      .stamp {
+        position: absolute;
+        display: inline-block;
+        font-family: var(--mono);
+        font-weight: 700;
+        font-size: 44px;
+        line-height: 1;
+        letter-spacing: 2px;
+        color: var(--paper);
+        background: var(--ink);
+        padding: 14px 22px 10px;
+        border-radius: 12px;
+      }
+      .title {
+        position: absolute;
+        font-family: var(--hand);
+        font-size: 96px;
+        line-height: 0.98;
+        color: var(--ink);
+      }
+      .title em {
+        font-style: normal;
+        color: var(--terra-ink);
+      }
+      .note {
+        position: absolute;
+        font-family: var(--note);
+        font-weight: 700;
+        font-size: 50px;
+        line-height: 1.05;
+        color: var(--ink);
+      }
+      .tag {
+        position: absolute;
+        display: inline-block;
+        font-family: var(--hand);
+        font-size: 38px;
+        line-height: 1;
+        color: var(--ink);
+        background: var(--pink);
+        border: 4px solid var(--ink);
+        border-radius: 16px;
+        box-shadow: 6px 6px 0 var(--ink);
+        padding: 12px 22px 14px;
+        white-space: nowrap;
+      }
+      .tag.sage {
+        background: var(--sage);
+      }
+      .tag.mustard {
+        background: var(--mustard);
+      }
+      .tag.paper {
+        background: var(--paper);
+      }
+      .tag.terra {
+        background: var(--terra);
+      }
+
+      /* ---- host furniture: the cover wipes and the day rail ---- */
+      .wipe {
+        position: absolute;
+        top: -60px;
+        left: -340px;
+        width: 2600px;
+        height: 1200px;
+      }
+      #wipe-b {
+        left: 820px;
+        width: 280px;
+      }
+      #wipe-a {
+        background: var(--terra);
+      }
+      #wipe-b {
+        background: var(--ink);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="stage" data-composition-id="main" data-start="0" data-duration="64" data-width="1920" data-height="1080">
+      <div id="paper"></div>
+      <div id="dots"></div>
+
+      <!-- the nine scenes, cut on the score's bar lines (90 bpm, one bar = 2.6667 s) -->
+      <div id="scene-s1-open" class="scene" data-composition-id="s1-open" data-composition-src="compositions/s1-open.html" data-start="0" data-duration="5.3333" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div id="scene-s2-lobby" class="scene" data-composition-id="s2-lobby" data-composition-src="compositions/s2-lobby.html" data-start="5.3333" data-duration="8" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div id="scene-s3-stack" class="scene" data-composition-id="s3-stack" data-composition-src="compositions/s3-stack.html" data-start="13.3333" data-duration="5.3334" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div id="scene-s4-kitchen" class="scene" data-composition-id="s4-kitchen" data-composition-src="compositions/s4-kitchen.html" data-start="18.6667" data-duration="8" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div id="scene-s5-menu" class="scene" data-composition-id="s5-menu" data-composition-src="compositions/s5-menu.html" data-start="26.6667" data-duration="5.3333" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div id="scene-s6-pantry" class="scene" data-composition-id="s6-pantry" data-composition-src="compositions/s6-pantry.html" data-start="32" data-duration="5.3333" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div id="scene-s7-kapi" class="scene" data-composition-id="s7-kapi" data-composition-src="compositions/s7-kapi.html" data-start="37.3333" data-duration="8" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div id="scene-s8-arena" class="scene" data-composition-id="s8-arena" data-composition-src="compositions/s8-arena.html" data-start="45.3333" data-duration="10.6667" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div id="scene-s9-close" class="scene" data-composition-id="s9-close" data-composition-src="compositions/s9-close.html" data-start="56" data-duration="8" data-track-index="1" data-width="1920" data-height="1080"></div>
+
+      <!-- the cover wipe on every cut -->
+      <div id="wipe-a" class="wipe"></div>
+      <div id="wipe-b" class="wipe"></div>
+
+      <!-- the day rail: 07:00 to 22:00 along the bottom edge, a cup walking it -->
+      <div id="scene-rail" class="scene" data-composition-id="rail" data-composition-src="compositions/rail.html" data-start="5.3333" data-duration="50.6667" data-track-index="2" data-width="1920" data-height="1080"></div>
+
+      <!-- grain (registry: grain-overlay) as still paper grain: a bitmap tile, no animation (moving noise made a 700 MB file) -->
+      <div id="grain-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 100; overflow: hidden">
+        <div class="grain-texture"></div>
+      </div>
+      <style>
+        .grain-texture {
+          position: absolute;
+          top: -50%;
+          left: -50%;
+          width: 200%;
+          height: 200%;
+          background-image: url("assets/grain.png");
+          background-size: 256px 256px;
+          mix-blend-mode: multiply;
+          opacity: 0.09;
+        }
+      </style>
+
+      <audio id="music" src="assets/music/brew-day.wav" data-start="0" data-duration="64" data-track-index="5" data-volume="0.65"></audio>
+    </div>
+    <script>
+      (() => {
+        const BAR = 8 / 3;
+        const tl = gsap.timeline({ paused: true });
+        // the paper breathes a little under everything
+        tl.fromTo("#dots", { x: 0, y: 0 }, { x: -44, y: -44, duration: 64, ease: "none" }, 0);
+
+        // cover wipes: two slanted blocks cross on each cut (the scene swaps underneath, exactly on the bar line)
+        const cuts = [2, 5, 7, 10, 12, 14, 17, 21].map((b) => b * BAR);
+        const colours = ["#e07e52", "#8fa585", "#e3b25a", "#e07e52", "#8fa585", "#f7c3a3", "#e3b25a", "#e07e52"];
+        cuts.forEach((T, i) => {
+          const dir = i % 2 ? -1 : 1;
+          const off = { x: -dir * 2700, skewX: -9 };
+          const on = { x: 0, skewX: -9 };
+          const out = { x: dir * 2700, skewX: -9 };
+          tl.set("#wipe-a", { backgroundColor: colours[i] }, T - 0.4);
+          // the colour block covers the cut; an ink band chases through it
+          tl.fromTo("#wipe-a", off, { ...on, duration: 0.3, ease: "power3.inOut", immediateRender: i === 0 }, T - 0.32);
+          tl.fromTo("#wipe-a", on, { ...out, duration: 0.3, ease: "power3.inOut", immediateRender: false }, T + 0.1);
+          tl.fromTo("#wipe-b", { x: -dir * 1500, skewX: -9 }, { x: dir * 1500, skewX: -9, duration: 0.5, ease: "power2.inOut", immediateRender: i === 0 }, T - 0.2);
+        });
+
+        window.__timelines["main"] = tl;
+      })();
+    </script>
+  </body>
+</html>

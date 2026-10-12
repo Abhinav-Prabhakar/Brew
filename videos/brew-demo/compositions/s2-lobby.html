@@ -1,0 +1,96 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #s2-root {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+        }
+        #s2-win {
+          left: 560px;
+          top: 96px;
+          width: 1296px;
+          height: 810px;
+        }
+        #s2-stamp {
+          left: 70px;
+          top: 120px;
+        }
+        #s2-title {
+          left: 66px;
+          top: 210px;
+          width: 480px;
+          font-size: 84px;
+        }
+        #s2-title span,
+        #s2-title em {
+          display: block;
+          white-space: nowrap;
+        }
+        #s2-title em {
+          font-size: 130px;
+        }
+        .s2-note {
+          left: 70px;
+          width: 470px;
+          font-size: 48px;
+        }
+        #s2-tag1 {
+          left: 1250px;
+          top: 470px;
+        }
+        #s2-tag2 {
+          left: 1160px;
+          top: 250px;
+        }
+      </style>
+      <div id="s2-root" data-composition-id="s2-lobby" data-width="1920" data-height="1080">
+        <div id="s2-win" class="win">
+          <div id="s2-cam" class="cam">
+            <video id="s2-vid" class="clip" src="assets/clips/lobby.mp4" muted playsinline data-start="0" data-duration="8" data-track-index="0"></video>
+          </div>
+        </div>
+        <div id="s2-stamp" class="stamp">08:08</div>
+        <div id="s2-title" class="title"><span>the morning</span><em>rush</em></div>
+        <div class="note s2-note" style="top: 510px">→ tickets hit the rail</div>
+        <div class="note s2-note" style="top: 600px">→ customers lose patience</div>
+        <div class="note s2-note" style="top: 690px">→ every number is live</div>
+        <div id="s2-tag1" class="tag mustard">the ticket rail</div>
+        <div id="s2-tag2" class="tag terra">the manager says why</div>
+      </div>
+      <script>
+        (() => {
+          const B = 2 / 3;
+          const W = 1296, H = 810, K = W / 1600;
+          const cam = (cx, cy, s) => ({
+            scale: s,
+            x: Math.min(0, Math.max(-(W * s - W), -(cx * K * s - W / 2))),
+            y: Math.min(0, Math.max(-(H * s - H), -(cy * K * s - H / 2))),
+          });
+          const wide = cam(800, 500, 1), rail = cam(430, 170, 1.8), card = cam(520, 890, 1.9);
+          const tl = gsap.timeline({ paused: true });
+          tl.fromTo("#s2-win", { x: 700, y: 120, rotation: 7, scale: 0.8 }, { x: 0, y: 0, rotation: -1.2, scale: 1, duration: 0.7, ease: "back.out(1.3)" }, 0.12);
+          tl.fromTo("#s2-stamp", { scale: 0, rotation: -20 }, { scale: 1, rotation: -3, duration: 0.4, ease: "back.out(2.4)" }, 0.3);
+          tl.fromTo("#s2-title", { x: -520, opacity: 0 }, { x: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, 0.45);
+          gsap.utils.toArray(".s2-note").forEach((el, i) => {
+            tl.fromTo(el, { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: 0.45, ease: "power2.inOut" }, (2 + i) * B);
+          });
+          // punch in: the rail, then the decision card, then back out
+          tl.fromTo("#s2-cam", wide, { ...rail, duration: 0.6, ease: "power3.inOut" }, 5 * B - 0.3);
+          tl.fromTo("#s2-tag1", { scale: 0, rotation: 12 }, { scale: 1, rotation: 3, duration: 0.4, ease: "back.out(2.2)" }, 5 * B + 0.2);
+          tl.fromTo("#s2-tag1", { scale: 1 }, { scale: 0, duration: 0.2, ease: "power2.in", immediateRender: false }, 8 * B - 0.35);
+          tl.fromTo("#s2-cam", rail, { ...card, duration: 0.6, ease: "power3.inOut", immediateRender: false }, 8 * B - 0.3);
+          tl.fromTo("#s2-tag2", { scale: 0, rotation: -12 }, { scale: 1, rotation: -3, duration: 0.4, ease: "back.out(2.2)" }, 8 * B + 0.2);
+          tl.fromTo("#s2-tag2", { scale: 1 }, { scale: 0, duration: 0.2, ease: "power2.in", immediateRender: false }, 11 * B - 0.35);
+          tl.fromTo("#s2-cam", card, { ...wide, duration: 0.5, ease: "power3.inOut", immediateRender: false }, 11 * B - 0.3);
+          window.__timelines["s2-lobby"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

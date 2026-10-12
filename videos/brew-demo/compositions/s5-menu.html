@@ -1,0 +1,112 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #s5-root {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+        }
+        #s5-win {
+          left: 634px;
+          top: 110px;
+          width: 1216px;
+          height: 760px;
+        }
+        #s5-stamp {
+          left: 70px;
+          top: 120px;
+        }
+        #s5-title {
+          left: 66px;
+          top: 214px;
+          width: 540px;
+          font-size: 88px;
+        }
+        #s5-item {
+          left: 72px;
+          top: 520px;
+          width: 520px;
+        }
+        .s5-price {
+          position: absolute;
+          font-family: var(--hand);
+          font-size: 120px;
+          line-height: 1;
+          white-space: nowrap;
+        }
+        #s5-old {
+          left: 66px;
+          top: 580px;
+          color: var(--ink);
+        }
+        #s5-strike {
+          position: absolute;
+          left: 50px;
+          top: 634px;
+          width: 300px;
+          height: 14px;
+          border-radius: 7px;
+          background: var(--terra-ink);
+          transform-origin: 0 50%;
+        }
+        #s5-new {
+          left: 66px;
+          top: 696px;
+          font-size: 190px;
+          color: var(--terra-ink);
+          transform-origin: 20% 80%;
+        }
+        #s5-charter {
+          left: 70px;
+          top: 904px;
+          font-size: 34px;
+        }
+      </style>
+      <div id="s5-root" data-composition-id="s5-menu" data-width="1920" data-height="1080">
+        <div id="s5-win" class="win">
+          <div id="s5-cam" class="cam">
+            <video id="s5-vid" class="clip" src="assets/clips/menu.mp4" muted playsinline data-start="0" data-duration="5.3333" data-track-index="0"></video>
+          </div>
+        </div>
+        <div id="s5-stamp" class="stamp">09:00</div>
+        <div id="s5-title" class="title">prices, rewritten <em>in ink</em></div>
+        <div id="s5-item" class="note">cappuccino</div>
+        <div id="s5-old" class="s5-price">₹220</div>
+        <div id="s5-strike"></div>
+        <div id="s5-new" class="s5-price">₹215</div>
+        <div id="s5-charter" class="tag sage">inside a fair-pricing charter</div>
+      </div>
+      <script>
+        (() => {
+          const B = 2 / 3;
+          const W = 1216, H = 760, K = W / 1600;
+          const cam = (cx, cy, s) => ({
+            scale: s,
+            x: Math.min(0, Math.max(-(W * s - W), -(cx * K * s - W / 2))),
+            y: Math.min(0, Math.max(-(H * s - H), -(cy * K * s - H / 2))),
+          });
+          const wide = cam(800, 500, 1), price = cam(560, 300, 2.1);
+          const tl = gsap.timeline({ paused: true });
+          tl.fromTo("#s5-win", { y: 900, rotation: 5 }, { y: 0, rotation: -1, duration: 0.6, ease: "back.out(1.2)" }, 0.12);
+          tl.fromTo("#s5-stamp", { scale: 0, rotation: -20 }, { scale: 1, rotation: -3, duration: 0.4, ease: "back.out(2.4)" }, 0.3);
+          tl.fromTo("#s5-title", { x: -560, opacity: 0 }, { x: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, 0.45);
+          tl.fromTo("#s5-cam", wide, { ...price, duration: 0.7, ease: "power3.inOut" }, B);
+          tl.fromTo("#s5-item", { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: 0.35, ease: "power2.inOut" }, 2 * B - 0.2);
+          tl.fromTo("#s5-old", { y: 70, opacity: 0 }, { y: 0, opacity: 1, duration: 0.3, ease: "back.out(2)" }, 2 * B);
+          // the owner's price change lands on the third beat
+          tl.fromTo("#s5-strike", { scaleX: 0, rotation: -7 }, { scaleX: 1, rotation: -7, duration: 0.22, ease: "power3.in" }, 3 * B - 0.22);
+          tl.fromTo("#s5-old", { opacity: 1 }, { opacity: 0.45, duration: 0.2, immediateRender: false }, 3 * B);
+          tl.fromTo("#s5-new", { scale: 0, rotation: 16 }, { scale: 1, rotation: -4, duration: 0.5, ease: "elastic.out(1, 0.5)" }, 3 * B + 0.05);
+          tl.fromTo("#s5-charter", { scale: 0, rotation: -8 }, { scale: 1, rotation: 2, duration: 0.4, ease: "back.out(2.2)" }, 5 * B);
+          tl.fromTo("#s5-cam", price, { ...wide, duration: 0.6, ease: "power3.inOut", immediateRender: false }, 5 * B - 0.1);
+          window.__timelines["s5-menu"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

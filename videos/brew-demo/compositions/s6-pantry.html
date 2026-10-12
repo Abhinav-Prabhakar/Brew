@@ -1,0 +1,106 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #s6-root {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+        }
+        #s6-win {
+          left: 70px;
+          top: 110px;
+          width: 1216px;
+          height: 760px;
+        }
+        #s6-stamp {
+          left: 1346px;
+          top: 120px;
+        }
+        #s6-title {
+          left: 1342px;
+          top: 214px;
+          width: 540px;
+          font-size: 80px;
+        }
+        #s6-t1 {
+          left: 300px;
+          top: 180px;
+        }
+        #s6-t2 {
+          left: 560px;
+          top: 640px;
+        }
+        #s6-t3 {
+          left: 820px;
+          top: 800px;
+        }
+        #s6-stat {
+          position: absolute;
+          left: 1338px;
+          top: 520px;
+          width: 540px;
+          font-family: var(--hand);
+          font-size: 190px;
+          line-height: 1;
+          color: var(--terra-ink);
+          transform-origin: 20% 70%;
+        }
+        #s6-n1 {
+          left: 1346px;
+          top: 720px;
+          width: 520px;
+          font-size: 48px;
+        }
+        #s6-n2 {
+          position: absolute;
+          left: 1346px;
+          top: 838px;
+          width: 520px;
+          font-family: var(--body);
+          font-size: 32px;
+          line-height: 1.1;
+        }
+      </style>
+      <div id="s6-root" data-composition-id="s6-pantry" data-width="1920" data-height="1080">
+        <div id="s6-win" class="win">
+          <div id="s6-cam" class="cam">
+            <video id="s6-vid" class="clip" src="assets/clips/pantry.mp4" muted playsinline data-start="0" data-duration="5.3333" data-track-index="0"></video>
+          </div>
+        </div>
+        <div id="s6-stamp" class="stamp">13:30</div>
+        <div id="s6-title" class="title">the pantry knows <em>every lot</em></div>
+        <div id="s6-t1" class="tag sage">first to expire, first out</div>
+        <div id="s6-t2" class="tag mustard">days of cover</div>
+        <div id="s6-t3" class="tag terra">it writes its own order</div>
+        <div id="s6-stat">−<span id="s6-num">53</span>%</div>
+        <div id="s6-n1" class="note">waste, with the rescue shelf</div>
+        <div id="s6-n2">policy C · measured with forked worlds</div>
+      </div>
+      <script>
+        (() => {
+          const B = 2 / 3;
+          const tl = gsap.timeline({ paused: true });
+          tl.fromTo("#s6-win", { x: -1000, rotation: 6 }, { x: 0, rotation: -1, duration: 0.6, ease: "back.out(1.2)" }, 0.12);
+          tl.fromTo("#s6-cam", { scale: 1.12, x: -70, y: -40 }, { scale: 1, x: 0, y: 0, duration: 5.2, ease: "power1.out" }, 0.1);
+          tl.fromTo("#s6-stamp", { scale: 0, rotation: 20 }, { scale: 1, rotation: 3, duration: 0.4, ease: "back.out(2.4)" }, 0.3);
+          tl.fromTo("#s6-title", { x: 560, opacity: 0 }, { x: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, 0.45);
+          [["#s6-t1", -3], ["#s6-t2", 3], ["#s6-t3", -2]].forEach(([id, r], i) => {
+            tl.fromTo(id, { scale: 0, rotation: r * 6 }, { scale: 1, rotation: r, duration: 0.4, ease: "back.out(2.4)" }, (2 + i) * B);
+          });
+          const n = { v: 0 };
+          const num = document.getElementById("s6-num");
+          tl.fromTo("#s6-stat", { scale: 0.4, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.35, ease: "back.out(2)" }, 5 * B - 0.1);
+          tl.to(n, { v: 53, duration: 0.7, ease: "power2.out", onUpdate: () => (num.textContent = String(Math.round(n.v))) }, 5 * B - 0.1);
+          tl.fromTo("#s6-n1", { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: 0.4, ease: "power2.inOut" }, 6 * B);
+          tl.fromTo("#s6-n2", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" }, 6 * B + 0.3);
+          window.__timelines["s6-pantry"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

@@ -1,0 +1,98 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #s7-root {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+        }
+        #s7-win {
+          left: 590px;
+          top: 100px;
+          width: 1264px;
+          height: 790px;
+        }
+        #s7-stamp {
+          left: 70px;
+          top: 120px;
+        }
+        #s7-title {
+          left: 66px;
+          top: 206px;
+          width: 500px;
+          font-size: 130px;
+        }
+        .s7-say {
+          left: 70px;
+          max-width: 480px;
+          white-space: normal;
+          font-family: var(--body);
+          font-size: 40px;
+          line-height: 1.08;
+          border-radius: 22px 22px 22px 4px;
+          transform-origin: 0 100%;
+        }
+        .s7-note {
+          left: 76px;
+          width: 490px;
+          font-size: 44px;
+        }
+        #s7-pool {
+          position: absolute;
+          left: 76px;
+          top: 880px;
+          width: 490px;
+          font-family: var(--body);
+          font-size: 31px;
+          line-height: 1.1;
+        }
+      </style>
+      <div id="s7-root" data-composition-id="s7-kapi" data-width="1920" data-height="1080">
+        <div id="s7-win" class="win">
+          <div id="s7-cam" class="cam">
+            <video id="s7-vid" class="clip" src="assets/clips/kapi.mp4" muted playsinline data-start="0" data-duration="8" data-track-index="0"></video>
+          </div>
+        </div>
+        <div id="s7-stamp" class="stamp">any time</div>
+        <div id="s7-title" class="title">ask <em>Kapi</em></div>
+        <div id="s7-say1" class="tag paper s7-say" style="top: 390px">“show me the bakes”</div>
+        <div id="s7-n1" class="note s7-note" style="top: 490px">→ looks it up: a tool call</div>
+        <div id="s7-say2" class="tag paper s7-say" style="top: 580px">“a butter croissant and an oat latte, please”</div>
+        <div id="s7-n2" class="note s7-note" style="top: 750px">→ a real ticket, on the rail</div>
+        <div id="s7-pool">an LLM pool with failover, or fully scripted with no keys at all</div>
+      </div>
+      <script>
+        (() => {
+          const B = 2 / 3;
+          const W = 1264, H = 790, K = W / 1600;
+          const cam = (cx, cy, s) => ({
+            scale: s,
+            x: Math.min(0, Math.max(-(W * s - W), -(cx * K * s - W / 2))),
+            y: Math.min(0, Math.max(-(H * s - H), -(cy * K * s - H / 2))),
+          });
+          const wide = cam(800, 500, 1), board = cam(1150, 420, 1.45), slip = cam(820, 560, 1.5);
+          const tl = gsap.timeline({ paused: true });
+          tl.fromTo("#s7-win", { x: 1400, rotation: -6 }, { x: 0, rotation: 1, duration: 0.6, ease: "back.out(1.2)" }, 0.12);
+          tl.fromTo("#s7-stamp", { scale: 0, rotation: -20 }, { scale: 1, rotation: -3, duration: 0.4, ease: "back.out(2.4)" }, 0.3);
+          tl.fromTo("#s7-title", { y: 90, opacity: 0, rotation: -6 }, { y: 0, opacity: 1, rotation: 0, duration: 0.5, ease: "back.out(2)" }, 0.45);
+          // the footage is three beats of one conversation: hello (0), the bakes (2 s), the order (4.667 s)
+          tl.fromTo("#s7-say1", { scale: 0 }, { scale: 1, duration: 0.35, ease: "back.out(2.2)" }, 3 * B - 0.15);
+          tl.fromTo("#s7-cam", wide, { ...board, duration: 0.7, ease: "power3.inOut" }, 4 * B);
+          tl.fromTo("#s7-n1", { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: 0.4, ease: "power2.inOut" }, 5 * B);
+          tl.set("#s7-cam", wide, 7 * B);
+          tl.fromTo("#s7-say2", { scale: 0 }, { scale: 1, duration: 0.35, ease: "back.out(2.2)" }, 7 * B);
+          tl.fromTo("#s7-cam", wide, { ...slip, duration: 0.7, ease: "power3.inOut", immediateRender: false }, 8 * B);
+          tl.fromTo("#s7-n2", { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: 0.4, ease: "power2.inOut" }, 9 * B);
+          tl.fromTo("#s7-pool", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" }, 10 * B);
+          tl.fromTo("#s7-cam", slip, { ...wide, duration: 0.5, ease: "power3.inOut", immediateRender: false }, 11 * B);
+          window.__timelines["s7-kapi"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

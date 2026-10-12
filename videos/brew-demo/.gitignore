@@ -1,0 +1,7 @@
+node_modules/
+.hyperframes/
+snapshots/
+assets/footage/
+assets/clips/
+assets/music/*.wav
+renders/
