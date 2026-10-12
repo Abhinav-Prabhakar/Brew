@@ -88,7 +88,7 @@ statement.
 
 ## The film
 
-<video src="./docs/images/brew-film.mp4" width="100%" controls></video>
+![](./docs/images/brew-film.mp4)
 
 <div align="center">
 <a href="docs/images/brew-film.mp4"><img src="docs/images/brew-film.webp" width="100%" alt="one day at brew, a 38-second film cut to the beat: the café tour on the stomps, 'an ML system' on the drop, four managers racing, closing time" /></a>
